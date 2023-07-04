@@ -50,6 +50,11 @@ class PSSendGridSession {
         This function establishes a connection to the SendGrid API by using the user's stored credentials.
     #>
     [void] Connect () {
+        $SessionLifeTime = (Get-Date).AddHours(-12)
+        if ($null -eq $this._CreateDateTime -or $SessionLifeTime -gt $this._CreateDateTime) {
+            $this.Disconnect()
+            throw 'Session lifetime exceeded, reconnect.'
+        }
         if ($this._Credential -is [PSCredential]) {
             $this.BuildEndpointURL([string]'scopes')
             try {
@@ -133,6 +138,9 @@ class PSSendGridSession {
         PSCustomObject[]
     #>
     [PSCustomObject[]] InvokeQuery ([Microsoft.PowerShell.Commands.WebRequestMethod]$WebRequestMethod, [string]$Endpoint) {
+        if ($this._Connected -eq $false) {
+            throw 'You must call the Connect-SendGrid cmdlet before calling any other cmdlets.'
+        }
         $SessionLifeTime = (Get-Date).AddHours(-12)
         if ($null -eq $this._CreateDateTime -or $SessionLifeTime -gt $this._CreateDateTime) {
             $this.Disconnect()

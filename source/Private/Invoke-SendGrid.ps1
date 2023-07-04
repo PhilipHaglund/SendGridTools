@@ -17,11 +17,19 @@
     )
     process {
         if ($PSCmdlet.ShouldProcess("$Method : $Namespace")) {
-            if ($PSBoundParameters.ContainsKey('ContentBody')) {
-                $Query = $script:Session.InvokeQuery($Method, $Namespace, $ContentBody)
+            if ($script:Session -isnot [PSSendGridSession]) {
+                throw 'You must call the Connect-SendGrid cmdlet before calling any other cmdlets.'
             }
-            else {
-                $Query = $script:Session.InvokeQuery($Method, $Namespace)
+            try {
+                if ($PSBoundParameters.ContainsKey('ContentBody')) {
+                    $Query = $script:Session.InvokeQuery($Method, $Namespace, $ContentBody)
+                }
+                else {
+                    $Query = $script:Session.InvokeQuery($Method, $Namespace)
+                }
+            }
+            catch {
+                asd
             }
             $Members = foreach ($Response in $Query) {
                 $Response | Get-Member -MemberType NoteProperty
