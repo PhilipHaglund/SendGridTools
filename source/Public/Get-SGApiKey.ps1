@@ -5,10 +5,12 @@
 
     .DESCRIPTION
         Get-SGApiKey retrieves all API Keys or a specific API Key based on its ID 
-        within the current SendGrid instance.
+        within the current SendGrid instance. If a specific API Key ID is provided, 
+        the cmdlet also returns the scopes added to the key.
 
     .PARAMETER ApiKeyID
-        Specifies the ID of a specific API Key to retrieve. If this parameter is not provided, all API Keys are retrieved.
+        Specifies the ID of a specific API Key to retrieve. If this parameter is not provided, all API Keys are retrieved. 
+        When a specific API Key ID is provided, the associated scopes of the key are also retrieved.
 
     .EXAMPLE
         PS C:\> Get-SGApiKey
@@ -18,9 +20,10 @@
     .EXAMPLE
         PS C:\> Get-SGApiKey -ApiKeyID <apiKeyId>
         
-        This command retrieves the API Key with the specified ID within the current SendGrid instance.
+        This command retrieves the API Key with the specified ID within the current SendGrid instance and returns 
+        the scopes added to the key.
     #>
-    [CmdletBinding(DefaultParameterSetName = 'Default')]
+    [CmdletBinding()]
     param (
 
         # Specifies the ID of a specific API Key to retrieve. If this parameter is not provided, all API Keys are retrieved.
