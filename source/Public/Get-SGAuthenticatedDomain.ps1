@@ -11,6 +11,9 @@
     .PARAMETER UniqueId
         Specifies the UniqueId of a specific Authenticated Domain to retrieve. If this parameter is not provided, all Authenticated Domains are retrieved.
 
+    .PARAMETER OnBehalfOf
+        Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
+
     .EXAMPLE
         PS C:\> Get-SMSGAuthenticatedDomain
         
@@ -55,35 +58,87 @@
         IPAddresses       : {}
         UniqueId          : 12589712
         UserId            : 8262273
+        Username          : Top Account
 
         This command retrieves the Authenticated Domain with the UniqueId '12589712' within the current SendGrid instance.
-    #>
-    [CmdletBinding(DefaultParameterSetName = 'Default')]
-    param (
 
+        .EXAMPLE
+        PS C:\> Get-SMSGAuthenticatedDomain -UniqueId 12589712 -OnBehalfOf 'Subuser'
+
+        Domain            : email.example.com
+        Subdomain         : em200
+        User              : Top Account
+        Valid             : True
+        AutomaticSecurity : True
+        Default           : False
+        ValidationAttempt : 2021-11-12 07:38:27
+        DNS               : @{MailCNAME=; DKIM1=; DKIM2=}
+        IPAddresses       : {}
+        UniqueId          : 12589712
+        UserId            : 8262273
+        Username          : Subuser
+
+        This command retrieves the Authenticated Domain with the UniqueId '12589712' within for the Subuser 'Subuser' within the current SendGrid instance.
+    #>
+    [CmdletBinding(
+        SupportsShouldProcess
+    )]
+    param (
         # Specifies the UniqueId of a specific Authenticated Domain to retrieve. If this parameter is not provided, all Authenticated Domains are retrieved.
         [Parameter(
-            Mandatory,
-            ParameterSetName = 'UniqueId'
+            ValueFromPipeline,
+            ValueFromPipelineByPropertyName
         )]
-        [string]$UniqueId
+        [string[]]$UniqueId,
+
+        # Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
+        [Parameter()]
+        [string]$OnBehalfOf
     )
     process {
+        $InvokeSplat = @{
+            Method      = 'Get'
+            Namespace   = 'whitelabel/domains'
+            ErrorAction = 'Stop'
+        }
+        if ($PSBoundParameters.OnBehalfOf) {
+            $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
+        }
         if ($PSBoundParameters.UniqueId) {
-            try {
-                Invoke-SendGrid -Method 'Get' -Namespace "whitelabel/domains/$UniqueId" -ErrorAction Stop
-            }
-            catch {
-                Write-Error ('Failed to retrieve SendGrid Authenticated Domain. {0}' -f $_.Exception.Message) -ErrorAction Stop
+            foreach ($Id in $UniqueId) {
+                if ($PSCmdlet.ShouldProcess(('{0}' -f $Id))) {
+                    $InvokeSplat['Namespace'] = "whitelabel/domains/$Id"
+                    try {
+                        $InvokeResult = Invoke-SendGrid @InvokeSplat
+                        if ($InvokeResult.Errors.Count -gt 0) {
+                            throw $InvokeResult.Errors.Message
+                        }
+                        else {
+                            $InvokeResult
+                        }
+                    }
+                    catch {
+                        Write-Error ('Failed to retrieve SendGrid Authenticated Domain. {0}' -f $_.Exception.Message) -ErrorAction Stop
+                    }
+                }
             }
         }
         else {
-            try {
-                Invoke-SendGrid -Method 'Get' -Namespace "whitelabel/domains" -ErrorAction Stop
-            }
-            catch {
-                Write-Error ('Failed to retrieve SendGrid Authenticated Domains. {0}' -f $_.Exception.Message) -ErrorAction Stop
+            if ($PSCmdlet.ShouldProcess(('All Authenticated Domains'))) {
+                try {
+                
+                    $InvokeResult = Invoke-SendGrid @InvokeSplat
+                    if ($InvokeResult.Errors.Count -gt 0) {
+                        throw $InvokeResult.Errors.Message
+                    }
+                    else {
+                        $InvokeResult
+                    }
+                }
+                catch {
+                    Write-Error ('Failed to retrieve SendGrid Authenticated Domain. {0}' -f $_.Exception.Message) -ErrorAction Stop
+                }
             }
         }
-    }
+    }   
 }

@@ -22,31 +22,52 @@
     .NOTES
         This function requires an active SendGrid instance to work properly. Make sure to check the validity of the UniqueId parameter.
     #>
-    [CmdletBinding(SupportsShouldProcess)]
+    [CmdletBinding(
+        SupportsShouldProcess
+    )]
     param (
-
         # Specifies the unique ID of the branded link to validate. This parameter is mandatory.
         [Parameter(
             Mandatory,
-            ValueFromPipelineByPropertyName
+            ValueFromPipelineByPropertyName,
+            ValueFromPipeline
         )]
-        [string]$UniqueId
+        [string]$UniqueId,
+
+        # Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
+        [Parameter()]
+        [string]$OnBehalfOf
     )   
     process {
-        $SGBrandedDomainLink = Get-SGBrandedDomainLink -UniqueId $UniqueId -Credential $Credential
-        $SGBrandedDomainLink
-
-        if ($PSCmdlet.ShouldProcess(('{0}.{1}' -f $SGBrandedDomainLink.Subdomain, $SGBrandedDomainLink.Domain))) {
-
-            if ($SGBrandedDomainLink.Valid -eq $true) {
-                Write-Verbose -Message ('Branded Link Domain already validated!') -Verbose
+        foreach ($Id in $UniqueId) {
+            $InvokeSplat = @{
+                Method      = 'Post'
+                Namespace   = "whitelabel/links/$Id/validate"
+                ErrorAction = 'Stop'
             }
-            else {
-                try {
-                    Invoke-SendGrid -Method 'Post' -Namespace "whitelabel/links/$UniqueId/validate" -ErrorAction Stop
+            $GetSplat = @{
+                UniqueId    = $Id
+                ErrorAction = 'Stop'
+            }
+            if ($PSBoundParameters.OnBehalfOf) {
+                $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
+                $GetSplat.Add('OnBehalfOf', $OnBehalfOf)
+            }
+            $SGBrandedDomainLink = Get-SGBrandedDomainLink @GetSplat
+            $SGBrandedDomainLink
+
+            if ($PSCmdlet.ShouldProcess(('{0}.{1}' -f $SGBrandedDomainLink.Subdomain, $SGBrandedDomainLink.Domain))) {
+
+                if ($SGBrandedDomainLink.Valid -eq $true) {
+                    Write-Verbose -Message ('Branded Link Domain already validated!') -Verbose
                 }
-                catch {
-                    Write-Error ('Failed to validate SendGrid Branded Domain Link. {0}' -f $_.Exception.Message) -ErrorAction Stop
+                else {
+                    try {
+                        Invoke-SendGrid @InvokeSplat
+                    }
+                    catch {
+                        Write-Error ('Failed to validate SendGrid Branded Domain Link. {0}' -f $_.Exception.Message) -ErrorAction Stop
+                    }
                 }
             }
         }

@@ -18,35 +18,62 @@
         PS C:\> Confirm-SGAuthenticatedDomain -UniqueId '1234567'
         
         This command validates the authenticated domain with the unique ID '1234567' in the current SendGrid instance.
+
+    .EXAMPLE
+        PS C:\> Get-SGAuthenticatedDomain | Confirm-SGAuthenticatedDomain
+        
+        This command validates all authenticated domains in the current SendGrid instance.
     
     .NOTES
         This function requires an active SendGrid instance to work properly. Make sure to check the validity of the UniqueId parameter.
     #>
-    [CmdletBinding(SupportsShouldProcess)]
+    [CmdletBinding(
+        SupportsShouldProcess
+    )]
     param (
 
         # Specifies the unique ID of the branded link to validate. This parameter is mandatory.
         [Parameter(
             Mandatory,
-            ValueFromPipelineByPropertyName
+            ValueFromPipelineByPropertyName,
+            ValueFromPipeline
         )]
-        [string]$UniqueId
+        [string[]]$UniqueId,
+
+        # Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
+        [Parameter()]
+        [string]$OnBehalfOf
     )    
     process {
-        $SGAuthenticatedDomain = Get-SGAuthenticatedDomain -UniqueId $UniqueId -ErrorAction Stop
-        $SGAuthenticatedDomain
-
-        if ($PSCmdlet.ShouldProcess(('{0}.{1}' -f $SGAuthenticatedDomain.Subdomain, $SGAuthenticatedDomain.Domain))) {
-
-            if ($SGAuthenticatedDomain.Valid -eq $true) {
-                Write-Verbose -Message ('Authenticated Domain already validated!') -Verbose
+        foreach ($Id in $UniqueId) { 
+            $InvokeSplat = @{
+                Method      = 'Post'
+                Namespace   = "whitelabel/domains/$Id/validate"
+                ErrorAction = 'Stop'
             }
-            else {
-                try {
-                    Invoke-SendGrid -Method 'Post' -Namespace "whitelabel/domains/$UniqueId/validate" -ErrorAction Stop
+            $GetSplat = @{
+                UniqueId    = $Id
+                ErrorAction = 'Stop'
+            }
+            if ($PSBoundParameters.OnBehalfOf) {
+                $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
+                $GetSplat.Add('OnBehalfOf', $OnBehalfOf)
+            }
+            $SGAuthenticatedDomain = Get-SGAuthenticatedDomain @GetSplat
+            $SGAuthenticatedDomain
+
+            if ($PSCmdlet.ShouldProcess(('{0}.{1}' -f $SGAuthenticatedDomain.Subdomain, $SGAuthenticatedDomain.Domain))) {
+
+                if ($SGAuthenticatedDomain.Valid -eq $true) {
+                    Write-Verbose -Message ('Authenticated Domain already validated!') -Verbose
                 }
-                catch {
-                    Write-Error ('Failed to validate SendGrid Authenticated Domain. {0}' -f $_.Exception.Message) -ErrorAction Stop
+                else {
+                    try {
+                        Invoke-SendGrid @InvokeSplat
+                    }
+                    catch {
+                        Write-Error ('Failed to validate SendGrid Authenticated Domain. {0}' -f $_.Exception.Message) -ErrorAction Stop
+                    }
                 }
             }
         }

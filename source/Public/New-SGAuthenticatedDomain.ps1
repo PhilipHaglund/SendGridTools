@@ -68,6 +68,10 @@
         [Parameter()]
         [string]$Subdomain,
 
+        # Specifies a subuser to be used, this is optional.
+        [Parameter()]
+        [string]$SubUser,
+
         # Specify whether to not allow SendGrid to manage your SPF records, DKIM keys, and DKIM key rotation. Default is that SendGrid manages those records.
         [Parameter()]
         [switch]$DisableAutomaticSecurity,
@@ -76,6 +80,10 @@
         [Parameter()]
         [ValidatePattern('^[a-zA-Z\d]{3}$')]
         $CustomDkimSelector = 'sg',
+
+        # Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
+        [Parameter()]
+        [string]$OnBehalfOf,
 
         # Specifies if the current domain (parameter Domain) should be created despite it contains a subdomain (email.example.com).
         [Parameter()]
@@ -126,7 +134,9 @@
         $ContentBody.Add('custom_dkim_selector', $CustomDkimSelector)
         $ContentBody.Add('default', $false)
 
-        
+        if ($PSBoundParameters.ContainsKey('SubUser')) {
+            $ContentBody.Add('username', $SubUser)
+        }
         if ($PSBoundParameters.ContainsKey('DisableAutomaticSecurity')) {
             $ContentBody.Add('automatic_security', $false)
         }
@@ -139,11 +149,26 @@
         else {
             $ContentBody.Add('custom_spf', $false)
         }
+        $InvokeSplat = @{
+            Method      = 'Post'
+            Namespace   = 'whitelabel/domains'
+            ErrorAction = 'Stop'
+        }
+        if ($PSBoundParameters.OnBehalfOf) {
+            $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
+        }
+        $InvokeSplat.Add('ContentBody', $ContentBody)
     }    
     process {
         if ($PSCmdlet.ShouldProcess($ProcessMessage)) {
             try {
-                Invoke-SendGrid -Method 'Post' -Namespace 'whitelabel/domains' -ContentBody $ContentBody -ErrorAction Stop
+                $InvokeResult = Invoke-SendGrid @InvokeSplat
+                if ($InvokeResult.Errors.Count -gt 0) {
+                    throw $InvokeResult.Errors.Message
+                }
+                else {
+                    $InvokeResult
+                }
             }
             catch {
                 Write-Error ('Failed to add SendGrid Authenticated Domain. {0}' -f $_.Exception.Message) -ErrorAction Stop

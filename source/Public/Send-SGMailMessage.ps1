@@ -30,7 +30,7 @@
         This command sends an email with the specified parameters via the SendGrid API.
     #>
     [CmdletBinding()]
-    [Alias('Send-SGMessage','Send-SGMail')]
+    [Alias('Send-SGMessage', 'Send-SGMail')]
     param (
         # Specifies the sender's email address.
         [Parameter(
@@ -52,7 +52,6 @@
             Position = 3,
             Mandatory = $true
         )]
-        [Alias('Recipient')]
         [MailAddress[]]$CC,
 
         # An array of recipients who will receive a blind copy of your email. Each object in this array must contain the recipient's email address. Each object in the array may optionally contain the recipient's name. 'Name<Name@example.com>'
@@ -60,7 +59,6 @@
             Position = 4,
             Mandatory = $true
         )]
-        [Alias('Recipient')]
         [MailAddress[]]$BCC,
 
         # Specifies the email subject. Limited to 128 chars, because you should write a proper subject... :D
@@ -75,7 +73,12 @@
         [Parameter(
             Mandatory = $true
         )]
-        [string]$Body
+        [string]$Body,
+
+        [Parameter()]
+        [alias('Importance')]
+        [ValidateSet('Low', 'Normal', 'High')]
+        [string] $Priority
     )
     
     process {

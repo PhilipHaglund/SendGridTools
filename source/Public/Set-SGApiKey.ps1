@@ -6,7 +6,7 @@
     .DESCRIPTION
         Set-SGApiKey updates the name and scopes of a given API key. 
 
-    .PARAMETER UniqueId
+    .PARAMETER ApiKeyID
         Specifies the ID of the API Key to be updated.
 
     .PARAMETER Scopes
@@ -16,22 +16,24 @@
         Specifies the new name of the API Key. This parameter is not mandatory.
 
     .EXAMPLE
-        PS C:\> Set-SGApiKey -UniqueId 'R2l2W3kZSQukQv4lCkG3zW' -Scopes 'access_settings.activity.read', 'alerts.create', 'alerts.read'
+        PS C:\> Set-SGApiKey -ApiKeyID 'R2l2W3kZSQukQv4lCkG3zW' -Scopes 'access_settings.activity.read', 'alerts.create', 'alerts.read'
 
         This command updates the scopes of the API Key with the specified ID within the current SendGrid instance.
 
     .EXAMPLE
-        PS C:\> Set-SGApiKey -UniqueId 'R2l2W3kZSQukQv4lCkG3zW' -Scopes 'access_settings.activity.read', 'alerts.create', 'alerts.read' -NewName 'MyUpdatedKey'
+        PS C:\> Set-SGApiKey -ApiKeyID 'R2l2W3kZSQukQv4lCkG3zW' -Scopes 'access_settings.activity.read', 'alerts.create', 'alerts.read' -NewName 'MyUpdatedKey'
 
         This command updates both the name and scopes of the API Key with the specified ID within the current SendGrid instance.
     #>
-    [CmdletBinding(SupportsShouldProcess)]
+    [CmdletBinding(
+        SupportsShouldProcess
+    )]
     param (
         # Specifies the ID of the API Key to be updated.
         [Parameter(
             Mandatory = $true
         )]
-        [string]$UniqueId,
+        [string[]]$ApiKeyID,
 
         # Specifies the new scopes of the API Key.
         [Parameter(
@@ -44,26 +46,56 @@
         [Parameter(
             Mandatory = $false
         )]
-        [string]$NewName
+        [string]$NewName,
+
+        # Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
+        [Parameter()]
+        [string]$OnBehalfOf
     )
     
     process {
-        $SGApiKey = Get-SGApiKey -UniqueId $UniqueId -ErrorAction Stop
-        if ($PSCmdlet.ShouldProcess($UniqueId)) {
-            Write-Verbose -Message ('Updating key {0}' -f $SGApiKey.Name)
+        if ($ApiKeyID.Count -gt 1) {
+            Write-Warning ('Only one API Key can be updated at a time. Only scopes will be updated for {0} API Keys.' -f ($ApiKeyID.Count - 1))
+            $PSBoundParameters.Remove('NewName')
+        }
+        foreach ($Id in $ApiKeyID) {
+            $InvokeSplat = @{
+                Method      = 'Put'
+                Namespace   = "api_keys/$Id"
+                ErrorAction = 'Stop'
+            }
+            $GetSplat = @{
+                ApiKeyID    = $Id
+                ErrorAction = 'Stop'
+            }
 
-            [hashtable]$ContentBody = @{
-                scopes = $Scopes
+            if ($PSBoundParameters.OnBehalfOf) {
+                $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
+                $GetSplat.Add('OnBehalfOf', $OnBehalfOf)
             }
-            if ($PSBoundParameters.ContainsKey('NewName')) {
-                $ContentBody.Add('name', $NewName)
-            }
+            Get-SGApiKey @GetSplat
+            if ($PSCmdlet.ShouldProcess($Id)) {
+                Write-Verbose -Message ('Updating key {0}' -f $SGApiKey.Name)
 
-            try {
-                Invoke-SendGrid -Method 'Put' -Namespace "api_keys/$ApiKeyID" -ContentBody $ContentBody -ErrorAction Stop
-            }
-            catch {
-                Write-Error ('Failed to update SendGrid API Key. {0}' -f $_.Exception.Message) -ErrorAction Stop
+                [hashtable]$ContentBody = @{
+                    scopes = $Scopes
+                }
+                if ($PSBoundParameters.ContainsKey('NewName')) {
+                    $ContentBody.Add('name', $NewName)
+                    $InvokeSplat.Add('ContentBody', $ContentBody)
+                }
+                try {
+                    $InvokeResult = Invoke-SendGrid @InvokeSplat
+                    if ($InvokeResult.Errors.Count -gt 0) {
+                        throw $InvokeResult.Errors.Message
+                    }
+                    else {
+                        $InvokeResult
+                    }
+                }
+                catch {
+                    Write-Error ('Failed to update SendGrid API Key. {0}' -f $_.Exception.Message) -ErrorAction Stop
+                }
             }
         }
     }

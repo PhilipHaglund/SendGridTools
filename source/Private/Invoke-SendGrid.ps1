@@ -26,7 +26,8 @@ function Invoke-SendGrid {
         # The web request method.
         [Parameter(
             Mandatory,
-            HelpMessage = 'The web request method.'
+            HelpMessage = 'The web request method.',
+            Position = 0
         )]
         [ValidateNotNullOrEmpty()]
         [Microsoft.PowerShell.Commands.WebRequestMethod]$Method,
@@ -34,15 +35,27 @@ function Invoke-SendGrid {
         # The endpoint to use.
         [Parameter(
             Mandatory,
-            HelpMessage = 'The SendGrid endpoint to use.'
+            HelpMessage = 'The SendGrid endpoint to use.',
+            Position = 1
         )]
         [ValidateNotNullOrEmpty()]
         [string]$Namespace,
 
         # The content body to send with the request.
-        [Parameter()]
+        [Parameter(
+            HelpMessage = 'The content body to send with the request.',
+            Position = 2
+        )]
         [ValidateNotNullOrEmpty()]
-        [hashtable]$ContentBody
+        [hashtable]$ContentBody,
+
+        # The username of the subuser to send the query on behalf of.
+        [Parameter(
+            HelpMessage = 'The username of the subuser to send the query on behalf of.',
+            Position = 3
+        )]
+        [ValidateNotNullOrEmpty()]
+        [string]$OnBehalfOf
     )
     begin {
         # Function to get unique properties of an object.
@@ -71,8 +84,14 @@ function Invoke-SendGrid {
             try {
                 Write-Verbose 'Attempting to invoke query'
                 # Invoke the query based on provided parameters.
-                if ($PSBoundParameters.ContainsKey('ContentBody')) {
+                if ($PSBoundParameters.ContainsKey('ContentBody') -and $PSBoundParameters.ContainsKey('OnBehalfOf')) {
+                    $Query = $script:Session.InvokeQuery($Method, $Namespace, $ContentBody, $OnBehalfOf)
+                }
+                elseif ($PSBoundParameters.ContainsKey('ContentBody')) {
                     $Query = $script:Session.InvokeQuery($Method, $Namespace, $ContentBody)
+                }
+                elseif ($PSBoundParameters.ContainsKey('OnBehalfOf')) {
+                    $Query = $script:Session.InvokeQuery($Method, $Namespace, $OnBehalfOf)
                 }
                 else {
                     $Query = $script:Session.InvokeQuery($Method, $Namespace)

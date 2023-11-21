@@ -32,21 +32,47 @@
         # Specifies a the UniqueId for the branded link to remove.
         [Parameter(
             Mandatory,
+            ValueFromPipeline,
             ValueFromPipelineByPropertyName
-            )]
-        [string]$UniqueId
+        )]
+        [string]$UniqueId,
+
+        # Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
+        [Parameter()]
+        [string]$OnBehalfOf
     )
     process {
-        $SGBrandedDomainLink = Get-SGBrandedDomainLink -UniqueId $UniqueId -ErrorAction Sop
-        Write-Verbose -Message ("Don't forget to remove DNS records:") -Verbose
-        $SGBrandedDomainLink
-
-        if ($PSCmdlet.ShouldProcess(('{0}.{1}' -f $SGBrandedDomainLink.Subdomain, $SGBrandedDomainLink.Domain))) {
-            try {
-                Invoke-SendGrid -Method 'Delete' -Namespace "whitelabel/links/$UniqueId" -ErrorAction Stop
+        foreach ($Id in $UniqueId) { 
+            $InvokeSplat = @{
+                Method      = 'Delete'
+                Namespace   = "whitelabel/links/$Id"
+                ErrorAction = 'Stop'
             }
-            catch {
-                Write-Error ('Failed to remove SendGrid Branded Domain Link. {0}' -f $_.Exception.Message) -ErrorAction Stop
+            $GetSplat = @{
+                UniqueId    = $Id
+                ErrorAction = 'Stop'
+            }
+            if ($PSBoundParameters.OnBehalfOf) {
+                $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
+                $GetSplat.Add('OnBehalfOf', $OnBehalfOf)
+            }
+            $SGBrandedDomainLink = Get-SGBrandedDomainLink @GetSplat
+            Write-Verbose -Message ("Don't forget to remove DNS records:") -Verbose
+            $SGBrandedDomainLink
+
+            if ($PSCmdlet.ShouldProcess(('{0}.{1}' -f $SGBrandedDomainLink.Subdomain, $SGBrandedDomainLink.Domain))) {
+                try {
+                    $InvokeResult = Invoke-SendGrid @InvokeSplat
+                    if ($InvokeResult.Errors.Count -gt 0) {
+                        throw $InvokeResult.Errors.Message
+                    }
+                    else {
+                        $InvokeResult
+                    }
+                }
+                catch {
+                    Write-Error ('Failed to remove SendGrid Branded Domain Link. {0}' -f $_.Exception.Message) -ErrorAction Stop
+                }
             }
         }
     }

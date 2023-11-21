@@ -54,23 +54,40 @@
             ParameterSetName = 'FullAccess',
             Mandatory
         )]
-        [switch]$FullAccessKey
+        [switch]$FullAccessKey,
+
+        # Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
+        [Parameter()]
+        [string]$OnBehalfOf
     )
     begin {
         [hashtable]$ContentBody = @{
-            name   = $Name
+            name = $Name
         }
         if ($PSCmdlet.ParameterSetName -eq 'Scopes') {
             $ContentBody.Add('scopes', $Scopes)
         }
     }
-    
     process {
+        $InvokeSplat = @{
+            Method      = 'Post'
+            Namespace   = 'api_keys'
+            ErrorAction = 'Stop'
+        }
+        if ($PSBoundParameters.OnBehalfOf) {
+            $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
+        }
+        $InvokeSplat.Add('ContentBody', $ContentBody)
         if ($PSCmdlet.ParameterSetName -eq 'FullAccess') {
             if ($PSCmdlet.ShouldContinue("You are about to create an API key ($Name) with Full Access. Do you want to continue?", $MyInvocation.MyCommand.Name)) {
                 try {
-                    $ContentBody
-                    Invoke-SendGrid -Method 'Post' -Namespace 'api_keys' -ContentBody $ContentBody -ErrorAction Stop
+                    $InvokeResult = Invoke-SendGrid @InvokeSplat
+                    if ($InvokeResult.Errors.Count -gt 0) {
+                        throw $InvokeResult.Errors.Message
+                    }
+                    else {
+                        $InvokeResult
+                    }
                 }
                 catch {
                     Write-Error ('Failed to create a FullAccess SendGrid API key. {0}' -f $_.Exception.Message) -ErrorAction Stop
@@ -80,8 +97,13 @@
         else {
             if ($PSCmdlet.ShouldProcess($Name)) {
                 try {
-                    Invoke-SendGrid -Method 'Post' -Namespace 'api_keys' -ContentBody $ContentBody -ErrorAction Stop
-                    $ContentBody
+                    $InvokeResult = Invoke-SendGrid @InvokeSplat
+                    if ($InvokeResult.Errors.Count -gt 0) {
+                        throw $InvokeResult.Errors.Message
+                    }
+                    else {
+                        $InvokeResult
+                    }
                 }
                 catch {
                     Write-Error ('Failed to create SendGrid API key. {0}' -f $_.Exception.Message) -ErrorAction Stop

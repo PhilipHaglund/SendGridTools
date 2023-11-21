@@ -43,6 +43,10 @@
         [Parameter()]
         [string]$Subdomain = 'link',
 
+        # Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
+        [Parameter()]
+        [string]$OnBehalfOf,
+
         # Specifies if the current domain (parameter Domain) should be created despite it contains a subdomain (email.example.com).
         [Parameter()]
         [switch]$Force
@@ -66,9 +70,24 @@
         $ContentBody.Add('default', $false)
     }    
     process {
+        $InvokeSplat = @{
+            Method      = 'Post'
+            Namespace   = 'whitelabel/links'
+            ErrorAction = 'Stop'
+        }
+        if ($PSBoundParameters.OnBehalfOf) {
+            $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
+        }
+        $InvokeSplat.Add('ContentBody', $ContentBody)
         if ($PSCmdlet.ShouldProcess($ProcessMessage)) {
             try {
-                Invoke-SendGrid -Method 'Post' -Namespace 'whitelabel/links' -ContentBody $ContentBody -ErrorAction Stop
+                $InvokeResult = Invoke-SendGrid @InvokeSplat
+                if ($InvokeResult.Errors.Count -gt 0) {
+                    throw $InvokeResult.Errors.Message
+                }
+                else {
+                    $InvokeResult
+                }
             }
             catch {
                 Write-Error ('Failed to create SendGrid Branded Domain Link. {0}' -f $_.Exception.Message) -ErrorAction Stop

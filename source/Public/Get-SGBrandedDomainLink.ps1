@@ -53,34 +53,83 @@
 
         This command retrieves the Branded Domain Link with the UniqueId '12589712' within the current SendGrid instance.
 
+    .EXAMPLE
+        PS C:\> Get-SGBrandedDomainLink -OnBehalfOf 'Subuser'
+
+        Domain            : email.example.com
+        Subdomain         : url6142
+        User              : Top Account
+        Valid             : True
+        Default           : False
+        ValidationAttempt : 2021-11-12 07:38:12
+        DNS               : @{DomainCNAME=; OwnerCNAME=}
+        UniqueId          : 12589712
+        UserId            : 8262273
+
+        This command retrieves all Branded Domain Links within the current SendGrid instance on behalf of the specified subuser.
+
     .NOTES
         To use this function, you must be connected to a SendGrid instance. Use the Connect-SendGrid function to establish a connection.
     #>
-    [CmdletBinding(DefaultParameterSetName = 'Default')]
+    [CmdletBinding(
+        SupportsShouldProcess
+    )]
     param (
 
         # Specifies a UniqueId to retrieve
         [Parameter(
-            Mandatory,
-            ParameterSetName = 'UniqueId'
+            ValueFromPipeline,
+            ValueFromPipelineByPropertyName
         )]
-        [string]$UniqueId
+        [string]$UniqueId,
+
+        # Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
+        [Parameter()]
+        [string]$OnBehalfOf
     )
     process {
+        $InvokeSplat = @{
+            Method      = 'Get'
+            Namespace   = 'whitelabel/links'
+            ErrorAction = 'Stop'
+        }
+        
+        if ($PSBoundParameters.OnBehalfOf) {
+            $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
+        }
         if ($PSBoundParameters.UniqueId) {
-            try {
-                Invoke-SendGrid -Method 'Get' -Namespace "whitelabel/links/$UniqueId" -ErrorAction Stop
-            }
-            catch {
-                Write-Error ('Failed to retrieve SendGrid SendGrid Branded Domain Link. {0}' -f $_.Exception.Message) -ErrorAction Stop
+            foreach ($Id in $UniqueId) {
+                if ($PSCmdlet.ShouldProcess(('{0}' -f $Id))) {
+                    $InvokeSplat['Namespace'] = "whitelabel/links/$Id"
+                    try {
+                        $InvokeResult = Invoke-SendGrid @InvokeSplat
+                        if ($InvokeResult.Errors.Count -gt 0) {
+                            throw $InvokeResult.Errors.Message
+                        }
+                        else {
+                            $InvokeResult
+                        }
+                    }
+                    catch {
+                        Write-Error ('Failed to retrieve SendGrid SendGrid Branded Domain Link. {0}' -f $_.Exception.Message) -ErrorAction Stop
+                    }
+                }
             }
         }
-        else {            
-            try {
-                Invoke-SendGrid -Method 'Get' -Namespace 'whitelabel/links' -ErrorAction Stop
-            }
-            catch {
-                Write-Error ('Failed to retrieve SendGrid SendGrid Branded Domain Links. {0}' -f $_.Exception.Message) -ErrorAction Stop
+        else {
+            if ($PSCmdlet.ShouldProcess(('{0}' -f 'All Branded Domain Links'))) {
+                try {
+                    $InvokeResult = Invoke-SendGrid @InvokeSplat
+                    if ($InvokeResult.Errors.Count -gt 0) {
+                        throw $InvokeResult.Errors.Message
+                    }
+                    else {
+                        $InvokeResult
+                    }
+                }
+                catch {
+                    Write-Error ('Failed to retrieve SendGrid SendGrid Branded Domain Link. {0}' -f $_.Exception.Message) -ErrorAction Stop
+                }
             }
         }
     }

@@ -33,21 +33,48 @@
         # Specifies the unique identifier for the authenticated domain to remove.
         [Parameter(
             Mandatory,
+            ValueFromPipeline,
             ValueFromPipelineByPropertyName
         )]
-        [string]$UniqueId
+        [string[]]$UniqueId,
+
+        # Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
+        [Parameter()]
+        [string]$OnBehalfOf
     )   
     process {
-        $SGAuthenticatedDomain = Get-SGAuthenticatedDomain -UniqueId $UniqueId -ErrorAction Stop
-        Write-Verbose -Message ("Don't forget to remove DNS records:") -Verbose
-        $SGAuthenticatedDomain
-
-        if ($PSCmdlet.ShouldProcess(('{0}.{1}' -f $SGAuthenticatedDomain.Subdomain, $SGAuthenticatedDomain.Domain))) {
-            try {
-                Invoke-SendGrid -Method 'Delete' -Namespace "whitelabel/domains/$UniqueId" -ErrorAction Stop
+        foreach ($Id in $UniqueId) { 
+            $InvokeSplat = @{
+                Method      = 'Delete'
+                Namespace   = "whitelabel/domains/$Id"
+                ErrorAction = 'Stop'
             }
-            catch {
-                Write-Error ('Failed to remove SendGrid Authenticated Domain. {0}' -f $_.Exception.Message) -ErrorAction Stop
+            $GetSplat = @{
+                UniqueId    = $Id
+                ErrorAction = 'Stop'
+            }
+            if ($PSBoundParameters.OnBehalfOf) {
+                $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
+                $GetSplat.Add('OnBehalfOf', $OnBehalfOf)
+            }
+            $SGAuthenticatedDomain = Get-SGAuthenticatedDomain @GetSplat
+            
+            Write-Verbose -Message ("Don't forget to remove DNS records:") -Verbose
+            $SGAuthenticatedDomain
+
+            if ($PSCmdlet.ShouldProcess(('{0}.{1}' -f $SGAuthenticatedDomain.Subdomain, $SGAuthenticatedDomain.Domain))) {
+                try {
+                    $InvokeResult = Invoke-SendGrid @InvokeSplat
+                    if ($InvokeResult.Errors.Count -gt 0) {
+                        throw $InvokeResult.Errors.Message
+                    }
+                    else {
+                        $InvokeResult
+                    }
+                }
+                catch {
+                    Write-Error ('Failed to remove SendGrid Authenticated Domain. {0}' -f $_.Exception.Message) -ErrorAction Stop
+                }
             }
         }
     }

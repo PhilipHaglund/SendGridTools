@@ -19,11 +19,22 @@
     [CmdletBinding()]
     param ()
     process {
+        $InvokeSplat = @{
+            Method      = 'Get'
+            Namespace   = 'scopes'
+            ErrorAction = 'Stop'
+        }
         try {
-            Invoke-SendGrid -Method 'Get' -Namespace 'scopes' -ErrorAction Stop
+            $InvokeResult = Invoke-SendGrid @InvokeSplat
+            if ($InvokeResult.Errors.Count -gt 0) {
+                throw $InvokeResult.Errors.Message
+            }
+            else {
+                $InvokeResult
+            }
         }
         catch {
-            Write-Error ('Failed to retrive permission scopes in SendGrid. {0}' -f $_.Exception.Message) -ErrorAction Stop
+            Write-Error ('Failed to retrieve permission scopes in SendGrid. {0}' -f $_.Exception.Message) -ErrorAction Stop
         }
         
     }
