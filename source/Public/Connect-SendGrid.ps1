@@ -83,11 +83,11 @@
                     else {
                         $script:Session.Connect((Get-Credential -Message 'Enter your ApiKey' -UserName 'apikey' -Title 'Connect-SendGrid'))
                     }
-                    Write-Verbose -Message 'Connection to SendGrid established.'
+                    Write-Verbose -Message 'Connection to SendGrid established.' -Verbose
                 }
                 else {
                     $script:Session.Connect()
-                    Write-Verbose -Message 'Existing connection to SendGrid refreshed.'
+                    Write-Verbose -Message 'Existing connection to SendGrid refreshed.' -Verbose
                 }
             }
         }

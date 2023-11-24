@@ -162,13 +162,7 @@
     process {
         if ($PSCmdlet.ShouldProcess($ProcessMessage)) {
             try {
-                $InvokeResult = Invoke-SendGrid @InvokeSplat
-                if ($InvokeResult.Errors.Count -gt 0) {
-                    throw $InvokeResult.Errors.Message
-                }
-                else {
-                    $InvokeResult
-                }
+                Invoke-SendGrid @InvokeSplat
             }
             catch {
                 Write-Error ('Failed to add SendGrid Authenticated Domain. {0}' -f $_.Exception.Message) -ErrorAction Stop

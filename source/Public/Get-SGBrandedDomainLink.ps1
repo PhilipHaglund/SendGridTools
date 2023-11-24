@@ -103,7 +103,7 @@
                     $InvokeSplat['Namespace'] = "whitelabel/links/$Id"
                     try {
                         $InvokeResult = Invoke-SendGrid @InvokeSplat
-                        if ($InvokeResult.Errors.Count -gt 0) {
+                        if ($InvokeResult | Get-Member -Name 'Errors' -MemberType 'NoteProperty') {
                             throw $InvokeResult.Errors.Message
                         }
                         else {
@@ -119,13 +119,7 @@
         else {
             if ($PSCmdlet.ShouldProcess(('{0}' -f 'All Branded Domain Links'))) {
                 try {
-                    $InvokeResult = Invoke-SendGrid @InvokeSplat
-                    if ($InvokeResult.Errors.Count -gt 0) {
-                        throw $InvokeResult.Errors.Message
-                    }
-                    else {
-                        $InvokeResult
-                    }
+                    Invoke-SendGrid @InvokeSplat
                 }
                 catch {
                     Write-Error ('Failed to retrieve SendGrid SendGrid Branded Domain Link. {0}' -f $_.Exception.Message) -ErrorAction Stop

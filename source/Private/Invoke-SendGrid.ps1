@@ -71,7 +71,9 @@ function Invoke-SendGrid {
                 $Object | Get-Member -MemberType NoteProperty
             }
             # Return the unique properties.
-            ($Members | Sort-Object -Property Name -Unique).Name | ConvertTo-TitleCase
+            if ($null -ne $Members) {
+                ($Members | Sort-Object -Property Name -Unique).Name | ConvertTo-TitleCase
+            }
         }
     }
     process {
@@ -139,7 +141,12 @@ function Invoke-SendGrid {
                         }
                     }
                 }
-                $PSObject
+                if ($PSObject | Get-Member -Name 'Errors' -MemberType 'NoteProperty') {
+                    throw $PSObject.Errors.Message
+                }
+                else {
+                    $PSObject
+                }
             }
         }
     }

@@ -25,13 +25,7 @@
             ErrorAction = 'Stop'
         }
         try {
-            $InvokeResult = Invoke-SendGrid @InvokeSplat
-            if ($InvokeResult.Errors.Count -gt 0) {
-                throw $InvokeResult.Errors.Message
-            }
-            else {
-                $InvokeResult
-            }
+            Invoke-SendGrid @InvokeSplat
         }
         catch {
             Write-Error ('Failed to retrieve permission scopes in SendGrid. {0}' -f $_.Exception.Message) -ErrorAction Stop

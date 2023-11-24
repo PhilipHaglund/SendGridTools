@@ -62,13 +62,7 @@
 
             if ($PSCmdlet.ShouldProcess(('{0}.{1}' -f $SGBrandedDomainLink.Subdomain, $SGBrandedDomainLink.Domain))) {
                 try {
-                    $InvokeResult = Invoke-SendGrid @InvokeSplat
-                    if ($InvokeResult.Errors.Count -gt 0) {
-                        throw $InvokeResult.Errors.Message
-                    }
-                    else {
-                        $InvokeResult
-                    }
+                    Invoke-SendGrid @InvokeSplat
                 }
                 catch {
                     Write-Error ('Failed to remove SendGrid Branded Domain Link. {0}' -f $_.Exception.Message) -ErrorAction Stop

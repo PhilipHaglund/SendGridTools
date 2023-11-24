@@ -49,13 +49,7 @@
             if ($PSCmdlet.ShouldProcess('ApiKey: {0}' -f $SGApiKey.Name)) {
                 try {
                     # Deletes the API Key
-                    $InvokeResult = Invoke-SendGrid @InvokeSplat
-                    if ($InvokeResult.Errors.Count -gt 0) {
-                        throw $InvokeResult.Errors.Message
-                    }
-                    else {
-                        $InvokeResult
-                    }
+                    Invoke-SendGrid @InvokeSplat
                 }
                 catch {
                     Write-Error ('Failed to delete SendGrid API Key. {0}' -f $_.Exception.Message) -ErrorAction Stop

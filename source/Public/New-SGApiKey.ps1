@@ -82,7 +82,7 @@
             if ($PSCmdlet.ShouldContinue("You are about to create an API key ($Name) with Full Access. Do you want to continue?", $MyInvocation.MyCommand.Name)) {
                 try {
                     $InvokeResult = Invoke-SendGrid @InvokeSplat
-                    if ($InvokeResult.Errors.Count -gt 0) {
+                    if ($InvokeResult | Get-Member -Name 'Errors' -MemberType 'NoteProperty') {
                         throw $InvokeResult.Errors.Message
                     }
                     else {
@@ -97,13 +97,7 @@
         else {
             if ($PSCmdlet.ShouldProcess($Name)) {
                 try {
-                    $InvokeResult = Invoke-SendGrid @InvokeSplat
-                    if ($InvokeResult.Errors.Count -gt 0) {
-                        throw $InvokeResult.Errors.Message
-                    }
-                    else {
-                        $InvokeResult
-                    }
+                    Invoke-SendGrid @InvokeSplat
                 }
                 catch {
                     Write-Error ('Failed to create SendGrid API key. {0}' -f $_.Exception.Message) -ErrorAction Stop

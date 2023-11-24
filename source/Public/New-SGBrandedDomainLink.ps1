@@ -81,13 +81,7 @@
         $InvokeSplat.Add('ContentBody', $ContentBody)
         if ($PSCmdlet.ShouldProcess($ProcessMessage)) {
             try {
-                $InvokeResult = Invoke-SendGrid @InvokeSplat
-                if ($InvokeResult.Errors.Count -gt 0) {
-                    throw $InvokeResult.Errors.Message
-                }
-                else {
-                    $InvokeResult
-                }
+                Invoke-SendGrid @InvokeSplat
             }
             catch {
                 Write-Error ('Failed to create SendGrid Branded Domain Link. {0}' -f $_.Exception.Message) -ErrorAction Stop

@@ -63,7 +63,7 @@
                 $InvokeSplat.Add('ContentBody', $ContentBody)
                 
                 $InvokeResult = Invoke-SendGrid @InvokeSplat
-                if ($InvokeResult.Errors.Count -gt 0) {
+                if ($InvokeResult | Get-Member -Name 'Errors' -MemberType 'NoteProperty') {
                     throw $InvokeResult.Errors.Message
                 }
                 else {

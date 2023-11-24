@@ -63,13 +63,7 @@
                 if ($PSCmdlet.ShouldProcess(('{0}' -f $Id))) {
                     $InvokeSplat['Namespace'] = "api_keys/$Id"
                     try {
-                        $InvokeResult = Invoke-SendGrid @InvokeSplat
-                        if ($InvokeResult.Errors.Count -gt 0) {
-                            throw $InvokeResult.Errors.Message
-                        }
-                        else {
-                            $InvokeResult
-                        }
+                        Invoke-SendGrid @InvokeSplat
                     }
                     catch {
                         Write-Error ('Failed to retrieve SendGrid API Key. {0}' -f $_.Exception.Message) -ErrorAction Stop
@@ -80,13 +74,7 @@
         else {
             if ($PSCmdlet.ShouldProcess(('{0}' -f 'All API Keys'))) {
                 try {
-                    $InvokeResult = Invoke-SendGrid @InvokeSplat
-                    if ($InvokeResult.Errors.Count -gt 0) {
-                        throw $InvokeResult.Errors.Message
-                    }
-                    else {
-                        $InvokeResult
-                    }
+                    Invoke-SendGrid @InvokeSplat
                 }
                 catch {
                     Write-Error ('Failed to retrieve SendGrid API Key. {0}' -f $_.Exception.Message) -ErrorAction Stop

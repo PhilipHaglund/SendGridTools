@@ -36,16 +36,12 @@
         [string[]]$ApiKeyID,
 
         # Specifies the new scopes of the API Key.
-        [Parameter(
-            Mandatory = $true
-        )]
+        [Parameter()]
         [ValidateSet([SendGridScopes])]
         [string[]]$Scopes,
 
         # Specifies the new name of the API Key. This parameter is not mandatory.
-        [Parameter(
-            Mandatory = $false
-        )]
+        [Parameter()]
         [string]$NewName,
 
         # Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
@@ -73,25 +69,31 @@
                 $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
                 $GetSplat.Add('OnBehalfOf', $OnBehalfOf)
             }
-            Get-SGApiKey @GetSplat
+            $CurrentKey = Get-SGApiKey @GetSplat
             if ($PSCmdlet.ShouldProcess($Id)) {
                 Write-Verbose -Message ('Updating key {0}' -f $SGApiKey.Name)
 
-                [hashtable]$ContentBody = @{
-                    scopes = $Scopes
+                if ($PSBoundParameters.ContainsKey('Scopes')) {
+                    [hashtable]$ContentBody = @{
+                        scopes = $Scopes
+                    }
                 }
+                else {
+                    [hashtable]$ContentBody = @{
+                        scopes = $CurrentKey.Scopes
+                    }
+                }
+                
                 if ($PSBoundParameters.ContainsKey('NewName')) {
                     $ContentBody.Add('name', $NewName)
-                    $InvokeSplat.Add('ContentBody', $ContentBody)
+                    
                 }
+                else {
+                    $ContentBody.Add('name', $CurrentKey.Name)
+                }
+                $InvokeSplat.Add('ContentBody', $ContentBody)
                 try {
-                    $InvokeResult = Invoke-SendGrid @InvokeSplat
-                    if ($InvokeResult.Errors.Count -gt 0) {
-                        throw $InvokeResult.Errors.Message
-                    }
-                    else {
-                        $InvokeResult
-                    }
+                    Invoke-SendGrid @InvokeSplat
                 }
                 catch {
                     Write-Error ('Failed to update SendGrid API Key. {0}' -f $_.Exception.Message) -ErrorAction Stop
