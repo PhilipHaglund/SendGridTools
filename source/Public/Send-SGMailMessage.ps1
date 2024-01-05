@@ -71,17 +71,53 @@
 
         # Specifies the email body.
         [Parameter(
-            Mandatory = $true
+            Mandatory = $true,
+            Position = 6
         )]
         [string]$Body,
 
+        # Specifies if the email body is formatted as HTML.
+        [Parameter(
+            Position = 7
+        )]
+        [switch]$BodyAsHtml,
+
+        # Specifies the attachment(s) to be included in the email.
         [Parameter()]
-        [alias('Importance')]
+        [Alias('Attachments')]
+        [System.Net.Mail.Attachment[]]$Attachment,
+
+        # Specifies the email priority. Valid values are 'Low', 'Normal', and 'High'.
+        [Parameter()]
+        [Alias('Importance')]
         [ValidateSet('Low', 'Normal', 'High')]
-        [string] $Priority
+        [string]$Priority,
+
+        # Specifies if Separate To should be used.
+        [Parameter()]
+        [switch]$SeperateTo,
+
+        # Specifies if a separate ReplyTo address should be used.
+        [Parameter()]
+        [MailAddress]$ReplyTo,
+
+        # Specifies the date and time to send the email. If not specified, the email will be sent immediately.
+        [Parameter()]
+        [UnixTime]$SendAt
+
     )
     
     process {
+        # Convert the MailAddress objects to SendGrid API compatible objects.
+        $FromList = ConvertTo-SendGridAddress -Address $From
+        $ToList   = ConvertTo-SendGridAddress -Address $To
+        $CCList   = ConvertTo-SendGridAddress -Address $CC
+        $BCCList  = ConvertTo-SendGridAddress -Address $BCC
+
+        if ($PSBoundParameters.ContainsKey('ReplyTo')) {
+            $ReplyToList = ConvertTo-SendGridAddress -Address $ReplyTo
+        }
+
         [hashtable]$ContentBody = @{
             personalizations = @(
                 @{
@@ -96,10 +132,21 @@
             }
             content          = @(
                 @{
-                    type  = 'text/plain'
+                    type  =  if ($BodyAsHtml) { 'text/html' } else { 'text/plain' }
                     value = $Body
                 }
             )
+            attachments      = @(
+                foreach ($A in $Attachment) {
+                    @{
+                        content     = [Convert]::ToBase64String([IO.File]::ReadAllBytes($A.ContentStream.Name))
+                        filename    = $A.Name
+                        type        = $A.ContentType
+                        disposition = 'attachment'
+                    }
+                }
+            )
+            send_at          = $SendAt
         }
 
         try {
