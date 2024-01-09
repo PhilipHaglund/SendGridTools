@@ -5,10 +5,10 @@
     static [datetime]EpochStart() {
         return ([datetime]::new(1970, 1, 1, 0, 0, 0, ([DateTimeKind]::Utc)))
     }
-
     
     UnixTime () {
-
+        $this.DateTime = Get-Date
+        $this.UnixTimestamp = $this.ToUnixTime()
     }
     UnixTime([datetime]$DateTime) {
         $this.DateTime = $DateTime
@@ -29,13 +29,11 @@
     }
 
     [datetime] ToDateTimeUTC() {
-        return [datetime]::new(1970, 1, 1, 0, 0, 0, 0, [DateTimeKind]::Utc).AddSeconds($this.UnixTimestamp)
+        return ([UnixTime]::EpochStart()).AddSeconds($this.UnixTimestamp)
     }
 
-    [UnixTime] ToUnixTime() {
+    [int] ToUnixTime() {
         $EpochStart = [UnixTime]::EpochStart()
-        Write-Verbose $EpochStart -Verbose
-        Write-Verbose ([int]([datetime]$this.DateTime - $EpochStart).TotalSeconds) -Verbose
         return [int]([datetime]$this.DateTime - $EpochStart).TotalSeconds
     }
 
