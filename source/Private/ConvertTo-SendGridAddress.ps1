@@ -2,7 +2,6 @@
     [CmdletBinding()]
     param (
         [Parameter(
-            Mandatory = $true,
             ValueFromPipeline = $true,
             Position = 0
         )]
