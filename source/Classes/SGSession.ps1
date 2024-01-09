@@ -239,7 +239,7 @@ class PSSendGridSession {
         PSCustomObject[]
     #>
     [PSCustomObject[]] InvokeQuery ([Microsoft.PowerShell.Commands.WebRequestMethod]$WebRequestMethod, [string]$Endpoint, [hashtable]$ContentBody) {
-        $Body = $ContentBody | ConvertTo-Json -ErrorAction Stop
+        $Body = $ContentBody | ConvertTo-Json -Depth 5 -ErrorAction Stop
         $SessionLifeTime = (Get-Date).AddHours(-12)
         if ($null -eq $this._CreateDateTime -or $SessionLifeTime -gt $this._CreateDateTime) {
             $this.Disconnect()
@@ -289,7 +289,7 @@ class PSSendGridSession {
         PSCustomObject[]
     #>
     [PSCustomObject[]] InvokeQuery ([Microsoft.PowerShell.Commands.WebRequestMethod]$WebRequestMethod, [string]$Endpoint, [hashtable]$ContentBody, [string]$OnBehalfOf) {
-        $Body = $ContentBody | ConvertTo-Json -ErrorAction Stop
+        $Body = $ContentBody | ConvertTo-Json -Depth 5 -ErrorAction Stop
         $SessionLifeTime = (Get-Date).AddHours(-12)
         if ($null -eq $this._CreateDateTime -or $SessionLifeTime -gt $this._CreateDateTime) {
             $this.Disconnect()
