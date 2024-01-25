@@ -71,6 +71,15 @@
         Specifies the date and time to send the email. If not specified, the email will be sent immediately. Both datetime and unix timestamp formats are accepted.
         A unix timestamp allowing you to specify when your email should be delivered. Scheduling delivery more than 72 hours in advance is forbidden.
 
+    .PARAMETER TemplateId
+        Specifies the template ID to use. An email template ID. A template that contains a subject and content — either text or html — will override any subject and content values specified at the personalizations or message level.
+
+    .PARAMETER Categories
+        Specifies an array of category names for this message. Each category name may not exceed 255 characters.
+    
+    .PARAMETER BatchId
+        Specifies an ID representing a batch of emails to be sent at the same time. Including a batch_id in your request allows you include this email in that batch. It also enables you to cancel or pause the delivery of that batch. For more information, see the Cancel Scheduled Sends API.
+
     .EXAMPLE
         PS C:\> Send-SGMailMessage -From 'sender@example.com' -To 'recipient@example.com' -Subject 'Test Email' -Body 'Hello, this is a test email.'
         
@@ -193,7 +202,48 @@
         # Scheduling delivery more than 72 hours in advance is forbidden.
         [Parameter(ParameterSetName = 'Default')]
         [Parameter(ParameterSetName = 'SeparateTo')]
-        [UnixTime]$SendAt
+        [UnixTime]$SendAt,
+
+        # Specifies the template ID to use. An email template ID. A template that contains a subject and content — either text or html — will override any subject and content values specified at the personalizations or message level.
+        [Parameter(ParameterSetName = 'Default')]
+        [Parameter(ParameterSetName = 'SeparateTo')]
+        [string]$TemplateId,
+
+        # Specifies an array of category names for this message. Each category name may not exceed 255 characters.
+        [Parameter(ParameterSetName = 'Default')]
+        [Parameter(ParameterSetName = 'SeparateTo')]
+        [ValidateLength(1, 10)]
+        [string[]]$Categories,
+
+        # Specifies an ID representing a batch of emails to be sent at the same time. Including a batch_id in your request allows you include this email in that batch. It also enables you to cancel or pause the delivery of that batch. For more information, see the Cancel Scheduled Sends API.
+        [Parameter(ParameterSetName = 'Default')]
+        [Parameter(ParameterSetName = 'SeparateTo')]
+        [string]$BatchId,
+
+        <#
+            Specifies an object of type [SGASM] that allows you to specify how to handle unsubscribes.
+
+            The [SGASM] class represents a set of options for handling unsubscribes. It has the following properties:
+
+            - GroupId: An integer that represents the group ID for unsubscribes. Default value is 0.
+            - GroupsToDisplay: An array of integers that represents the groups to display for unsubscribes. Default value is an empty array.
+
+            You can create an instance of [SGASM] using the following constructors:
+            - SGASM(): Creates an instance with default values for GroupId and GroupsToDisplay.
+            - SGASM([int]$GroupId): Creates an instance with the specified GroupId and default value for GroupsToDisplay.
+            - SGASM([int]$GroupId, [int[]]$GroupsToDisplay): Creates an instance with the specified GroupId and GroupsToDisplay.
+
+            The ToString() method returns a string representation of the GroupId.
+
+            Example usage:
+            $unsubscribe = [SGASM]::new(123, @(1, 2, 3))
+            Send-SGMailMessage -Unsubscribe $unsubscribe
+        #>
+        [Parameter(ParameterSetName = 'Default')]
+        [Parameter(ParameterSetName = 'SeparateTo')]
+        [ValidateNotNullOrEmpty()]
+        [SGASM]$Unsubscribe
+
 
     )
     begin {
@@ -263,7 +313,7 @@
                             @{
                                 content     = [Convert]::ToBase64String([IO.File]::ReadAllBytes($A.ContentStream.Name))
                                 filename    = $A.Name
-                                type        = $A.ContentType
+                                type        = $A.ContentType.MediaType
                                 disposition = 'attachment'
                             }
                         }
@@ -275,10 +325,17 @@
             if ($PSBoundParameters.ContainsKey('SendAt')) {
                 $ContentBody.Add('send_at', $SendAt.ToUnixTime())
             }
+            if ($PSBoundParameters.ContainsKey('TemplateId')) {
+                $ContentBody.Add('template_id', $TemplateId)
+            }
+            if ($PSBoundParameters.ContainsKey('Categories')) {
+                $ContentBody.Add('categories', $Categories)
+            }
 
             try {
                 Remove-EmptyHashtable -Hashtable $ContentBody -Recursive
-                $null = Invoke-SendGrid -Method 'Post' -Namespace 'mail/send' -ContentBody $ContentBody -ErrorAction Stop
+                $ContentBody
+                #$null = Invoke-SendGrid -Method 'Post' -Namespace 'mail/send' -ContentBody $ContentBody -ErrorAction Stop
             }
             catch {
                 Write-Error ('Failed to send email via SendGrid API. {0}' -f $_.Exception.Message) -ErrorAction Stop

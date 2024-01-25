@@ -22,7 +22,7 @@
     param ()
     
     process {
-        if ($script:Session -is [PSSendGridSession]) {
+        if ($script:Session -is [SendGridSession]) {
             if ($PSCmdlet.ShouldProcess('SendGrid Session', 'Disconnect')) {
                 try {
                     $script:Session.Disconnect()

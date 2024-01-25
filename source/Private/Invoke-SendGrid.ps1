@@ -3,7 +3,7 @@
 This function is used to interact with the SendGrid API.
 
 .DESCRIPTION
-Invoke-SendGrid is a custom function designed to interact with the SendGrid API. It requires an active PSSendGridSession, which should be established via the Connect-SendGrid cmdlet before calling this function.
+Invoke-SendGrid is a custom function designed to interact with the SendGrid API. It requires an active SendGridSession, which should be established via the Connect-SendGrid cmdlet before calling this function.
 
 .PARAMETER Method
 The web request method to use (GET, POST, PUT, DELETE etc).
@@ -79,8 +79,8 @@ function Invoke-SendGrid {
     process {
         if ($PSCmdlet.ShouldProcess("$Method : $Namespace")) {
             Write-Verbose "Starting process with method: $Method and namespace: $Namespace"
-            # Check if session is not a PSSendGridSession.
-            if ($script:Session -isnot [PSSendGridSession]) {
+            # Check if session is not a SendGridSession.
+            if ($script:Session -isnot [SendGridSession]) {
                 throw 'You must call the Connect-SendGrid cmdlet before calling any other cmdlets.'
             }
             try {
