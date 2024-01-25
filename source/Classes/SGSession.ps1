@@ -1,5 +1,5 @@
-﻿# The PSSendGridSession class manages a SendGrid session for the user. 
-class PSSendGridSession {
+﻿# The SendGridSession class manages a SendGrid session for the user. 
+class SendGridSession {
     # URL endpoint to the SendGrid API.
     [uri]$EndpointURL
     # Base URL to the SendGrid API. 
@@ -11,8 +11,8 @@ class PSSendGridSession {
     # Tracks the time when the session was created.
     hidden [DateTime]$_CreateDateTime
 
-    # Constructor function for PSSendGridSession.
-    PSSendGridSession () {
+    # Constructor function for SendGridSession.
+    SendGridSession () {
         $null = [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
     }
     

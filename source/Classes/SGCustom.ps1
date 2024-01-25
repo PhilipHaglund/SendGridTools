@@ -41,3 +41,24 @@
         return $this.UnixTimestamp.ToString()
     }
 }
+class SGASM {
+    [int]$GroupId
+    [int[]]$GroupsToDisplay
+
+    SGASM() {
+        $this.GroupId = 0
+        $this.GroupsToDisplay = @()
+    }
+
+    SGASM([int]$GroupId) {
+        $this.GroupId = $GroupId
+        $this.GroupsToDisplay = @()
+    }
+    SGASM([int]$GroupId, [int[]]$GroupsToDisplay) {
+        $this.GroupId = $GroupId
+        $this.GroupsToDisplay = @()
+    }
+    [string] ToString() {
+        return $this.GroupId.ToString()
+    }
+}

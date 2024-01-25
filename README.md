@@ -1,6 +1,6 @@
-# PSSendgrid
+# SendGridTools
 
-Manage Sendgrid using PowerShell
+Manage SendGrid using PowerShell
 
 ## Make it yours
 
