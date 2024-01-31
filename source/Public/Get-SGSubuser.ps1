@@ -6,77 +6,84 @@
     .DESCRIPTION
         Get-SGSubuser retrieves all Subusers or a specific Subuser based on its username
         within the current SendGrid instance. If a specific Subuser username is provided,
-        the cmdlet also returns the Subuser's assigned IPs.
+        along with the email address to contact this subuser.
 
-    .PARAMETER $UniqueId
+    .PARAMETER Username
         Specifies the ID of a specific Subuser to retrieve. If this parameter is not provided, all Subusers are retrieved.
 
-    .PARAMETER OnBehalfOf
-        Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
+    .PARAMETER Limit
+        The number of results you would like to get in each request.
+        Default: none
+
+    .PARAMETER Offset
+        The number of Subusers to skip.
+        Default: none
 
     .EXAMPLE
-        PS C:\> Get-SGApiKey
+        PS C:\> Get-SGSubuser
         
-        This command retrieves all API Keys within the current SendGrid instance.
+        This command retrieves all users within the current SendGrid instance.
 
     .EXAMPLE
-        PS C:\> Get-SGApiKey -ApiKeyId <apiKeyId>
+        PS C:\> Get-SGSubuser -Username <username>
         
-        This command retrieves the API Key with the specified ID within the current SendGrid instance and returns 
-        the scopes added to the key.
+        This command retrieves the user with the specified username within the current SendGrid instance.
     
     .EXAMPLE
-        PS C:\> Get-SGApiKey -OnBehalfOf 'Subuser'
+        PS C:\> Get-SGSubuser -Limit 2
         
-        This command retrieves all API Keys within the current SendGrid instance on behalf of the specified subuser.
+        This command retrieves the first two Subusers within the current SendGrid instance.
     #>
     [CmdletBinding(
         SupportsShouldProcess
     )]
     param (
 
-        # Specifies the UniqueId of a
+        # Specifies the ID of a specific Subuser to retrieve. If this parameter is not provided, all Subusers are retrieved.
         [Parameter(
             ValueFromPipeline,
             ValueFromPipelineByPropertyName
         )]
-        [string[]]$UniqueId,
+        [string]$Username,
 
-        # Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
+        # Specifies the number of results you would like to get in each request.
         [Parameter()]
-        [string]$OnBehalfOf
+        [int]$Limit,
+
+        [Parameter()]
+        [int]$Offset
     )
 
     process {
         $InvokeSplat = @{
             Method      = 'Get'
-            Namespace   = 'api_keys'
+            Namespace   = 'subusers'
             ErrorAction = 'Stop'
+        } 
+        
+        #Generic List
+        [System.Collections.Generic.List[string]]$QueryParameters = [System.Collections.Generic.List[string]]::new()
+
+        if ($PSBoundParameters.Username) {
+            $InvokeSplat['Namespace'] += "/$username"
         }
-        if ($PSBoundParameters.OnBehalfOf) {
-            $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
+        if ($PSBoundParameters.Limit) {
+            $QueryParameters.Add("limit=$limit")
         }
-        if ($PSBoundParameters.ApiKeyId) {
-            foreach ($Id in $ApiKeyID) {
-                if ($PSCmdlet.ShouldProcess(('{0}' -f $Id))) {
-                    $InvokeSplat['Namespace'] = "api_keys/$Id"
-                    try {
-                        Invoke-SendGrid @InvokeSplat
-                    }
-                    catch {
-                        Write-Error ('Failed to retrieve SendGrid API Key. {0}' -f $_.Exception.Message) -ErrorAction Stop
-                    }
-                }
+        if ($PSBoundParameters.Offset) {
+            $QueryParameters.Add("offset=$offset")
+        }
+
+        if ($QueryParameters.Count -gt 0) {
+            $InvokeSplat['Namespace'] += '?' + ($QueryParameters -join '&')
+        }
+
+        if ($PSCmdlet.ShouldProcess(('{0}' -f 'Subusers'))) {
+            try {
+                Invoke-SendGrid @InvokeSplat
             }
-        }
-        else {
-            if ($PSCmdlet.ShouldProcess(('{0}' -f 'All API Keys'))) {
-                try {
-                    Invoke-SendGrid @InvokeSplat
-                }
-                catch {
-                    Write-Error ('Failed to retrieve SendGrid API Key. {0}' -f $_.Exception.Message) -ErrorAction Stop
-                }
+            catch {
+                Write-Error ('Failed to retrieve SendGrid Subuser. {0}' -f $_.Exception.Message) -ErrorAction Stop
             }
         }
     }
