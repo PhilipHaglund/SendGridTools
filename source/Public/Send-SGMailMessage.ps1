@@ -247,6 +247,11 @@
 
     )
     begin {
+        $InvokeSplat = @{
+                Method      = 'Post'
+                Namespace   = 'mail/send'
+                ErrorAction = 'Stop'
+            }
         [hashtable]$ContentBody = @{
             personalizations = [System.Collections.Generic.List[hashtable]]::new()
         }
@@ -334,8 +339,8 @@
 
             try {
                 Remove-EmptyHashtable -Hashtable $ContentBody -Recursive
-                $ContentBody
-                #$null = Invoke-SendGrid -Method 'Post' -Namespace 'mail/send' -ContentBody $ContentBody -ErrorAction Stop
+                $InvokeSplat.Add('ContentBody', $ContentBody)
+                Invoke-SendGrid @InvokeSplat
             }
             catch {
                 Write-Error ('Failed to send email via SendGrid API. {0}' -f $_.Exception.Message) -ErrorAction Stop
