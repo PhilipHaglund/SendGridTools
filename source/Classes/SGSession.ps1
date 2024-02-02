@@ -164,6 +164,54 @@ class SendGridSession {
             }
         }
     }
+    
+    <#
+    .SYNOPSIS
+        Sends a query to the SendGrid API.
+
+    .DESCRIPTION
+        This method sends a query to the SendGrid API and returns the results. 
+
+    .PARAMETER WebRequestMethod
+        The HTTP method to use for the query (GET, POST, etc.).
+
+    .PARAMETER Endpoint
+        The specific endpoint in the SendGrid API to send the query to.
+
+    .PARAMETER ContentBody
+        The payload to send to the specified endpoint.
+
+    .INPUTS
+        Microsoft.PowerShell.Commands.WebRequestMethod, string, hashtable.
+
+    .OUTPUTS
+        PSCustomObject[]
+    #>
+    [PSCustomObject[]] InvokeQuery ([Microsoft.PowerShell.Commands.WebRequestMethod]$WebRequestMethod, [string]$Endpoint, [hashtable]$ContentBody) {
+        $Body = $ContentBody | ConvertTo-Json -Depth 5 -ErrorAction Stop
+        $SessionLifeTime = (Get-Date).AddHours(-12)
+        if ($null -eq $this._CreateDateTime -or $SessionLifeTime -gt $this._CreateDateTime) {
+            $this.Disconnect()
+            return 'Session lifetime exceeded, reconnect.'
+        }
+        else {
+            $this.BuildEndpointURL($Endpoint)
+            try {
+                $Headers = @{
+                    'Authorization' = "Bearer $($this._Credential.GetNetworkCredential().Password)"
+                    'Content-Type'  = 'application/json'
+                }
+                $Query = (Invoke-RestMethod -Method $WebRequestMethod -Uri $this.EndpointURL -Headers $Headers -Body $Body -ErrorAction Stop)
+                $this.BuildEndpointURL($null)
+                $this._CreateDateTime = Get-Date
+                return $Query
+            }
+            catch {
+                $this.BuildEndpointURL($null)
+                throw ('Unable to query Sendgrid: {0}' -f $_.Exception.Message)
+            }
+        }
+    }
 
     <#
     .SYNOPSIS
@@ -216,53 +264,6 @@ class SendGridSession {
         }
     }
 
-    <#
-    .SYNOPSIS
-        Sends a query to the SendGrid API.
-
-    .DESCRIPTION
-        This method sends a query to the SendGrid API and returns the results. 
-
-    .PARAMETER WebRequestMethod
-        The HTTP method to use for the query (GET, POST, etc.).
-
-    .PARAMETER Endpoint
-        The specific endpoint in the SendGrid API to send the query to.
-
-    .PARAMETER ContentBody
-        The payload to send to the specified endpoint.
-
-    .INPUTS
-        Microsoft.PowerShell.Commands.WebRequestMethod, string, hashtable.
-
-    .OUTPUTS
-        PSCustomObject[]
-    #>
-    [PSCustomObject[]] InvokeQuery ([Microsoft.PowerShell.Commands.WebRequestMethod]$WebRequestMethod, [string]$Endpoint, [hashtable]$ContentBody) {
-        $Body = $ContentBody | ConvertTo-Json -Depth 5 -ErrorAction Stop
-        $SessionLifeTime = (Get-Date).AddHours(-12)
-        if ($null -eq $this._CreateDateTime -or $SessionLifeTime -gt $this._CreateDateTime) {
-            $this.Disconnect()
-            return 'Session lifetime exceeded, reconnect.'
-        }
-        else {
-            $this.BuildEndpointURL($Endpoint)
-            try {
-                $Headers = @{
-                    'Authorization' = "Bearer $($this._Credential.GetNetworkCredential().Password)"
-                    'Content-Type'  = 'application/json'
-                }
-                $Query = (Invoke-RestMethod -Method $WebRequestMethod -Uri $this.EndpointURL -Headers $Headers -Body $Body -ErrorAction Stop)
-                $this.BuildEndpointURL($null)
-                $this._CreateDateTime = Get-Date
-                return $Query
-            }
-            catch {
-                $this.BuildEndpointURL($null)
-                throw ('Unable to query Sendgrid: {0}' -f $_.Exception.Message)
-            }
-        }
-    }
     <#
     .SYNOPSIS
         Sends a query to the SendGrid API.
