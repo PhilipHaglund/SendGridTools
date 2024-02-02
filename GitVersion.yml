@@ -12,12 +12,12 @@ branches:
   pull-request:
     tag: PR
   feature:
-    tag: useBranchName
+    #tag: useBranchName
     increment: Minor
     regex: f(eature(s)?)?[\/-]
     source-branches: ['master']
   hotfix:
-    tag: fix
+    #tag: fix
     increment: Patch
     regex: (hot)?fix(es)?[\/-]
     source-branches: ['master']
