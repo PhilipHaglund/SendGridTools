@@ -68,12 +68,12 @@ class SendGridSession {
             }
             catch {
                 $this._Connected = $false
-                throw ('Unable to connect to Sendgrid. {0}' -f $_.Exception.Message)
+                throw ('Unable to connect to SendGrid. {0}' -f $_.Exception.Message)
             }
         }
         else {
             $this._Connected = $false
-            throw ('Unable to connect to Sendgrid. No credentials saved in context.')
+            throw ('Unable to connect to SendGrid. No credentials saved in context.')
         }
     }
     <#
@@ -100,7 +100,7 @@ class SendGridSession {
         }
         catch {
             $this._Connected = $false
-            throw ('Unable to connect to Sendgrid. {0}' -f $_.Exception.Message)
+            throw ('Unable to connect to SendGrid. {0}' -f $_.Exception.Message)
         }
     }
 
@@ -160,7 +160,12 @@ class SendGridSession {
             }
             catch {
                 $this.BuildEndpointURL($null)
-                throw ('Unable to query Sendgrid: {0}' -f $_.Exception.Message)
+                if ($null -ne $_.ErrorDetails.Message) {
+                    throw ('SendGrid Error: "{0}"' -f ($_.ErrorDetails.Message | ConvertFrom-Json | Select-Object -ExpandProperty errors | Select-Object -ExpandProperty message) -join ', ' )
+                }
+                else {
+                    throw ('Unable to query SendGrid: {0}' -f $_.Exception.Message)
+                }
             }
         }
     }
@@ -201,6 +206,7 @@ class SendGridSession {
                     'Authorization' = "Bearer $($this._Credential.GetNetworkCredential().Password)"
                     'Content-Type'  = 'application/json'
                 }
+                $Body | Out-File C:\temp\body.txt
                 $Query = (Invoke-RestMethod -Method $WebRequestMethod -Uri $this.EndpointURL -Headers $Headers -Body $Body -ErrorAction Stop)
                 $this.BuildEndpointURL($null)
                 $this._CreateDateTime = Get-Date
@@ -208,7 +214,12 @@ class SendGridSession {
             }
             catch {
                 $this.BuildEndpointURL($null)
-                throw ('Unable to query SendGrid: {0}' -f $_.Exception.Message)
+                if ($null -ne $_.ErrorDetails.Message) {
+                    throw ('SendGrid Error: "{0}"' -f ($_.ErrorDetails.Message | ConvertFrom-Json |Select-Object -ExpandProperty errors | Select-Object -ExpandProperty message) -join ', ' )
+                }
+                else {
+                    throw ('Unable to query SendGrid: {0}' -f $_.Exception.Message)
+                }
             }
         }
     }
@@ -259,7 +270,12 @@ class SendGridSession {
             }
             catch {
                 $this.BuildEndpointURL($null)
-                throw ('Unable to query Sendgrid: {0}' -f $_.Exception.Message)
+                if ($null -ne $_.ErrorDetails.Message) {
+                    throw ('SendGrid Error: "{0}"' -f ($_.ErrorDetails.Message | ConvertFrom-Json | Select-Object -ExpandProperty errors | Select-Object -ExpandProperty message) -join ', ' )
+                }
+                else {
+                    throw ('Unable to query SendGrid: {0}' -f $_.Exception.Message)
+                }
             }
         }
     }
@@ -311,7 +327,12 @@ class SendGridSession {
             }
             catch {
                 $this.BuildEndpointURL($null)
-                throw ('Unable to query Sendgrid: {0}' -f $_.Exception.Message)
+                if ($null -ne $_.ErrorDetails.Message) {
+                    throw ('SendGrid Error: "{0}"' -f ($_.ErrorDetails.Message | ConvertFrom-Json | Select-Object -ExpandProperty errors | Select-Object -ExpandProperty message) -join ', ' )
+                }
+                else {
+                    throw ('Unable to query SendGrid: {0}' -f $_.Exception.Message)
+                }
             }
         }
     }

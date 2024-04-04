@@ -63,11 +63,11 @@
     )
 
     begin {
-        [hashtable]$ContentBody = @{
+        [hashtable]$ContentBody = [ordered]@{
             username = $Username
-            email    = $Email
+            email    = $Email.Address
             password = (ConvertFrom-SecureString -SecureString $Password -AsPlainText)
-            ips      = @($Ips)
+            ips      = @($IPs.IPAddressToString)
         }
     }
     process {
@@ -90,5 +90,3 @@
         }
     }
 }
-
-#{ 'ips':["167.89.80.214"], 'username':"kalletest_omnicit", 'email':"philip@gonjer.com", 'password':"Gonjer.com123!"#","passwordConfirm":"Gonjer.com123!\"#" }
