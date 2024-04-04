@@ -55,7 +55,15 @@ function Invoke-SendGrid {
             Position = 3
         )]
         [ValidateNotNullOrEmpty()]
-        [string]$OnBehalfOf
+        [string]$OnBehalfOf,
+
+        # The calling cmdlet or function that invoked this function.
+        [Parameter(
+            HelpMessage = 'The calling cmdlet or function that invoked this function.',
+            Position = 4
+        )]
+        [ValidateNotNullOrEmpty()]
+        [string]$CallingCmdlet
     )
     begin {
         # Function to get unique properties of an object.
@@ -145,7 +153,13 @@ function Invoke-SendGrid {
                     throw $PSObject.Errors.Message
                 }
                 else {
-                    $PSObject
+                    if (0 -eq @($PSObject.psobject.Properties).Count) {
+                        Write-Verbose -Message ('Successfully invoked "{0}" on "{1}".' -f $CallingCmdlet, $Namespace) -Verbose
+                    }
+                    else {
+                        Write-Verbose -Message ('Successfully invoked "{0}" on "{1}".' -f $CallingCmdlet, $Namespace)
+                        $PSObject
+                    }
                 }
             }
         }

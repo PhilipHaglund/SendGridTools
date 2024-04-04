@@ -46,9 +46,10 @@
     )
     process {
         $InvokeSplat = @{
-            Method      = 'Post'
-            Namespace   = "whitelabel/domains/$UniqueId/subuser"
-            ErrorAction = 'Stop'
+            Method        = 'Post'
+            Namespace     = "whitelabel/domains/$UniqueId/subuser"
+            ErrorAction   = 'Stop'
+            CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
         }
         $GetSplat = @{
             UniqueId    = $UniqueId

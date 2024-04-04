@@ -20,9 +20,10 @@
     param ()
     process {
         $InvokeSplat = @{
-            Method      = 'Get'
-            Namespace   = 'scopes'
-            ErrorAction = 'Stop'
+            Method        = 'Get'
+            Namespace     = 'scopes'
+            ErrorAction   = 'Stop'
+            CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
         }
         try {
             Invoke-SendGrid @InvokeSplat

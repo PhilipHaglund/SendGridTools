@@ -70,9 +70,10 @@
     }
     process {
         $InvokeSplat = @{
-            Method      = 'Post'
-            Namespace   = 'api_keys'
-            ErrorAction = 'Stop'
+            Method        = 'Post'
+            Namespace     = 'api_keys'
+            ErrorAction   = 'Stop'
+            CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
         }
         if ($PSBoundParameters.OnBehalfOf) {
             $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
@@ -81,13 +82,7 @@
         if ($PSCmdlet.ParameterSetName -eq 'FullAccess') {
             if ($PSCmdlet.ShouldContinue("You are about to create an API key ($Name) with Full Access. Do you want to continue?", $MyInvocation.MyCommand.Name)) {
                 try {
-                    $InvokeResult = Invoke-SendGrid @InvokeSplat
-                    if ($InvokeResult | Get-Member -Name 'Errors' -MemberType 'NoteProperty') {
-                        throw $InvokeResult.Errors.Message
-                    }
-                    else {
-                        $InvokeResult
-                    }
+                    Invoke-SendGrid @InvokeSplat
                 }
                 catch {
                     Write-Error ('Failed to create a FullAccess SendGrid API key. {0}' -f $_.Exception.Message) -ErrorAction Stop

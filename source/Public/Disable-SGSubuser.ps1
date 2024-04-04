@@ -34,12 +34,13 @@
     )
     process {
         $InvokeSplat = @{
-            Method      = 'Patch'
-            Namespace   = "subusers/$Username"
-            ErrorAction = 'Stop'
-            ContentBody = @{
+            Method        = 'Patch'
+            Namespace     = "subusers/$Username"
+            ErrorAction   = 'Stop'
+            ContentBody   = @{
                 disabled = $true
             }
+            CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
         } 
 
         if ($PSCmdlet.ShouldProcess($Username)) {
@@ -47,7 +48,7 @@
                 Invoke-SendGrid @InvokeSplat
             }
             catch {
-                Write-Error ('Failed to enable SendGrid Subuser. {0}' -f $_.Exception.Message) -ErrorAction Stop
+                Write-Error ('Failed to disable SendGrid Subuser. {0}' -f $_.Exception.Message) -ErrorAction Stop
             }
         }
     }

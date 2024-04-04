@@ -45,9 +45,10 @@
     process {
         foreach ($Id in $UniqueId) { 
             $InvokeSplat = @{
-                Method      = 'Delete'
-                Namespace   = "whitelabel/domains/$Id"
-                ErrorAction = 'Stop'
+                Method        = 'Delete'
+                Namespace     = "whitelabel/domains/$Id"
+                ErrorAction   = 'Stop'
+                CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
             }
             $GetSplat = @{
                 UniqueId    = $Id

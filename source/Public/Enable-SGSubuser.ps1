@@ -33,12 +33,13 @@
     )
     process {
         $InvokeSplat = @{
-            Method      = 'Patch'
-            Namespace   = "subusers/$Username"
-            ErrorAction = 'Stop'
-            ContentBody = @{
+            Method        = 'Patch'
+            Namespace     = "subusers/$Username"
+            ErrorAction   = 'Stop'
+            ContentBody   = @{
                 disabled = $false
             }
+            CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
         } 
 
         if ($PSCmdlet.ShouldProcess($Username)) {

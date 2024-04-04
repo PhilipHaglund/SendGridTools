@@ -150,9 +150,10 @@
             $ContentBody.Add('custom_spf', $false)
         }
         $InvokeSplat = @{
-            Method      = 'Post'
-            Namespace   = 'whitelabel/domains'
-            ErrorAction = 'Stop'
+            Method        = 'Post'
+            Namespace     = 'whitelabel/domains'
+            ErrorAction   = 'Stop'
+            CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
         }
         if ($PSBoundParameters.OnBehalfOf) {
             $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)

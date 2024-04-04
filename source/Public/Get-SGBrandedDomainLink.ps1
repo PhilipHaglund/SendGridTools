@@ -89,9 +89,10 @@
     )
     process {
         $InvokeSplat = @{
-            Method      = 'Get'
-            Namespace   = 'whitelabel/links'
-            ErrorAction = 'Stop'
+            Method        = 'Get'
+            Namespace     = 'whitelabel/links'
+            ErrorAction   = 'Stop'
+            CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
         }
         
         if ($PSBoundParameters.OnBehalfOf) {
@@ -102,13 +103,7 @@
                 if ($PSCmdlet.ShouldProcess(('{0}' -f $Id))) {
                     $InvokeSplat['Namespace'] = "whitelabel/links/$Id"
                     try {
-                        $InvokeResult = Invoke-SendGrid @InvokeSplat
-                        if ($InvokeResult | Get-Member -Name 'Errors' -MemberType 'NoteProperty') {
-                            throw $InvokeResult.Errors.Message
-                        }
-                        else {
-                            $InvokeResult
-                        }
+                        Invoke-SendGrid @InvokeSplat
                     }
                     catch {
                         Write-Error ('Failed to retrieve SendGrid SendGrid Branded Domain Link. {0}' -f $_.Exception.Message) -ErrorAction Stop
@@ -122,7 +117,7 @@
                     Invoke-SendGrid @InvokeSplat
                 }
                 catch {
-                    Write-Error ('Failed to retrieve SendGrid SendGrid Branded Domain Link. {0}' -f $_.Exception.Message) -ErrorAction Stop
+                    Write-Error ('Failed to retrieve all SendGrid SendGrid Branded Domain Links. {0}' -f $_.Exception.Message) -ErrorAction Stop
                 }
             }
         }

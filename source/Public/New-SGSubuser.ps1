@@ -72,16 +72,17 @@
     }
     process {
         $InvokeSplat = @{
-            Method      = 'Post'
-            Namespace   = 'subusers'
-            ErrorAction = 'Stop'
+            Method        = 'Post'
+            Namespace     = 'subusers'
+            ErrorAction   = 'Stop'
+            CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
         } 
 
         $InvokeSplat.Add('ContentBody', $ContentBody)
         if ($PSCmdlet.ShouldProcess($Username)) {
             try {
-                #Invoke-SendGrid @InvokeSplat
                 $InvokeSplat
+                Invoke-SendGrid @InvokeSplat
             }
             catch {
                 Write-Error ('Failed to create SendGrid Subuser. {0}' -f $_.Exception.Message) -ErrorAction Stop

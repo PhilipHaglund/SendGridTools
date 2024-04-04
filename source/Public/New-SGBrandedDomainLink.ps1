@@ -1,7 +1,7 @@
 ﻿function New-SGBrandedDomainLink {
     <#
     .SYNOPSIS
-        Adds a new Branded Domain Link within the current Sendgrid instance.
+        Adds a new Branded Domain Link within the current SendGrid instance.
 
     .DESCRIPTION
         New-SGBrandedDomainLink adds a new Branded Domain Link within the current SendGrid instance. Email link branding (formerly "Link Whitelabel") 
@@ -56,11 +56,11 @@
         [hashtable]$ContentBody = [hashtable]::new()
         $ContentBody.Add('domain', $Domain)
         if ($Domain -match '.*\..*\..*' -and -not $Force.IsPresent) {
-            Write-Warning -Message "It's not recommended to use a double custom subdomain. Sendgrid will automatically generate a subdomain for you. If you know what you are doing, re-run with -Force. Terminating function..."
+            Write-Warning -Message "It's not recommended to use a double custom subdomain. SendGrid will automatically generate a subdomain for you. If you know what you are doing, re-run with -Force. Terminating function..."
             break
         }
         elseif ($Force.IsPresent) {
-            Write-Verbose -Message ('Sendgrid will automatically generate a custom subdomain for you.') -Verbose
+            Write-Verbose -Message ('SendGrid will automatically generate a custom subdomain for you.') -Verbose
             $ProcessMessage = $Domain
         }
         else {
@@ -71,9 +71,10 @@
     }    
     process {
         $InvokeSplat = @{
-            Method      = 'Post'
-            Namespace   = 'whitelabel/links'
-            ErrorAction = 'Stop'
+            Method        = 'Post'
+            Namespace     = 'whitelabel/links'
+            ErrorAction   = 'Stop'
+            CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
         }
         if ($PSBoundParameters.OnBehalfOf) {
             $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)

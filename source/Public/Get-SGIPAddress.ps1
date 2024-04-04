@@ -20,9 +20,10 @@
 
     process {
         $InvokeSplat = @{
-            Method      = 'Get'
-            Namespace   = 'ips'
-            ErrorAction = 'Stop'
+            Method        = 'Get'
+            Namespace     = 'ips'
+            ErrorAction   = 'Stop'
+            CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
         } 
         
         try {

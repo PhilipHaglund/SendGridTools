@@ -32,9 +32,10 @@
     process {
         foreach ($Id in $ApiKeyID) {
             $InvokeSplat = @{
-                Method      = 'Delete'
-                Namespace   = "api_keys/$Id"
-                ErrorAction = 'Stop'
+                Method        = 'Delete'
+                Namespace     = "api_keys/$Id"
+                ErrorAction   = 'Stop'
+                CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
             }
             $GetSplat = @{
                 ApiKeyID    = $Id
@@ -48,7 +49,6 @@
             $SGApiKey = Get-SGApiKey @GetSplat
             if ($PSCmdlet.ShouldProcess('ApiKey: {0}' -f $SGApiKey.Name)) {
                 try {
-                    # Deletes the API Key
                     Invoke-SendGrid @InvokeSplat
                 }
                 catch {

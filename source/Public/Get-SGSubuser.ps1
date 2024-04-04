@@ -55,9 +55,10 @@
 
     process {
         $InvokeSplat = @{
-            Method      = 'Get'
-            Namespace   = 'subusers'
-            ErrorAction = 'Stop'
+            Method        = 'Get'
+            Namespace     = 'subusers'
+            ErrorAction   = 'Stop'
+            CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
         } 
         
         #Generic List

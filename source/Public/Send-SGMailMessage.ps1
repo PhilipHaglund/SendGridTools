@@ -248,10 +248,11 @@
     )
     begin {
         $InvokeSplat = @{
-                Method      = 'Post'
-                Namespace   = 'mail/send'
-                ErrorAction = 'Stop'
-            }
+            Method        = 'Post'
+            Namespace     = 'mail/send'
+            ErrorAction   = 'Stop'
+            CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
+        }
         [hashtable]$ContentBody = @{
             personalizations = [System.Collections.Generic.List[hashtable]]::new()
         }

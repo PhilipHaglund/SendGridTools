@@ -97,9 +97,10 @@
     )
     process {
         $InvokeSplat = @{
-            Method      = 'Get'
-            Namespace   = 'whitelabel/domains'
-            ErrorAction = 'Stop'
+            Method        = 'Get'
+            Namespace     = 'whitelabel/domains'
+            ErrorAction   = 'Stop'
+            CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
         }
         if ($PSBoundParameters.OnBehalfOf) {
             $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
@@ -109,13 +110,7 @@
                 if ($PSCmdlet.ShouldProcess(('{0}' -f $Id))) {
                     $InvokeSplat['Namespace'] = "whitelabel/domains/$Id"
                     try {
-                        $InvokeResult = Invoke-SendGrid @InvokeSplat
-                        if ($InvokeResult | Get-Member -Name 'Errors' -MemberType 'NoteProperty') {
-                            throw $InvokeResult.Errors.Message
-                        }
-                        else {
-                            $InvokeResult
-                        }
+                        Invoke-SendGrid @InvokeSplat
                     }
                     catch {
                         Write-Error ('Failed to retrieve SendGrid Authenticated Domain. {0}' -f $_.Exception.Message) -ErrorAction Stop
@@ -129,7 +124,7 @@
                     Invoke-SendGrid @InvokeSplat
                 }
                 catch {
-                    Write-Error ('Failed to retrieve SendGrid Authenticated Domain. {0}' -f $_.Exception.Message) -ErrorAction Stop
+                    Write-Error ('Failed to retrieve all SendGrid Authenticated Domain. {0}' -f $_.Exception.Message) -ErrorAction Stop
                 }
             }
         }

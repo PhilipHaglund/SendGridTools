@@ -208,7 +208,7 @@ class SendGridSession {
             }
             catch {
                 $this.BuildEndpointURL($null)
-                throw ('Unable to query Sendgrid: {0}' -f $_.Exception.Message)
+                throw ('Unable to query SendGrid: {0}' -f $_.Exception.Message)
             }
         }
     }

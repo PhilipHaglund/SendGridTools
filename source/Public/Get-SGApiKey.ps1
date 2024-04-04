@@ -51,9 +51,10 @@
 
     process {
         $InvokeSplat = @{
-            Method      = 'Get'
-            Namespace   = 'api_keys'
-            ErrorAction = 'Stop'
+            Method        = 'Get'
+            Namespace     = 'api_keys'
+            ErrorAction   = 'Stop'
+            CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
         }
         if ($PSBoundParameters.OnBehalfOf) {
             $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)

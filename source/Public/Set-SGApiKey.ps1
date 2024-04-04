@@ -56,9 +56,10 @@
         }
         foreach ($Id in $ApiKeyID) {
             $InvokeSplat = @{
-                Method      = 'Put'
-                Namespace   = "api_keys/$Id"
-                ErrorAction = 'Stop'
+                Method        = 'Put'
+                Namespace     = "api_keys/$Id"
+                ErrorAction   = 'Stop'
+                CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
             }
             $GetSplat = @{
                 ApiKeyID    = $Id
