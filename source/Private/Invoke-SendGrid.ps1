@@ -70,7 +70,7 @@ function Invoke-SendGrid {
         function Get-UniqueProperties {
             param (
                 [Parameter(
-                    Mandatory
+                    ValueFromPipeline
                 )]
                 [object[]]$InputObject
             )
@@ -133,18 +133,22 @@ function Invoke-SendGrid {
 
                         # Process each inline property.
                         foreach ($InlineProperty in $InlineProperties) {
-                            $PSObject | Add-Member -MemberType NoteProperty -Name ('{0}{1}' -f ($Property -replace '[\s_-]+'), $($InlineProperty -replace '[\s_-]+'))  -Value $Object.$Property.$InlineProperty
+                            $PSObject | Add-Member -MemberType NoteProperty -Name (('{0}{1}' -f ($Property -replace '[\s_-]+'), $($InlineProperty -replace '[\s_-]+')) | ConvertTo-TitleCase) -Value $Object.$Property.$InlineProperty
                         }
                     }
 
                     # Switch based on the property type.
                     switch ($Object.$Property) {
-                        { $_ -is [int64] -and $Property -match 'valid' } {
-                            $PSObject | Add-Member -MemberType NoteProperty -Name ($Property -replace '[\s_-]+')  -Value ((Get-Date -Date '01-01-1970') + ([System.TimeSpan]::FromSeconds(($_))))
+                        { $_ -is [int64] -and $Property -match 'valid|created' } {
+                            $PSObject | Add-Member -MemberType NoteProperty -Name (($Property -replace '[\s_-]+') | ConvertTo-TitleCase) -Value ([UnixTime]::FromUnixTime($_))
+                            break
+                        }
+                        { $_ -is [string] -and $Property -match '^date$'} {
+                            $PSObject | Add-Member -MemberType NoteProperty -Name (($Property -replace '[\s_-]+') | ConvertTo-TitleCase) -Value ([datetime]::Parse($_))
                             break
                         }
                         Default {
-                            $PSObject | Add-Member -MemberType NoteProperty -Name ($Property -replace '[\s_-]+') -Value $Object.$Property -Force
+                            $PSObject | Add-Member -MemberType NoteProperty -Name (($Property -replace '[\s_-]+') | ConvertTo-TitleCase) -Value $Object.$Property -Force
                             break
                         }
                     }

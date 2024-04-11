@@ -62,14 +62,7 @@
                     username = $UserName
                 }
                 $InvokeSplat.Add('ContentBody', $ContentBody)
-                
-                $InvokeResult = Invoke-SendGrid @InvokeSplat
-                if ($InvokeResult | Get-Member -Name 'Errors' -MemberType 'NoteProperty') {
-                    throw $InvokeResult.Errors.Message
-                }
-                else {
-                    $InvokeResult
-                }
+                Invoke-SendGrid @InvokeSplat
             }
             catch {
                 Write-Error ('Failed to assign authenticated domain. {0}' -f $_.Exception.Message) -ErrorAction Stop

@@ -35,7 +35,7 @@
         This command retrieves all bounces from SendGrid.
 
     .EXAMPLE
-        PS C:\> Get-SGBounce -UniqueId 12589712
+        PS C:\> Get-SGBounce -EmailAddress bounce2@example.com
 
         Email             : bounce2@example.com
         Status            : 5.1.1
@@ -48,7 +48,7 @@
         This command retrieves the bounce with the UniqueId '12589712' from SendGrid.
 
     .EXAMPLE
-        PS C:\> Get-SGBounce -UniqueId 12589712 -OnBehalfOf 'Subuser'
+        PS C:\> Get-SGBounce -EmailAddress bounce2@example.com -OnBehalfOf 'Subuser'
 
         Email             : bounce2@example.com
         Status            : 5.1.1
@@ -61,9 +61,7 @@
 
         This command retrieves the bounce with the UniqueId '12589712' from SendGrid for the Subuser 'Subuser'.
     #>
-    [CmdletBinding(
-        SupportsShouldProcess
-    )]
+    [CmdletBinding()]
     param (
         # Specifies the specific email address to retrieve. If this parameter is not provided, all bounces are retrieved.
         [Parameter(
@@ -88,25 +86,21 @@
         }
         if ($PSBoundParameters.EmailAddress) {
             foreach ($Id in $EmailAddress) {
-                if ($PSCmdlet.ShouldProcess(('{0}' -f $Id))) {
-                    $InvokeSplat['Namespace'] = "suppression/bounces/$Id"
-                    try {
-                        Invoke-SendGrid @InvokeSplat
-                    }
-                    catch {
-                        Write-Error ('Failed to retrieve SendGrid bounce. {0}' -f $_.Exception.Message) -ErrorAction Stop
-                    }
-                }
-            }
-        }
-        else {
-            if ($PSCmdlet.ShouldProcess(('All bounces'))) {
+                $InvokeSplat['Namespace'] = "suppression/bounces/$Id"
                 try {
                     Invoke-SendGrid @InvokeSplat
                 }
                 catch {
-                    Write-Error ('Failed to retrieve all SendGrid bounces. {0}' -f $_.Exception.Message) -ErrorAction Stop
+                    Write-Error ('Failed to retrieve SendGrid bounce. {0}' -f $_.Exception.Message) -ErrorAction Stop
                 }
+            }
+        }
+        else {
+            try {
+                Invoke-SendGrid @InvokeSplat
+            }
+            catch {
+                Write-Error ('Failed to retrieve all SendGrid bounces. {0}' -f $_.Exception.Message) -ErrorAction Stop
             }
         }
     }   
