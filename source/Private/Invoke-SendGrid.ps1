@@ -115,10 +115,23 @@ function Invoke-SendGrid {
             $Properties = Get-UniqueProperties -InputObject $Query
             
             # Handle PSObject array with a single 'Result' property.
-            if ($Query -is [System.Management.Automation.PSObject[]] -and $Properties -eq 'Result' -and $Properties.Count -eq 1) {
-                $Query = $Query.result
+            if ($Query -is [System.Management.Automation.PSObject[]] -and $Properties.Count -eq 1) {
+                switch ($Properties) {
+                    'Result' {
+                        $Query = $Query.result
+                        break;
+                    }
+                    'Suppressions' {
+                        $Query = $Query.suppressions
+                        break;
+                    }
+                    Default {
+                        break;
+                    }
+                }
                 $Properties = Get-UniqueProperties -InputObject $Query
             }
+
 
             # Process each object in the query.
             foreach ($Object in $Query) {
@@ -139,7 +152,7 @@ function Invoke-SendGrid {
 
                     # Switch based on the property type.
                     switch ($Object.$Property) {
-                        { $_ -is [int64] -and $Property -match 'valid|created' } {
+                        { $_ -is [int64] -and $Property -match 'valid|created|updated' } {
                             $PSObject | Add-Member -MemberType NoteProperty -Name (($Property -replace '[\s_-]+') | ConvertTo-TitleCase) -Value ([UnixTime]::FromUnixTime($_))
                             break
                         }

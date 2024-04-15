@@ -1,69 +1,30 @@
-﻿function Get-SGBounce {
+﻿function Get-SGBlock {
     <#
     .SYNOPSIS
-        Retrieves all or specific bounces from SendGrid.
+        Retrieves a specific block from SendGrid.
 
     .DESCRIPTION
-        Get-SGBounce retrieves all bounces or a specific bounce based on its unique ID from SendGrid. Bounces occur when an email is rejected by the recipient's mail server.
+        Get-SGBlock retrieves a specific block based on the email address from SendGrid. Blocks occur when an email is rejected due to an issue with the message itself.
 
-    .PARAMETER UniqueId
-        Specifies the UniqueId of a specific bounce to retrieve. If this parameter is not provided, all bounces are retrieved.
+    .PARAMETER EmailAddress
+        Specifies the email address of a specific block to retrieve.
 
     .PARAMETER OnBehalfOf
         Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
 
     .EXAMPLE
-        PS C:\> Get-SGBounce
+        PS C:\> Get-SGBlock -EmailAddress block@example.com
 
-        Email             : bounce1@example.com
-        Status            : 5.1.1
-        Reason            : Invalid Recipient
-        Created           : 2022-03-04 15:34:34
-        Updated           : 2022-03-04 15:34:34
-        UniqueId          : 13508031
-        UserId            : 8262273
-
-        Email             : bounce2@example.com
-        Status            : 5.1.1
-        Reason            : Invalid Recipient
-        Created           : 2021-11-12 07:38:27
-        Updated           : 2021-11-12 07:38:27
-        UniqueId          : 12589712
-        UserId            : 8262273
-        ...
-
-        This command retrieves all bounces from SendGrid.
+        This command retrieves the block for the email address 'block@example.com' from SendGrid.
 
     .EXAMPLE
-        PS C:\> Get-SGBounce -EmailAddress bounce2@example.com
+        PS C:\> Get-SGBlock -EmailAddress block@example.com -OnBehalfOf 'Subuser'
 
-        Email             : bounce2@example.com
-        Status            : 5.1.1
-        Reason            : Invalid Recipient
-        Created           : 2021-11-12 07:38:27
-        Updated           : 2021-11-12 07:38:27
-        UniqueId          : 12589712
-        UserId            : 8262273
-
-        This command retrieves the bounce with the UniqueId '12589712' from SendGrid.
-
-    .EXAMPLE
-        PS C:\> Get-SGBounce -EmailAddress bounce2@example.com -OnBehalfOf 'Subuser'
-
-        Email             : bounce2@example.com
-        Status            : 5.1.1
-        Reason            : Invalid Recipient
-        Created           : 2021-11-12 07:38:27
-        Updated           : 2021-11-12 07:38:27
-        UniqueId          : 12589712
-        UserId            : 8262273
-        Username          : Subuser
-
-        This command retrieves the bounce with the UniqueId '12589712' from SendGrid for the Subuser 'Subuser'.
+        This command retrieves the block for the email address 'block@example.com' from SendGrid for the Subuser 'Subuser'.
     #>
     [CmdletBinding()]
     param (
-        # Specifies the specific email address to retrieve. If this parameter is not provided, all bounces are retrieved.
+        # Specifies the specific email address to retrieve.
         [Parameter(
             ValueFromPipeline,
             ValueFromPipelineByPropertyName
@@ -93,7 +54,7 @@
     process {
         $InvokeSplat = @{
             Method        = 'Get'
-            Namespace     = 'suppression/bounces'
+            Namespace     = "suppression/blocks"
             ErrorAction   = 'Stop'
             CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
         }
@@ -131,7 +92,7 @@
                     Invoke-SendGrid @EmailInvokeSplat
                 }
                 catch {
-                    Write-Error ('Failed to retrieve SendGrid bounce. {0}' -f $_.Exception.Message) -ErrorAction Stop
+                    Write-Error ('Failed to retrieve SendGrid block. {0}' -f $_.Exception.Message) -ErrorAction Stop
                 }
             }
         }
@@ -140,7 +101,7 @@
                 Invoke-SendGrid @InvokeSplat
             }
             catch {
-                Write-Error ('Failed to retrieve all SendGrid bounces. {0}' -f $_.Exception.Message) -ErrorAction Stop
+                Write-Error ('Failed to retrieve all SendGrid blocks. {0}' -f $_.Exception.Message) -ErrorAction Stop
             }
         }
     }   

@@ -39,7 +39,6 @@
         }
 
         if ($PSBoundParameters.ContainsKey('EmailAddress')) {
-            #TODO: SHOULD EXPAND THE PSOBJECT "SUPRESSIONS"
             $InvokeSplat.Namespace += '/{0}' -f $EmailAddress.Address
         }
 

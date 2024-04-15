@@ -48,7 +48,7 @@
 
         # Specifies whether the suppression group is the default group.
         [Parameter()]
-        [bool]$IsDefault,
+        [switch]$IsDefault,
 
         # Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
         [Parameter()]
@@ -67,7 +67,7 @@
         $InvokeSplat['ContentBody'] = @{
             'name' = $Name
             'description' = $Description
-            'is_default' = $IsDefault
+            'is_default' = $IsDefault.IsPresent
         }
         if ($PSCmdlet.ShouldProcess(('Update suppression group with ID {0}.' -f $GroupId))) {
             try {
