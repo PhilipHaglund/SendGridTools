@@ -45,10 +45,11 @@
         )]
         [string]$Username,
 
-        # Specifies the number of results you would like to get in each request.
+        # Specifies the page size, i.e. maximum number of items from the list to be returned for a single API request.
         [Parameter()]
         [int]$Limit,
 
+        # Specifies the number of items in the list to skip over before starting to retrieve the items for the requested page.
         [Parameter()]
         [int]$Offset
     )

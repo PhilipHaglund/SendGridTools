@@ -92,7 +92,7 @@
         $ContentBody = @{
             'email_to' = $EmailTo.Address
         }
-        if ($PSBoundParameters.EmailCreditUsage) {
+        if ($PSCmdlet.ParameterSetName -eq 'Usage') {
             $ContentBody.Add('type', 'usage_limit')
             $ContentBody.Add('Percentage', $Percentage)
         }
