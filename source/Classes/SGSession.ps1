@@ -193,7 +193,18 @@ class SendGridSession {
         PSCustomObject[]
     #>
     [PSCustomObject[]] InvokeQuery ([Microsoft.PowerShell.Commands.WebRequestMethod]$WebRequestMethod, [string]$Endpoint, [hashtable]$ContentBody) {
+        foreach ($key in $ContentBody.Keys) {
+            Write-Verbose -Message ('Key: {0}, Value: {1}, Type:{2}' -f $key, $ContentBody[$key], $ContentBody[$key].GetType())
+            if ($ContentBody[$key] -is [System.Array] -and $ContentBody[$key].Length -eq 0) {
+                $ContentBody[$key] = , @()
+                Write-Verbose -Message ('Empty array found for key "{0}"' -f $key)
+            }
+        }
+        #Write-Verbose -Message ($ContentBody | Out-String)
+        #Write-Verbose -Message ($ContentBody.GetType())
         $Body = $ContentBody | ConvertTo-Json -Depth 5 -ErrorAction Stop
+        #Write-Verbose -Message ($Body | Out-String)
+        #Write-Verbose -Message ($Body.GetType())
         $SessionLifeTime = (Get-Date).AddHours(-12)
         if ($null -eq $this._CreateDateTime -or $SessionLifeTime -gt $this._CreateDateTime) {
             $this.Disconnect()
@@ -206,7 +217,6 @@ class SendGridSession {
                     'Authorization' = "Bearer $($this._Credential.GetNetworkCredential().Password)"
                     'Content-Type'  = 'application/json'
                 }
-                $Body | Out-File C:\temp\body.txt
                 $Query = (Invoke-RestMethod -Method $WebRequestMethod -Uri $this.EndpointURL -Headers $Headers -Body $Body -ErrorAction Stop)
                 $this.BuildEndpointURL($null)
                 $this._CreateDateTime = Get-Date
@@ -215,7 +225,7 @@ class SendGridSession {
             catch {
                 $this.BuildEndpointURL($null)
                 if ($null -ne $_.ErrorDetails.Message) {
-                    throw ('SendGrid Error: "{0}"' -f ($_.ErrorDetails.Message | ConvertFrom-Json |Select-Object -ExpandProperty errors | Select-Object -ExpandProperty message) -join ', ' )
+                    throw ('SendGrid Error: "{0}"' -f ($_.ErrorDetails.Message | ConvertFrom-Json | Select-Object -ExpandProperty errors | Select-Object -ExpandProperty message) -join ', ' )
                 }
                 else {
                     throw ('Unable to query SendGrid: {0}' -f $_.Exception.Message)

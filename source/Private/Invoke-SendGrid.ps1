@@ -46,7 +46,8 @@ function Invoke-SendGrid {
             HelpMessage = 'The content body to send with the request.',
             Position = 2
         )]
-        [ValidateNotNullOrEmpty()]
+        [ValidateNotNull()]
+        [AllowEmptyCollection()]
         [hashtable]$ContentBody,
 
         # The username of the subuser to send the query on behalf of.
@@ -92,7 +93,6 @@ function Invoke-SendGrid {
                 throw 'You must call the Connect-SendGrid cmdlet before calling any other cmdlets.'
             }
             try {
-                Write-Verbose 'Attempting to invoke query'
                 # Invoke the query based on provided parameters.
                 if ($PSBoundParameters.ContainsKey('ContentBody') -and $PSBoundParameters.ContainsKey('OnBehalfOf')) {
                     $Query = $script:Session.InvokeQuery($Method, $Namespace, $ContentBody, $OnBehalfOf)
