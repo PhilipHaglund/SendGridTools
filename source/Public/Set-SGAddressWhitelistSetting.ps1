@@ -20,7 +20,7 @@
         [Parameter()]
         [switch]$Enabled,
 
-        # Specifies a list of email addresses or domains to be whitelisted. To clear the list, pass an empty array.
+        # Specifies a list of email addresses or domains to be whitelisted. To clear the list, pass an empty array (e.g. @()
         [Parameter()]
         [AllowEmptyCollection()]
         [string[]]$List,
@@ -46,7 +46,7 @@
         }
         if ($PSBoundParameters.ContainsKey('List')) {
             if ($List.Count -eq 0) {
-                $ContentBody.Add('list', (, @()))
+                $ContentBody.Add('list', @())
             }
             else {
                 $ContentBody.Add('list', @($List))

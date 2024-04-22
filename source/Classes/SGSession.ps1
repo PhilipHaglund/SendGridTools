@@ -193,18 +193,10 @@ class SendGridSession {
         PSCustomObject[]
     #>
     [PSCustomObject[]] InvokeQuery ([Microsoft.PowerShell.Commands.WebRequestMethod]$WebRequestMethod, [string]$Endpoint, [hashtable]$ContentBody) {
-        foreach ($key in $ContentBody.Keys) {
-            Write-Verbose -Message ('Key: {0}, Value: {1}, Type:{2}' -f $key, $ContentBody[$key], $ContentBody[$key].GetType())
-            if ($ContentBody[$key] -is [System.Array] -and $ContentBody[$key].Length -eq 0) {
-                $ContentBody[$key] = , @()
-                Write-Verbose -Message ('Empty array found for key "{0}"' -f $key)
-            }
+        foreach ($Key in $ContentBody.Keys) {
+            Write-Verbose -Message ('CONTENTBODY: Key: {0}, Value: {1}, Type:{2}' -f $Key, $ContentBody[$Key], $ContentBody[$Key].GetType())
         }
-        #Write-Verbose -Message ($ContentBody | Out-String)
-        #Write-Verbose -Message ($ContentBody.GetType())
         $Body = $ContentBody | ConvertTo-Json -Depth 5 -ErrorAction Stop
-        #Write-Verbose -Message ($Body | Out-String)
-        #Write-Verbose -Message ($Body.GetType())
         $SessionLifeTime = (Get-Date).AddHours(-12)
         if ($null -eq $this._CreateDateTime -or $SessionLifeTime -gt $this._CreateDateTime) {
             $this.Disconnect()
