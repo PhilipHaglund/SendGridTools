@@ -14,39 +14,83 @@
         This command retrieves the email activity for the email address 'example@example.com' with a limit of 50 messages.
     #>
     [CmdletBinding(
-        DefaultParameterSetName = 'Query'
+        DefaultParameterSetName = 'Default'
     )]
     [Alias('Get-SGActivity')]
     param (
         [Parameter(
-            ParameterSetName = 'Query',
             Position = 0,
             Mandatory = $true
         )]
         [Alias('Query')]
+        [ValidateSet('ApiKeyId', 'AsmGroupId', 'Categories', 'Clicks', 'Events', 'FromEmail', 'LastEventTime', 'MarketingCampaignId', 'MarketingCampaignName', 'MessageId', 'OutboundIp', 'Status', 'Subject', 'Teammate', 'TemplateId', 'ToEmail', 'UniqueArgs')]
         [string]$Property,
 
         [Parameter(
-            ParameterSetName = 'Query',
-            Position = 0,
+            Position = 2,
             Mandatory = $true
         )]
-        [Alias('Query')]
         [string]$Value,
 
-        [Parameter(
-            ParameterSetName = 'MessageId',
-            Position = 0,
-            Mandatory = $true
-        )]
-        [string]$MessageId,
-
-        [Parameter(
-            ParameterSetName = 'Query',
-            Position = 1)]
+        [Parameter()]
         [ValidateRange(1, 1000)]
         [int]$Limit = 10
     )
+    DynamicParam {
+        # Create a dictionary to hold the dynamic parameters
+        $ParamDictionary = [System.Management.Automation.RuntimeDefinedParameterDictionary]::new()
+
+        if ($Property -ne 'LastEventTime') {
+            # Create the Equal parameter attribute
+            $EqualParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
+            $EqualParamAttribute.Position = 1
+            $EqualParamAttribute.ParameterSetName = 'EqualSet'
+
+            # Create the NotEqual parameter attribute
+            $NotEqualParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
+            $NotEqualParamAttribute.Position = 1
+            $NotEqualParamAttribute.ParameterSetName = 'NotEqualSet'
+
+            # Add the parameter attributes to an attribute collection
+            $EqualAttributeCollection = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
+            $EqualAttributeCollection.Add($EqualParamAttribute)
+            $NotEqualAttributeCollection = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
+            $NotEqualAttributeCollection.Add($NotEqualAttributeCollection)
+
+            # Add Alias to the parameter
+            $EQAliasAttribute = [System.Management.Automation.AliasAttribute]::new('Equals')
+            $NEAliasAttribute = [System.Management.Automation.AliasAttribute]::new('Equals')
+            $EqualAttributeCollection.Add($EQAliasAttribute)
+            $NotEqualAttributeCollection.Add($NEAliasAttribute)
+
+            # Create the actual EQ parameter
+            $EqualParam = [System.Management.Automation.RuntimeDefinedParameter]::new('EQ', [switch], $AttributeCollection)
+            $NotEqualParam = [System.Management.Automation.RuntimeDefinedParameter]::new('NE', [switch], $NotEqualAttributeCollection)
+
+            # Push the parameter(s) into a parameter dictionary
+            $ParamDictionary.Add('EQ', $EqualParam)
+            $ParamDictionary.Add('NE', $NotEqualParam)
+        }
+        if ($Property -eq 'LastEventTime') {
+            # Create the Date parameter attribute
+            $DateParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
+            $DateParamAttribute.Position = 1
+            $DateParamAttribute.ParameterSetName = 'DateSet'
+
+            # Add the parameter attributes to an attribute collection
+            $AttributeCollection = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
+            $AttributeCollection.Add($DateParamAttribute)
+
+            # Create the actual GT parameter
+            $DateParam = [System.Management.Automation.RuntimeDefinedParameter]::new('Date', [switch], $AttributeCollection)
+
+            # Push the parameter(s) into a parameter dictionary
+            $ParamDictionary.Add('Date', $DateParam)
+        }
+        if ($Property -match 'Clicks|')
+        # Return the dictionary
+        return $ParamDictionary
+    }
     begin {
         $Properties = @{
             'MessageId'             = 'msg_id'
@@ -76,18 +120,13 @@
             CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
         }
 
-        if ($PSCmdlet.ParameterSetName -eq 'MessageId') {
-            $InvokeSplat['Namespace'] += "/$MessageId"
-        }
-        else {
-            #Generic List
+            #Generic List for Query Parameters
             [System.Collections.Generic.List[string]]$QueryParameters = [System.Collections.Generic.List[string]]::new()
             $QueryParameters.Add("query=$Filter")
             $QueryParameters.Add("limit=$Limit")
             if ($QueryParameters.Count -gt 0) {
                 $InvokeSplat['Namespace'] += '?' + ($QueryParameters -join '&')
             }
-        }
         try {
             Invoke-SendGrid @InvokeSplat
         }
