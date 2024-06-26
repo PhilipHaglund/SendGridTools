@@ -170,7 +170,7 @@ function Invoke-SendGrid {
                     throw $PSObject.Errors.Message
                 }
                 else {
-                    if (0 -eq @($PSObject.psobject.Properties).Count) {
+                    if (0 -eq @($PSObject.PSObject.Properties).Count) {
                         Write-Verbose -Message ('Successfully invoked "{0}" on "{1}".' -f $CallingCmdlet, $Namespace) -Verbose
                     }
                     else {
