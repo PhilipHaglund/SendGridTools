@@ -125,6 +125,11 @@ function Invoke-SendGrid {
                         $Query = $Query.suppressions
                         break;
                     }
+                    'Messages' {
+                        $Query = $Query.messages
+                        $PSTypeName = 'SendGridTools.Get.EmailActivity'
+                        break;
+                    }
                     Default {
                         break;
                     }
@@ -137,6 +142,9 @@ function Invoke-SendGrid {
             foreach ($Object in $Query) {
                 # Create a new custom object.
                 [PSCustomObject]$PSObject = [PSCustomObject]::new()
+                if ($PSTypeName) {
+                    $PSObject | Add-Member -TypeName $PSTypeName
+                }
 
                 # Process each property in the properties array.
                 foreach ($Property in $Properties) {
@@ -174,11 +182,11 @@ function Invoke-SendGrid {
                         Write-Verbose -Message ('Successfully invoked "{0}" on "{1}".' -f $CallingCmdlet, $Namespace) -Verbose
                     }
                     else {
-                        Write-Verbose -Message ('Successfully invoked "{0}" on "{1}".' -f $CallingCmdlet, $Namespace)
                         $PSObject
                     }
                 }
             }
+            Write-Verbose -Message ('Successfully invoked "{0}" on "{1}".' -f $CallingCmdlet, $Namespace)
         }
     }
 }
