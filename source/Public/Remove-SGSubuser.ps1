@@ -23,8 +23,10 @@
         [Parameter(
             Mandatory = $true,
             ValueFromPipeline,
-            ValueFromPipelineByPropertyName
+            ValueFromPipelineByPropertyName,
+            Position = 0
         )]
+        [Alias('ID')]
         [string]$Username
     )
 

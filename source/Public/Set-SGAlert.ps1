@@ -39,17 +39,22 @@
         [Parameter(
             Mandatory,
             ValueFromPipeline,
-            ValueFromPipelineByPropertyName
+            ValueFromPipelineByPropertyName,
+            Position = 0
         )]
         [Alias('Id')]
         [int]$AlertId,
 
         # Specifies the new email address the alert will be sent to.
-        [Parameter()]
+        [Parameter(
+            Position = 1
+        )]
         [MailAddress]$EmailTo,
 
         # Specifies the new frequency at which the alert will be sent. Required for 'stats_notification'.
-        [Parameter()]
+        [Parameter(
+            Position = 2
+        )]
         [ValidateSet('Daily', 'Weekly', 'Monthly')]
         [string]$Frequency,
 

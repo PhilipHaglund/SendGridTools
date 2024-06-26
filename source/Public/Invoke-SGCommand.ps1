@@ -33,15 +33,22 @@
         [string]$Namespace,
 
         # Specifies the HTTP method to use for the API call. The default value is 'Get'.
-        [Parameter()]
+        [Parameter(
+            Position = 1
+        )]
         [ValidateSet('Get', 'Post', 'Put', 'Delete', 'Patch')]
         [string]$WebMethod = 'Get',
 
         # Specifies the content body for the API call. It should be a hashtable.
-        [Parameter()]
+        [Parameter(
+            Position = 2
+        )]
         [HashTable]$ContentBody,
 
         # Specifies if the SGCommand takes Query parameters like limit or offset. Should contain the query parameter followed by = and the value. Example: limit=10
+        [Parameter(
+            Position = 3
+        )]
         [System.Collections.Generic.List[string]]$QueryParameters = [System.Collections.Generic.List[string]]::new(),
 
         # Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.

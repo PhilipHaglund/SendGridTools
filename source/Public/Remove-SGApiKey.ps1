@@ -14,13 +14,17 @@
 
         This command deletes the API Key with the specified ID within the current SendGrid instance.
     #>
-    [CmdletBinding(SupportsShouldProcess)]
+    [CmdletBinding(
+        SupportsShouldProcess,
+        ConfirmImpact = 'High'
+    )]
     param (
         # Specifies the ID of the API Key to be deleted.
         [Parameter(
             Mandatory = $true,
             ValueFromPipeline,
-            ValueFromPipelineByPropertyName
+            ValueFromPipelineByPropertyName,
+            Position = 0
         )]
         [string[]]$ApiKeyId,
         

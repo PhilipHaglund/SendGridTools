@@ -25,7 +25,8 @@
         [Parameter(
             Mandatory,
             ValueFromPipeline,
-            ValueFromPipelineByPropertyName
+            ValueFromPipelineByPropertyName,
+            Position = 0
         )]
         [Alias('Id')]
         [int]$GroupId,

@@ -15,7 +15,7 @@
         Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
 
     .EXAMPLE
-        PS C:\> Get-SMSGAuthenticatedDomain
+        PS C:\> Get-SGAuthenticatedDomain
         
         Domain            : sending.example.com
         Subdomain         : em4963
@@ -45,7 +45,7 @@
         This command retrieves all Authenticated Domains within the current SendGrid instance.
 
     .EXAMPLE
-        PS C:\> Get-SMSGAuthenticatedDomain -UniqueId 12589712
+        PS C:\> Get-SGAuthenticatedDomain -UniqueId 12589712
         
         Domain            : email.example.com
         Subdomain         : em200
@@ -63,7 +63,7 @@
         This command retrieves the Authenticated Domain with the UniqueId '12589712' within the current SendGrid instance.
 
         .EXAMPLE
-        PS C:\> Get-SMSGAuthenticatedDomain -UniqueId 12589712 -OnBehalfOf 'Subuser'
+        PS C:\> Get-SGAuthenticatedDomain -UniqueId 12589712 -OnBehalfOf 'Subuser'
 
         Domain            : email.example.com
         Subdomain         : em200
@@ -87,8 +87,10 @@
         # Specifies the UniqueId of a specific Authenticated Domain to retrieve. If this parameter is not provided, all Authenticated Domains are retrieved.
         [Parameter(
             ValueFromPipeline,
-            ValueFromPipelineByPropertyName
+            ValueFromPipelineByPropertyName,
+            Position = 0
         )]
+        [Alias('Id')]
         [string[]]$UniqueId,
 
         # Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.

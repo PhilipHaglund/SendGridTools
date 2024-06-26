@@ -1,7 +1,7 @@
 ﻿function New-SGAuthenticatedDomain {
     <#
     .SYNOPSIS
-        Adds a new Authenticated Domain to the current Sendgrid instance.
+        Adds a new Authenticated Domain to the current SendGrid instance.
 
     .DESCRIPTION
         New-SGAuthenticatedDomain allows you to add a new Authenticated Domain to the current SendGrid instance. An authenticated domain allows 
@@ -60,24 +60,36 @@
     param (
 
         # Specifies a domain. It's not recommended to provide a full domain including a subdomain, for instance email.example.com.
-        [Parameter(Mandatory)]
+        [Parameter(
+            Mandatory,
+            Position = 0
+        )]
         [ValidatePattern('^([a-zA-Z0-9]([-a-zA-Z0-9]{0,61}[a-zA-Z0-9])?\.)?([a-zA-Z0-9]{1,2}([-a-zA-Z0-9]{0,252}[a-zA-Z0-9])?)\.([a-zA-Z]{2,63})$')]
         [string]$Domain,
 
         # Specifies a subdomain to be used, in most cases it's "email".
-        [Parameter()]
+        [Parameter(
+            Mandatory,
+            Position = 1
+        )]
         [string]$Subdomain,
 
         # Specifies a subuser to be used, this is optional.
-        [Parameter()]
+        [Parameter(
+            Position = 2
+        )]
         [string]$SubUser,
 
         # Specify whether to not allow SendGrid to manage your SPF records, DKIM keys, and DKIM key rotation. Default is that SendGrid manages those records.
-        [Parameter()]
+        [Parameter(
+            Position = 3
+        )]
         [switch]$DisableAutomaticSecurity,
 
         # Add a custom DKIM selector. Accepts three letters or numbers. Defaults to 'sg'.
-        [Parameter()]
+        [Parameter(
+            Position = 4
+        )]
         [ValidatePattern('^[a-zA-Z\d]{3}$')]
         $CustomDkimSelector = 'sg',
 
@@ -86,14 +98,16 @@
         [string]$OnBehalfOf,
 
         # Specifies if the current domain (parameter Domain) should be created despite it contains a subdomain (email.example.com).
-        [Parameter()]
+        [Parameter(
+            Position = 6
+        )]
         [switch]$Force
     )
     DynamicParam {
         if ($DisableAutomaticSecurity) {
             # Specify whether to use a custom SPF or allow SendGrid to manage your SPF. This option is only available to authenticated domains set up for manual security.
             $CustomSPFParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
-            $CustomSPFParamAttribute.Position = 4
+            $CustomSPFParamAttribute.Position = 5
 
             # Add the parameter attributes to an attribute collection
             $AttributeCollection = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
@@ -114,7 +128,7 @@
         [hashtable]$ContentBody = [hashtable]::new()
         $ContentBody.Add('domain', $Domain)
         if ($Domain -match '.*\..*\..*' -and -not $PSBoundParameters.ContainsKey('Subdomain')) {
-            Write-Verbose -Message ("Sendgrid will automatically generate a custom subdomain for you. Example:em1234.$Subdomain.$Domain") -Verbose
+            Write-Verbose -Message ("SendGrid will automatically generate a custom subdomain for you. Example:em1234.$Subdomain.$Domain") -Verbose
             $ProcessMessage = $Domain
         }
         elseif ($Domain -match '.*\..*\..*' -and $PSBoundParameters.ContainsKey('Subdomain') -and -not $Force.IsPresent) {
@@ -122,11 +136,11 @@
             break
         }
         elseif ($Domain -match '.*\..*\..*' -and $PSBoundParameters.ContainsKey('Subdomain') -and $Force.IsPresent) {
-            Write-Verbose -Message "Running with force using double subdomain. Sendgrid will automatically generate a subdomain for you. Example:em1234.$Subdomain.$Domain" -Verbose
+            Write-Verbose -Message "Running with force using double subdomain. SendGrid will automatically generate a subdomain for you. Example:em1234.$Subdomain.$Domain" -Verbose
             $ProcessMessage = "$Subdomain.$Domain"
         }
         else {
-            Write-Verbose -Message ("Sendgrid will automatically generate a custom subdomain for you. Example:em1234.$Subdomain.$Domain") -Verbose
+            Write-Verbose -Message ("SendGrid will automatically generate a custom subdomain for you. Example:em1234.$Subdomain.$Domain") -Verbose
             $ContentBody.Add('subdomain', $Subdomain)
             $ProcessMessage = "$Domain"
             

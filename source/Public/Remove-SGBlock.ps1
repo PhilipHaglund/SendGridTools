@@ -33,13 +33,18 @@
             Mandatory = $true,
             ValueFromPipeline,
             ValueFromPipelineByPropertyName,
-            ParameterSetName = 'Default'
+            ParameterSetName = 'Default',
+            Position = 0
         )]
         [Alias('Email')]
         [MailAddress[]]$EmailAddress,
 
         # Specifies whether to delete all emails on the bounces list.
-        [Parameter(ParameterSetName = 'DeleteAll')]
+        [Parameter(
+            ParameterSetName = 'DeleteAll',
+            Mandatory = $true,
+            Position = 0
+        )]
         [switch]$DeleteAll,
 
         # Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
@@ -67,22 +72,24 @@
                 }
             }
         }
-        foreach ($Id in $EmailAddress) {
-            $InvokeSplat = @{
-                Method        = 'Delete'
-                Namespace     = "suppression/blocks/$($Id.Address)"
-                ErrorAction   = 'Stop'
-                CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
-            }
-            if ($PSBoundParameters.OnBehalfOf) {
-                $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
-            }
-            if ($PSCmdlet.ShouldProcess(('Remove bounce with email address {0}' -f $Id.Address))) {
-                try {
-                    Invoke-SendGrid @InvokeSplat
+        else {
+            foreach ($Id in $EmailAddress) {
+                $InvokeSplat = @{
+                    Method        = 'Delete'
+                    Namespace     = "suppression/blocks/$($Id.Address)"
+                    ErrorAction   = 'Stop'
+                    CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
                 }
-                catch {
-                    Write-Error ('Failed to remove SendGrid bounce "{0}". {0}' -f $Id.Address, $_.Exception.Message) -ErrorAction Stop
+                if ($PSBoundParameters.OnBehalfOf) {
+                    $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
+                }
+                if ($PSCmdlet.ShouldProcess(('Remove bounce with email address {0}' -f $Id.Address))) {
+                    try {
+                        Invoke-SendGrid @InvokeSplat
+                    }
+                    catch {
+                        Write-Error ('Failed to remove SendGrid bounce "{0}". {0}' -f $Id.Address, $_.Exception.Message) -ErrorAction Stop
+                    }
                 }
             }
         }

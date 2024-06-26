@@ -21,7 +21,6 @@
         This command removes the email address 'test@example.com' from the global suppressions list in SendGrid for the Subuser 'Subuser'.
     #>
     [CmdletBinding(
-        DefaultParameterSetName = 'Default',
         SupportsShouldProcess,
         ConfirmImpact = 'High'
     )]
@@ -31,7 +30,7 @@
             Mandatory = $true,
             ValueFromPipeline,
             ValueFromPipelineByPropertyName,
-            ParameterSetName = 'Default'
+            Position = 0
         )]
         [Alias('Email')]
         [string]$EmailAddress,

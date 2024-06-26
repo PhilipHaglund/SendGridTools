@@ -66,24 +66,33 @@
         # Specifies the specific email address to retrieve. If this parameter is not provided, all bounces are retrieved.
         [Parameter(
             ValueFromPipeline,
-            ValueFromPipelineByPropertyName
+            ValueFromPipelineByPropertyName,
+            Position = 0
         )]
         [MailAddress[]]$EmailAddress,
 
         # Refers to the start of the time range in Unix timestamp when an invalid email was created (inclusive).
-        [Parameter()]
+        [Parameter(
+            Position = 1
+        )]
         [UnixTime]$StartTime,
 
         # Refers to the end of the time range in Unix timestamp when an invalid email was created (inclusive).
-        [Parameter()]
+        [Parameter(
+            Position = 2
+        )]
         [UnixTime]$EndTime,
 
         # Sets the page size, i.e., the maximum number of items from the list to be returned for a single API request. If omitted, the default page size is used. The maximum page size for this endpoint is 500 items per page.
-        [Parameter()]
+        [Parameter(
+            Position = 3
+        )]
         [int]$Limit,
 
         # The number of items in the list to skip over before starting to retrieve the items for the requested page. The default offset of 0 represents the beginning of the list, i.e., the start of the first page. To request the second page of the list, set the offset to the page size as determined by Limit. Use multiples of the page size as your offset to request further consecutive pages.
-        [Parameter()]
+        [Parameter(
+            Position = 4
+        )]
         [int]$Offset,
 
         # Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
@@ -111,6 +120,9 @@
         }
         if ($PSBoundParameters.Limit) {
             $QueryParameters.Add("limit=$limit")
+        }
+        else {
+            $QueryParameters.Add("limit=100")
         }
         if ($PSBoundParameters.Offset) {
             $QueryParameters.Add("offset=$offset")

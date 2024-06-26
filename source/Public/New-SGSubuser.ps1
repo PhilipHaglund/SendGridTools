@@ -35,28 +35,32 @@
         # Specifies the username for the Subuser to create.
         [Parameter(
             Mandatory,
-            ValueFromPipelineByPropertyName
+            ValueFromPipelineByPropertyName,
+            Position = 0
         )]
         [string]$Username,
 
         # Specifies the email address to contact this subuser.
         [Parameter(
             Mandatory,
-            ValueFromPipelineByPropertyName
+            ValueFromPipelineByPropertyName,
+            Position = 1
         )]
         [MailAddress]$Email,
 
         # Specifies the password for the Subuser to create.
         [Parameter(
             Mandatory,
-            ValueFromPipelineByPropertyName
+            ValueFromPipelineByPropertyName,
+            Position = 2
         )]
         [SecureString]$Password,
 
         # Specifies the IP addresses that you would like to allow this Subuser to access.
         [Parameter(
             Mandatory,
-            ValueFromPipelineByPropertyName
+            ValueFromPipelineByPropertyName,
+            Position = 3
         )]
         [IPAddress[]]$Ips
 

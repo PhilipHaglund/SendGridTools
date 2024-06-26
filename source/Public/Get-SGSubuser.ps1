@@ -5,7 +5,7 @@
 
     .DESCRIPTION
         Get-SGSubuser retrieves all Subusers or a specific Subuser based on its username
-        within the current SendGrid instance. Due to limitations in the Sendgrid API, when retriev ing all users it wont display disabled users.
+        within the current SendGrid instance. Due to limitations in the SendGrid API, when retrieve ing all users it wont display disabled users.
 
     .PARAMETER Username
         Specifies the ID of a specific Subuser to retrieve. If this parameter is not provided, all Subusers are retrieved.
@@ -41,8 +41,10 @@
         # Specifies the ID of a specific Subuser to retrieve. If this parameter is not provided, all Subusers are retrieved.
         [Parameter(
             ValueFromPipeline,
-            ValueFromPipelineByPropertyName
+            ValueFromPipelineByPropertyName,
+            Position = 0
         )]
+        [Alias('Id')]
         [string]$Username,
 
         # Specifies the page size, i.e. maximum number of items from the list to be returned for a single API request.

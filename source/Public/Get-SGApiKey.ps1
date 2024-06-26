@@ -39,7 +39,8 @@
         # Specifies the ID of a specific API Key to retrieve. If this parameter is not provided, all API Keys are retrieved.
         [Parameter(
             ValueFromPipeline,
-            ValueFromPipelineByPropertyName
+            ValueFromPipelineByPropertyName,
+            Position = 0
             
         )]
         [string[]]$ApiKeyId,

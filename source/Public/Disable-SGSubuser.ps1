@@ -21,14 +21,16 @@
 
     #>
     [CmdletBinding(
-        SupportsShouldProcess
+        SupportsShouldProcess,
+        ConfirmImpact = 'High'
     )]
     param (
 
         # Specifies the username for the Subuser to create.
         [Parameter(
             Mandatory,
-            ValueFromPipelineByPropertyName
+            ValueFromPipelineByPropertyName,
+            Position = 0
         )]
         [string]$Username
     )

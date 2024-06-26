@@ -23,13 +23,7 @@
         [Alias('Query')]
         [ValidateSet('ApiKeyId', 'ApiKeyName','AsmGroupId','AsmGroupName', 'Categories', 'Clicks', 'Events', 'FromEmail', 'LastEventTime', 'MarketingCampaignId', 'MarketingCampaignName', 'MessageId', 'OutboundIp', 'Status', 'Subject', 'Teammate', 'TemplateId', 'TemplateName','ToEmail')]
         [string]$Property,
-        <#
-        [Parameter(
-            Position = 2,
-            Mandatory = $true
-        )]
-        [string]$Value,
-        #>
+
         [Parameter()]
         [ValidateRange(1, 1000)]
         [int]$Limit = 10
@@ -256,7 +250,7 @@
 
             # Add ValidateSet to the parameter
             $Templates = Get-SGTemplate
-            $StatusValidateSet = [System.Management.Automation.ValidateSetAttribute]::new($Templates.TemplateName)
+            $StatusValidateSet = [System.Management.Automation.ValidateSetAttribute]::new([string[]]$Templates.TemplateName)
             $ValueAttributeCollection.Add($StatusValidateSet)
 
             # Create the actual Value parameter

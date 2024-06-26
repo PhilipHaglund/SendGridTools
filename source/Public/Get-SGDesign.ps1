@@ -26,11 +26,17 @@
     #>
     [CmdletBinding()]
     param (
-        [Parameter()]
+        [Parameter(
+            Position = 0
+        )]
         [int]$PageSize = 100,
-        [Parameter()]
+        [Parameter(
+            Position = 1
+        )]
         [string]$PageToken,
-        [Parameter()]
+        [Parameter(
+            Position = 2
+        )]
         [switch]$Summary
     )
     process {

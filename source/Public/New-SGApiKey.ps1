@@ -36,23 +36,28 @@
     param (
         [Parameter(
             ParameterSetName = 'Scopes',
-            Mandatory
+            Mandatory,
+            Position = 0
         )]
         [Parameter(
             ParameterSetName = 'FullAccess',
-            Mandatory
+            Mandatory,
+            Position = 0
         )]
         [string]$Name,
 
         [Parameter(
-            ParameterSetName = 'Scopes'
+            ParameterSetName = 'Scopes',
+            Mandatory,
+            Position = 1
         )]
         [ValidateSet([SendGridScopes])]
         [string[]]$Scopes,
 
         [Parameter(
             ParameterSetName = 'FullAccess',
-            Mandatory
+            Mandatory,
+            Position = 1
         )]
         [switch]$FullAccessKey,
 

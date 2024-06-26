@@ -10,7 +10,7 @@
         Specifies the email address to add to the global suppressions list.
 
     .PARAMETER OnBehalfOf
-        Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
+        Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's sub users or customer accounts.
 
     .EXAMPLE
         PS C:\> Add-SGSGlobalSuppression -EmailAddress 'test@example.com'
@@ -30,13 +30,13 @@
             Mandatory = $true,
             ValueFromPipeline,
             ValueFromPipelineByPropertyName,
-            ParameterSetName = 'Default'
+            Position = 0
         )]
         [Alias('Email')]
         [MailAddress[]]$EmailAddress,
 
-        # Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
-        [Parameter(ParameterSetName = 'Default')]
+        # Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's sub users or customer accounts.
+        [Parameter()]
         [string]$OnBehalfOf
     )
     process {

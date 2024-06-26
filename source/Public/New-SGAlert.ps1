@@ -38,32 +38,37 @@
         # Specifies the type of alert to Email Credit Usage.
         [Parameter(
             Mandatory,
-            ParameterSetName = 'Usage'
+            ParameterSetName = 'Usage',
+            Position = 0
         )]
         [switch]$EmailCreditUsage,
 
         # Specifies the type of alert to Email Statistics Summary.
         [Parameter(
             Mandatory,
-            ParameterSetName = 'Statistics'
+            ParameterSetName = 'Statistics',
+            Position = 0
         )]
         [switch]$EmailStatisticsSummary,
 
         # Specifies the email address the alert will be sent to.
         [Parameter(
             Mandatory,
-            ParameterSetName = 'Statistics'
+            ParameterSetName = 'Statistics',
+            Position = 1
         )]
         [Parameter(
             Mandatory,
-            ParameterSetName = 'Usage'
+            ParameterSetName = 'Usage',
+            Position = 1
         )]
         [MailAddress]$EmailTo,
 
         # Specifies how frequently the alert will be sent. Required for 'stats_notification'.
         [Parameter(
             Mandatory,
-            ParameterSetName = 'Statistics'
+            ParameterSetName = 'Statistics',
+            Position = 2
         )]
         [ValidateSet('Daily', 'Weekly', 'Monthly')]
         [string]$Frequency,
@@ -71,7 +76,8 @@
         # Specifies the usage threshold at which the alert will be sent. Required for 'usage_alert'.
         [Parameter(
             Mandatory,
-            ParameterSetName = 'Usage'
+            ParameterSetName = 'Usage',
+            Position = 2
         )]
         [ValidateRange(1, 100)]
         [int]$Percentage,

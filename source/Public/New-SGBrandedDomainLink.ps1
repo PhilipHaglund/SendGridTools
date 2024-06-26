@@ -35,12 +35,17 @@
     param (
 
         # Specifies a domain. Do not provide a full domain including a subdomain here, for instance email.example.com.
-        [Parameter(Mandatory)]
+        [Parameter(
+            Mandatory,
+            Position = 0
+        )]
         [ValidatePattern('^([a-zA-Z0-9]([-a-zA-Z0-9]{0,61}[a-zA-Z0-9])?\.)?([a-zA-Z0-9]{1,2}([-a-zA-Z0-9]{0,252}[a-zA-Z0-9])?)\.([a-zA-Z]{2,63})$')]
         [string]$Domain,
 
         # Specifies a subdomain to be used, in most cases it's "link".
-        [Parameter()]
+        [Parameter(
+            Position = 1
+        )]
         [string]$Subdomain = 'link',
 
         # Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.

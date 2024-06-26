@@ -23,7 +23,7 @@
         This command deletes the alert with the ID 123 on SendGrid on behalf of the Subuser 'Subuser'.
     #>
     [CmdletBinding(
-        SupportsShouldProcess = $true,
+        SupportsShouldProcess,
         ConfirmImpact = 'High'
     )]
     param (
@@ -31,7 +31,8 @@
         [Parameter(
             Mandatory,
             ValueFromPipeline,
-            ValueFromPipelineByPropertyName
+            ValueFromPipelineByPropertyName,
+            Position = 0
         )]
         [Alias('Id')]
         [int]$AlertId,

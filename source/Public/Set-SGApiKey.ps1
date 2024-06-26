@@ -31,12 +31,17 @@
     param (
         # Specifies the ID of the API Key to be updated.
         [Parameter(
-            Mandatory = $true
+            Mandatory = $true,
+            ValueFromPipeline,
+            ValueFromPipelineByPropertyName,
+            Position = 0
         )]
         [string[]]$ApiKeyID,
 
         # Specifies the new scopes of the API Key.
-        [Parameter()]
+        [Parameter(
+            Position = 1
+        )]
         [ValidateSet([SendGridScopes])]
         [string[]]$Scopes,
 
@@ -50,8 +55,8 @@
     )
     
     process {
-        if ($ApiKeyID.Count -gt 1) {
-            Write-Warning ('Only one API Key can be updated at a time. Only scopes will be updated for {0} API Keys.' -f ($ApiKeyID.Count - 1))
+        if ($ApiKeyID.Count -gt 1 -and $PSBoundParameters.ContainsKey('NewName')) {
+            Write-Warning ('Only one API Key can renamed per Set-SGApiKey. Scopes will be updated for {0} API Keys.' -f ($ApiKeyID.Count - 1))
             $PSBoundParameters.Remove('NewName')
         }
         foreach ($Id in $ApiKeyID) {

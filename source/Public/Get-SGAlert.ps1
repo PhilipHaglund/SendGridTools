@@ -27,7 +27,8 @@
         # Specifies the ID of the alert to retrieve.
         [Parameter(
             ValueFromPipeline,
-            ValueFromPipelineByPropertyName
+            ValueFromPipelineByPropertyName,
+            Position = 0
         )]
         [Alias('Id')]
         [string[]]$AlertId,

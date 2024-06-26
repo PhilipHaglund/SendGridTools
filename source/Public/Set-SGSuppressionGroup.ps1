@@ -33,17 +33,22 @@
         [Parameter(
             Mandatory,
             ValueFromPipeline,
-            ValueFromPipelineByPropertyName
+            ValueFromPipelineByPropertyName,
+            Position = 0
         )]
         [Alias('Id')]
         [int]$GroupId,
 
         # Specifies the name of the suppression group.
-        [Parameter()]
+        [Parameter(
+            Position = 1
+        )]
         [string]$Name,
 
         # Specifies the description of the suppression group.
-        [Parameter()]
+        [Parameter(
+            Position = 2
+        )]
         [string]$Description,
 
         # Specifies whether the suppression group is the default group.

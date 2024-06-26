@@ -9,7 +9,7 @@
         To associate an authenticated domain with a subuser, the parent account must first authenticate and validate the domain.
         The parent may then associate the authenticated domain via the subuser management tools.
 
-    .PARAMETER UnqieId
+    .PARAMETER UniqueId
         Specifies the ID of the authenticated domain to assign to the subuser. This parameter is mandatory.
 
         .PARAMETER UserName
@@ -30,17 +30,21 @@
     )]
     param (
 
-        # Specifies the ID of a specific API Key to retrieve. If this parameter is not provided, all API Keys are retrieved.
+        # Specifies the ID of a specific authenticated domain to assign to the subuser.
         [Parameter(
             Mandatory,
             ValueFromPipeline,
-            ValueFromPipelineByPropertyName
+            ValueFromPipelineByPropertyName,
+            Position = 0
         )]
+        [Alias('Id')]
         [string]$UniqueId,
 
         # Specifies username of the subuser to assign the authenticated domain to.
         [Parameter(
-            Mandatory
+            Mandatory,
+            ValueFromPipelineByPropertyName,
+            Position = 1
         )]
         [string]$UserName
     )

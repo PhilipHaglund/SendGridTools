@@ -27,13 +27,15 @@
         [Parameter(
             Mandatory,
             ValueFromPipeline,
-            ValueFromPipelineByPropertyName
+            ValueFromPipelineByPropertyName,
+            Position = 0
         )]
         [string]$Name,
 
         # Specifies the description of the suppression group.
         [Parameter(
-            Mandatory
+            Mandatory,
+            Position = 1
         )]
         [string]$Description,
 

@@ -23,7 +23,9 @@
     [CmdletBinding()]
     param (
         # Specifies the email address to search suppression groups for.
-        [Parameter()]
+        [Parameter(
+            Position = 0
+        )]
         [MailAddress]$EmailAddress,
 
         # Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.

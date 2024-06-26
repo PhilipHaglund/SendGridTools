@@ -22,7 +22,8 @@
         # Specifies the ID of the suppression group.
         [Parameter(
             ValueFromPipeline,
-            ValueFromPipelineByPropertyName
+            ValueFromPipelineByPropertyName,
+            Position = 0
         )]
         [Alias('Id')]
         [int]$GroupId,

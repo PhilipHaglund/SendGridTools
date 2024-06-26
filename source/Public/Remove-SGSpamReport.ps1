@@ -31,7 +31,8 @@
             Mandatory = $true,
             ValueFromPipeline,
             ValueFromPipelineByPropertyName,
-            ParameterSetName = 'Default'
+            ParameterSetName = 'Default',
+            Position = 0
         )]
         [Alias('Email')]
         [MailAddress[]]$EmailAddress,

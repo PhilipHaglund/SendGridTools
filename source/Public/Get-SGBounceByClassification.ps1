@@ -42,16 +42,22 @@
     [CmdletBinding()]
     param (
         # Specifies the Classification of the bounce.
-        [Parameter()]
+        [Parameter(
+            Position = 0
+        )]
         [ValidateSet('Content', 'Frequency or Volume Too High', 'Invalid Address', 'Mailbox Unavailable', 'Reputation', 'Technical Failure', 'Unclassified')]
         [string]$Classification,
         
         # Specifies the start date of the time range when a bounce was created (inclusive). Both datetime and unix timestamp formats are accepted.
-        [Parameter()]
+        [Parameter(
+            Position = 1
+        )]
         [UnixTime]$StartDate,
 
         # Specifies the end date of the time time range when a bounce was created (inclusive). Both datetime and unix timestamp formats are accepted.
-        [Parameter()]
+        [Parameter(
+            Position = 2
+        )]
         [UnixTime]$EndDate,
 
         # Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.

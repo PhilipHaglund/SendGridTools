@@ -36,11 +36,13 @@
         [Parameter(
             Mandatory,
             ValueFromPipelineByPropertyName,
-            ValueFromPipeline
+            ValueFromPipeline,
+            Position = 0
         )]
+        [Alias('Id')]
         [string[]]$UniqueId,
 
-        # Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
+        # Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's sub users or customer accounts.
         [Parameter()]
         [string]$OnBehalfOf
     )    
