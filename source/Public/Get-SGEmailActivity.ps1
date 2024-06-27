@@ -18,12 +18,41 @@
     param (
         [Parameter(
             Position = 0,
-            Mandatory = $true
+            Mandatory = $true,
+            ParameterSetName = 'EqualSet'
         )]
-        [Alias('Query')]
+        [Parameter(
+            Position = 0,
+            Mandatory = $true,
+            ParameterSetName = 'ThanSet'
+        )]
+        [Parameter(
+            Position = 0,
+            Mandatory = $true,
+            ParameterSetName = 'ContainsSet'
+        )]
+        [Parameter(
+            Position = 0,
+            Mandatory = $true,
+            ParameterSetName = 'EmptySet'
+        )]
+        [Parameter(
+            Position = 0,
+            Mandatory = $true,
+            ParameterSetName = 'LikeSet'
+        )]
+        [Alias('Object')]
         [ValidateSet('ApiKeyId', 'ApiKeyName', 'AsmGroupId', 'AsmGroupName', 'Categories', 'Clicks', 'Events', 'FromEmail', 'LastEventTime', 'MarketingCampaignId', 'MarketingCampaignName', 'MessageId', 'OutboundIp', 'Status', 'Subject', 'Teammate', 'TemplateId', 'TemplateName', 'ToEmail')]
         [string]$Property,
 
+        # Specifies the query to filter email activity. The query will automatically be URL encoded.
+        [Parameter(
+            ParameterSetName = 'FilterSet',
+            Position = 0,
+            Mandatory
+        )]
+        [string]$Filter,
+        
         [Parameter()]
         [ValidateRange(1, 1000)]
         [int]$Limit = 10
@@ -41,7 +70,7 @@
             # Create the NotEqual parameter attribute
             $NotEqualParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
             #$NotEqualParamAttribute.Position = 1
-            #$NotEqualParamAttribute.ParameterSetName = 'NotEqualSet'
+            $NotEqualParamAttribute.ParameterSetName = 'EqualSet'
 
             # Add the parameter attributes to an attribute collection
             $EqualAttributeCollection = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
@@ -67,12 +96,12 @@
             # Create the GreaterThan parameter attribute
             $GTParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
             #$GTParamAttribute.Position = 1
-            $GTParamAttribute.ParameterSetName = 'GreaterThanSet'
+            $GTParamAttribute.ParameterSetName = 'ThanSet'
 
             # Create the LessThan parameter attribute
             $LTParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
             #$LTParamAttribute.Position = 1
-            #$LTParamAttribute.ParameterSetName = 'LessThanSet'
+            $LTParamAttribute.ParameterSetName = 'ThanSet'
 
             # Add the parameter attributes to an attribute collection
             $GTAttributeCollection = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
@@ -94,7 +123,7 @@
             $ParamDictionary.Add('GT', $GTParam)
             $ParamDictionary.Add('LT', $LTParam)
         }
-        if ($Property -match 'FromEmail|Subject|ToEmail|TemplateId|TemplateName|OriginatingIp|OutboundIp|Events|MarketingCampaignName|MarketingCampaignId|ApiKeyId|ApiKeyName|Categories|AsmGroupId|AsmGroupName|Teammate') {
+        if ($Property -match 'TemplateId|TemplateName|OriginatingIp|OutboundIp|Events|MarketingCampaignName|MarketingCampaignId|Categories|AsmGroupId|AsmGroupName|Teammate') {
             # Create the Contains parameter attribute
             $ContainsParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
             #$ContainsParamAttribute.Position = 1
@@ -103,7 +132,7 @@
             # Create the NotContains parameter attribute
             $NotContainsParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
             #$NotContainsParamAttribute.Position = 1
-            #$NotContainsParamAttribute.ParameterSetName = 'NotContainsSet'
+            $NotContainsParamAttribute.ParameterSetName = 'ContainsSet'
 
             # Add the parameter attributes to an attribute collection
             $ContainsAttributeCollection = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
@@ -123,12 +152,12 @@
             # Create the IsEmpty parameter attribute
             $IsEmptyParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
             #$IsEmptyParamAttribute.Position = 1
-            $IsEmptyParamAttribute.ParameterSetName = 'IsEmptySet'
+            $IsEmptyParamAttribute.ParameterSetName = 'EmptySet'
 
             # Create the IsNotEmpty parameter attribute
             $IsNotEmptyParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
             #$IsNotEmptyParamAttribute.Position = 1
-            #$IsNotEmptyParamAttribute.ParameterSetName = 'IsNotEmptySet'
+            $IsNotEmptyParamAttribute.ParameterSetName = 'EmptySet'
 
             # Add the parameter attributes to an attribute collection
             $IsEmptyAttributeCollection = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
@@ -143,6 +172,31 @@
             # Push the parameter(s) into a parameter dictionary
             $ParamDictionary.Add('IsEmpty', $IsEmptyParam)
             $ParamDictionary.Add('IsNotEmpty', $IsNotEmptyParam)
+        }
+        if ($Property -match 'MessageId|FromEmail|Subject|ToEmail|OutboundIp|OriginatingIp') {
+            # Create the Like parameter attribute
+            $LikeParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
+            #$IsEmptyParamAttribute.Position = 1
+            $LikeParamAttribute.ParameterSetName = 'LikeSet'
+
+            # Create the IsNotEmpty parameter attribute
+            $NotLikeParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
+            #$IsNotEmptyParamAttribute.Position = 1
+            $IsNotEmptyParamAttribute.ParameterSetName = 'LikeSet'
+
+            # Add the parameter attributes to an attribute collection
+            $LikeAttributeCollection = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
+            $LikeAttributeCollection.Add($LikeParamAttribute)
+            $NotLikeAttributeCollection = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
+            $NotLikeAttributeCollection.Add($NotLikeParamAttribute)
+
+            # Create the actual Contains parameter
+            $LikeParam = [System.Management.Automation.RuntimeDefinedParameter]::new('Like', [switch], $LikeAttributeCollection)
+            $NotLikeParam = [System.Management.Automation.RuntimeDefinedParameter]::new('NotLike', [switch], $NotLikeAttributeCollection)
+
+            # Push the parameter(s) into a parameter dictionary
+            $ParamDictionary.Add('Like', $LikeParam)
+            $ParamDictionary.Add('NotLike', $NotLikeParam)
         }
         #region Value Properties
         if ($Property -match 'MessageId|FromEmail|Subject|ToEmail|OutboundIp|OriginatingIp') {
@@ -233,7 +287,7 @@
             $ValueAttributeCollection.Add($StatusValidateSet)
 
             # Create the actual Value parameter
-            $ValueParam = [System.Management.Automation.RuntimeDefinedParameter]::new('Value', [string], $ValueAttributeCollection)
+            $ValueParam = [System.Management.Automation.RuntimeDefinedParameter]::new('Value', [string[]], $ValueAttributeCollection)
 
             # Push the parameter(s) into a parameter dictionary
             $ParamDictionary.Add('Value', $ValueParam)
@@ -254,7 +308,7 @@
             $ValueAttributeCollection.Add($StatusValidateSet)
 
             # Create the actual Value parameter
-            $ValueParam = [System.Management.Automation.RuntimeDefinedParameter]::new('Value', [string], $ValueAttributeCollection)
+            $ValueParam = [System.Management.Automation.RuntimeDefinedParameter]::new('Value', [string[]], $ValueAttributeCollection)
 
             # Push the parameter(s) into a parameter dictionary
             $ParamDictionary.Add('Value', $ValueParam)
@@ -324,32 +378,11 @@
             $ValueAttributeCollection.Add($StatusValidateSet)
 
             # Create the actual Value parameter
-            $ValueParam = [System.Management.Automation.RuntimeDefinedParameter]::new('Value', [string], $ValueAttributeCollection)
+            $ValueParam = [System.Management.Automation.RuntimeDefinedParameter]::new('Value', [string[]], $ValueAttributeCollection)
 
             # Push the parameter(s) into a parameter dictionary
             $ParamDictionary.Add('Value', $ValueParam)
         }
-        <#if ($Property -eq 'ApiKeyId') {
-            # Create the Value parameter attribute
-            $ValueParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
-            $ValueParamAttribute.Position = 2
-            $ValueParamAttribute.ParameterSetName = $PSCmdlet.ParameterSetName
-
-            # Add the parameter attributes to an attribute collection
-            $ValueAttributeCollection = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
-            $ValueAttributeCollection.Add($ValueParamAttribute)
-
-            # Add ValidateSet to the parameter
-            $script:APIKeys = Get-SGApiKey
-            $StatusValidateSet = [System.Management.Automation.ValidateSetAttribute]::new([string[]]$APIKeys.ApiKeyId)
-            $ValueAttributeCollection.Add($StatusValidateSet)
-
-            # Create the actual Value parameter
-            $ValueParam = [System.Management.Automation.RuntimeDefinedParameter]::new('Value', [string], $ValueAttributeCollection)
-
-            # Push the parameter(s) into a parameter dictionary
-            $ParamDictionary.Add('Value', $ValueParam)
-        }#>
         if ($Property -eq 'ApiKeyName') {
             # Create the Value parameter attribute
             $ValueParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
@@ -366,11 +399,12 @@
             $ValueAttributeCollection.Add($StatusValidateSet)
 
             # Create the actual Value parameter
-            $ValueParam = [System.Management.Automation.RuntimeDefinedParameter]::new('Value', [string], $ValueAttributeCollection)
+            $ValueParam = [System.Management.Automation.RuntimeDefinedParameter]::new('Value', [string[]], $ValueAttributeCollection)
 
             # Push the parameter(s) into a parameter dictionary
             $ParamDictionary.Add('Value', $ValueParam)
         }
+        <# NOT YET IMPLEMENTED
         if ($Property -eq 'Categories') {
             # Create the Value parameter attribute
             $ValueParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
@@ -387,11 +421,11 @@
             $ValueAttributeCollection.Add($StatusValidateSet)
 
             # Create the actual Value parameter
-            $ValueParam = [System.Management.Automation.RuntimeDefinedParameter]::new('Value', [string], $ValueAttributeCollection)
+            $ValueParam = [System.Management.Automation.RuntimeDefinedParameter]::new('Value', [string[]], $ValueAttributeCollection)
 
             # Push the parameter(s) into a parameter dictionary
             $ParamDictionary.Add('Value', $ValueParam)
-        }
+        }#>
         if ($Property -eq 'AsmGroupId') {
             # Create the Value parameter attribute
             $ValueParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
@@ -403,12 +437,12 @@
             $ValueAttributeCollection.Add($ValueParamAttribute)
 
             # Add ValidateSet to the parameter
-            $UnsubscribeGroups = Get-SGUnsubscribeGroup
+            $UnsubscribeGroups = Get-SGSuppressionGroup
             $StatusValidateSet = [System.Management.Automation.ValidateSetAttribute]::new([string[]]$UnsubscribeGroups.Id)
             $ValueAttributeCollection.Add($StatusValidateSet)
 
             # Create the actual Value parameter
-            $ValueParam = [System.Management.Automation.RuntimeDefinedParameter]::new('Value', [string], $ValueAttributeCollection)
+            $ValueParam = [System.Management.Automation.RuntimeDefinedParameter]::new('Value', [string[]], $ValueAttributeCollection)
 
             # Push the parameter(s) into a parameter dictionary
             $ParamDictionary.Add('Value', $ValueParam)
@@ -424,12 +458,12 @@
             $ValueAttributeCollection.Add($ValueParamAttribute)
 
             # Add ValidateSet to the parameter
-            $script:UnsubscribeGroups = Get-SGUnsubscribeGroup
+            $script:UnsubscribeGroups = Get-SGSuppressionGroup
             $StatusValidateSet = [System.Management.Automation.ValidateSetAttribute]::new([string[]]$UnsubscribeGroups.Name)
             $ValueAttributeCollection.Add($StatusValidateSet)
 
             # Create the actual Value parameter
-            $ValueParam = [System.Management.Automation.RuntimeDefinedParameter]::new('Value', [string], $ValueAttributeCollection)
+            $ValueParam = [System.Management.Automation.RuntimeDefinedParameter]::new('Value', [string[]], $ValueAttributeCollection)
 
             # Push the parameter(s) into a parameter dictionary
             $ParamDictionary.Add('Value', $ValueParam)
@@ -446,11 +480,11 @@
 
             # Add ValidateSet to the parameter
             $script:Teammates = Get-SGTeammate
-            $StatusValidateSet = [System.Management.Automation.ValidateSetAttribute]::new([string[]]$Teammates.Name)
+            $StatusValidateSet = [System.Management.Automation.ValidateSetAttribute]::new([string[]]$Teammates.Username)
             $ValueAttributeCollection.Add($StatusValidateSet)
 
             # Create the actual Value parameter
-            $ValueParam = [System.Management.Automation.RuntimeDefinedParameter]::new('Value', [string], $ValueAttributeCollection)
+            $ValueParam = [System.Management.Automation.RuntimeDefinedParameter]::new('Value', [string[]], $ValueAttributeCollection)
 
             # Push the parameter(s) into a parameter dictionary
             $ParamDictionary.Add('Value', $ValueParam)
@@ -460,10 +494,16 @@
         return $ParamDictionary
     }
     begin {
+        
+        
+
         if ($Property -eq 'ApiKeyName') {
             $Value = ($script:APIKeys.where({ $_.Name -eq "$($PSBoundParameters['Value'])" })).ApiKeyId
             $PSBoundParameters['Value'] = $Value
-
+        }
+        if ($Property -eq 'ASMGroupName') {
+            $Value = ($script:UnsubscribeGroups.where({ $_.Name -eq "$($PSBoundParameters['Value'])" })).Id
+            $PSBoundParameters['Value'] = $Value
         }
         $Properties = @{
             'MessageId'             = 'msg_id'
@@ -483,6 +523,7 @@
             'LastEventTime'         = 'last_event_time'
             'Clicks'                = 'clicks'
             'AsmGroupId'            = 'asm_group_id'
+            'AsmGroupName'          = 'asm_group_id'
             'Teammate'              = 'teammate'
         }
         $Operators = @{
@@ -492,8 +533,10 @@
             'LT'          = '<'
             'IN'          = 'IN'
             'NotIn'       = 'NOT IN'
-            'Contains'    = 'LIKE'
-            'NotContains' = 'NOT LIKE'
+            'Like'        = 'LIKE'
+            'NotLike'     = 'NOT LIKE'
+            'Contains'    = 'Contains'
+            'NotContains' = 'Not Contains'
             'IsEmpty'     = 'IS NULL'
             'IsNotEmpty'  = 'IS NOT NULL'
         }
@@ -505,64 +548,93 @@
             ErrorAction   = 'Stop'
             CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
         }
-        
-        if ($PSBoundParameters['Value'].Count -gt 1 -and $PSBoundParameters.ContainsKey('EQ')) {
-            $UsedOperator = $Operators['IN']
-            $ValueIsArray = $true
-        }
-        elseif ($PSBoundParameters['Value'].Count -gt 1 -and $PSBoundParameters.ContainsKey('NE')) {
-            $UsedOperator = $Operators['NotIn']
-            $ValueIsArray = $true
+        if ($PSCmdlet.ParameterSetName -eq 'FilterSet') {
+            
         }
         else {
-            $ValueIsArray = $false
-            $UsedOperator = $Operators.Keys | Where-Object { $PSBoundParameters.ContainsKey($_) } | ForEach-Object {
-                $Operators[$_]
-            } | Select-Object -First 1
-        }
-
-        [System.Text.StringBuilder]$FilterQuery = [System.Text.StringBuilder]::new()
-
-        $null = $FilterQuery.Append('(')
-        $null = $FilterQuery.Append($Properties[$Property])
-        $null = $FilterQuery.Append(' ')
-        $null = $FilterQuery.Append([uri]::EscapeDataString($UsedOperator))
-        $null = $FilterQuery.Append(' ')
-        if ($ValueIsArray) {
-            $null = $FilterQuery.Append('(')
-            if ($PSBoundParameters.Keys -eq 'Contains' -or $PSBoundParameters.Keys -eq 'NotContains') {
-                $null = $FilterQuery.Append(($PSBoundParameters['Value'] | ForEach-Object { [uri]::EscapeDataString("""%$_%""") }) -join ',')
+            if ($PSBoundParameters['Value'].Count -gt 1 -and $PSBoundParameters.ContainsKey('EQ')) {
+                $UsedOperator = $Operators['IN']
+                $ValueIsArray = $true
+            }
+            elseif ($PSBoundParameters['Value'].Count -gt 1 -and $PSBoundParameters.ContainsKey('NE')) {
+                $UsedOperator = $Operators['NotIn']
+                $ValueIsArray = $true
             }
             else {
-                $null = $FilterQuery.Append(($PSBoundParameters['Value'] | ForEach-Object { [uri]::EscapeDataString("""$_""") }) -join ',')
+                $ValueIsArray = $false
+                $UsedOperator = $Operators.Keys | Where-Object { $PSBoundParameters.ContainsKey($_) } | ForEach-Object {
+                    $Operators[$_]
+                } | Select-Object -First 1
             }
-            $null = $FilterQuery.Append(')')
-        }
-        else {
-            if ($PSBoundParameters['Value'] -isnot [int32]) {
-                $null = $FilterQuery.Append([uri]::EscapeDataString('"'))
-            }
-            
-            if ($PSBoundParameters.Keys -eq 'Contains' -or $PSBoundParameters.Keys -eq 'NotContains') {
-                $null = $FilterQuery.Append([uri]::EscapeDataString('%'))
-            }
-            $null = $FilterQuery.Append([uri]::EscapeDataString($PSBoundParameters['Value']))
-            if ($PSBoundParameters.Keys -eq 'Contains' -or $PSBoundParameters.Keys -eq 'NotContains') {
-                $null = $FilterQuery.Append([uri]::EscapeDataString('%'))
-            }
-            if ($PSBoundParameters['Value'] -isnot [int32]) {
-                $null = $FilterQuery.Append([uri]::EscapeDataString('"'))
-            }
-        }
-        $null = $FilterQuery.Append(')')
 
-        
-        Write-Verbose -Message ("Filter Query: $($FilterQuery.ToString())")
-        
+            [System.Text.StringBuilder]$FilterQuery = [System.Text.StringBuilder]::new()
 
+            $null = $FilterQuery.Append('(')
+            if ($PSBoundParameters.ContainsKey('Contains') -or $PSBoundParameters.ContainsKey('NotContains')) {
+                $null = $FilterQuery.Append('(')
+                foreach ($Var in ($PSBoundParameters['Value'])) {
+                
+                    $null = $FilterQuery.Append([uri]::EscapeDataString($UsedOperator))
+                    $null = $FilterQuery.Append('(')
+                    $null = $FilterQuery.Append($Properties[$Property])
+                    $null = $FilterQuery.Append(',')
+                    $null = $FilterQuery.Append([uri]::EscapeDataString("""$Var"""))
+                    $null = $FilterQuery.Append(')')
+                    $null = $FilterQuery.Append(' OR ')
+                }
+                $null = $FilterQuery.Remove($FilterQuery.Length - 4, 4) # Remove the last ' OR ' using the length of the string and the number of characters to remove
+                $null = $FilterQuery.Append(')')
+            }
+            elseif ($PSBoundParameters.ContainsKey('IsEmpty') -or $PSBoundParameters.ContainsKey('IsNotEmpty')) {
+                $null = $FilterQuery.Append($Properties[$Property])
+                $null = $FilterQuery.Append(' ')
+                $null = $FilterQuery.Append($UsedOperator)
+            }
+            elseif ($PSBoundParameters.ContainsKey('EQ') -or $PSBoundParameters.ContainsKey('NE')) {
+                $null = $FilterQuery.Append($Properties[$Property])
+                $null = $FilterQuery.Append(' ')
+                $null = $FilterQuery.Append([uri]::EscapeDataString($UsedOperator))
+                $null = $FilterQuery.Append(' ')
+                if ($ValueIsArray) {
+                    $null = $FilterQuery.Append('(')
+                    foreach ($Var in ($PSBoundParameters['Value'])) {
+                        $null = $FilterQuery.Append([uri]::EscapeDataString("""$Var"""))
+                        $null = $FilterQuery.Append(',')
+                    }
+                    $null = $FilterQuery.Remove($FilterQuery.Length - 1, 1) # Remove the last comma using the length of the string and the number of characters to remove
+                    $null = $FilterQuery.Append(')')
+                }
+                else {
+                    $null = $FilterQuery.Append([uri]::EscapeDataString("""$($PSBoundParameters['Value'])"""))                
+                }
+            }
+            elseif ($PSBoundParameters.ContainsKey('GT') -or $PSBoundParameters.ContainsKey('LT')) {
+                $null = $FilterQuery.Append($Properties[$Property])
+                $null = $FilterQuery.Append(' ')
+                $null = $FilterQuery.Append([uri]::EscapeDataString($UsedOperator))
+                $null = $FilterQuery.Append(' ')
+                $null = $FilterQuery.Append($PSBoundParameters['Value'])
+            }
+            elseif ($PSBoundParameters.ContainsKey('Like') -or $PSBoundParameters.ContainsKey('NotLike')) {
+                $null = $FilterQuery.Append($Properties[$Property])
+                $null = $FilterQuery.Append(' ')
+                $null = $FilterQuery.Append([uri]::EscapeDataString($UsedOperator))
+                $null = $FilterQuery.Append(' ')
+                $null = $FilterQuery.Append([uri]::EscapeDataString("""%$($PSBoundParameters['Value'])%"""))
+            }
+            else {
+                $null = $FilterQuery.Append($Properties[$Property])
+                $null = $FilterQuery.Append(' ')
+                $null = $FilterQuery.Append([uri]::EscapeDataString($UsedOperator))
+                $null = $FilterQuery.Append(' ')
+                $null = $FilterQuery.Append([uri]::EscapeDataString("""$($PSBoundParameters['Value'])"""))
+            }
+
+            $null = $FilterQuery.Append(')')        
+            Write-Verbose -Message ("Filter Query: $($FilterQuery.ToString())")
+            $EncodedFilter = $FilterQuery.ToString()
+        }
         #Generic List for Query Parameters
-        #$EncodedFilter = [uri]::EscapeDataString($FilterQuery.ToString())
-        $EncodedFilter = $FilterQuery.ToString()
         [System.Collections.Generic.List[string]]$QueryParameters = [System.Collections.Generic.List[string]]::new()
         $QueryParameters.Add("limit=$Limit")
         $QueryParameters.Add("query=$EncodedFilter")
