@@ -11,10 +11,10 @@
         [string[]] $ExcludeParameter,
         [switch] $Recursive,
         [int] $Rerun,
-        [switch] $DoNotRemoveNull,
-        [switch] $DoNotRemoveEmpty,
-        [switch] $DoNotRemoveEmptyArray,
-        [switch] $DoNotRemoveEmptyDictionary
+        [switch]$DoNotRemoveNull,
+        [switch]$DoNotRemoveEmpty,
+        [switch]$DoNotRemoveEmptyArray,
+        [switch]$DoNotRemoveEmptyDictionary
     )
     foreach ($Hash in $Hashtable) {
         foreach ($Key in [object[]]$Hash.Keys) {

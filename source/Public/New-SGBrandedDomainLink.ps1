@@ -12,8 +12,8 @@
     .PARAMETER Domain
         Specifies a domain. Do not provide a full domain including a subdomain here, for instance email.example.com.
 
-    .PARAMETER Subdomain
-        Specifies a subdomain to be used, in most cases it's "link".
+    .PARAMETER SendGridSubdomain
+        Specifies an optional subdomain to be used. Use when you don't want SendGrid to automatically generate a subdomain like url1234.
 
     .PARAMETER Force
         Specifies if the current domain (parameter Domain) should be created despite it contains a subdomain (email.example.com).
@@ -42,39 +42,35 @@
         [ValidatePattern('^([a-zA-Z0-9]([-a-zA-Z0-9]{0,61}[a-zA-Z0-9])?\.)?([a-zA-Z0-9]{1,2}([-a-zA-Z0-9]{0,252}[a-zA-Z0-9])?)\.([a-zA-Z]{2,63})$')]
         [string]$Domain,
 
-        # Specifies a subdomain to be used, in most cases it's "link".
+        # Specifies an optional subdomain to be used. Use when you don't want SendGrid to automatically generate a subdomain like url1234.
         [Parameter(
             Position = 1
         )]
-        [string]$Subdomain = 'link',
+        [string]$SendGridSubDomain,
+
+        # Specifies if the domain should be the default one for the SendGrid instance.
+        [Parameter()]
+        [switch]$Default,
 
         # Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
         [Parameter()]
-        [string]$OnBehalfOf,
-
-        # Specifies if the current domain (parameter Domain) should be created despite it contains a subdomain (email.example.com).
-        [Parameter()]
-        [switch]$Force
+        [string]$OnBehalfOf
     )
     
     begin {
         [hashtable]$ContentBody = [hashtable]::new()
+
         $ContentBody.Add('domain', $Domain)
-        if ($Domain -match '.*\..*\..*' -and -not $Force.IsPresent) {
-            Write-Warning -Message "It's not recommended to use a double custom subdomain. SendGrid will automatically generate a subdomain for you. If you know what you are doing, re-run with -Force. Terminating function..."
-            break
-        }
-        elseif ($Force.IsPresent) {
-            Write-Verbose -Message ('SendGrid will automatically generate a custom subdomain for you.') -Verbose
-            $ProcessMessage = $Domain
-        }
-        else {
+        if ($PSBoundParameters.ContainsKey('SendGridSubdomain')) {
+            Write-Verbose -Message ("SendGrid will not generate a custom subdomain. Domain to be used: $Domain") -Verbose
             $ContentBody.Add('subdomain', $Subdomain)
             $ProcessMessage = "$Subdomain.$Domain"
+            
         }
-        $ContentBody.Add('default', $false)
-    }    
-    process {
+        else {
+            Write-Verbose -Message ("SendGrid will automatically generate a custom branded subdomain for you. Example:url1234.$Domain") -Verbose
+            $ProcessMessage = $Domain
+        }
         $InvokeSplat = @{
             Method        = 'Post'
             Namespace     = 'whitelabel/links'
@@ -84,9 +80,14 @@
         if ($PSBoundParameters.OnBehalfOf) {
             $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
         }
-        $InvokeSplat.Add('ContentBody', $ContentBody)
+    }    
+    process { 
         if ($PSCmdlet.ShouldProcess($ProcessMessage)) {
+            if ($PSBoundParameters.ContainsKey('Default') -and $PSCmdlet.ShouldContinue($Domain, 'Setting this domain as the default domain will remove the current default domain. Do you want to continue?')) {
+                $ContentBody.Add('default', $true)
+            }
             try {
+                $InvokeSplat.Add('ContentBody', $ContentBody)
                 Invoke-SendGrid @InvokeSplat
             }
             catch {
