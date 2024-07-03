@@ -14,17 +14,17 @@
         domains set up for manual security.
 
     .PARAMETER Domain
-        Specifies a domain. It's not recommended to provide a full domain including a subdomain, for instance email.example.com.
+        Specifies a domain. It's recommended to provide a full domain including a subdomain, for instance email.example.com.
 
-    .PARAMETER Subdomain
-        Specifies a subdomain to be used, in most cases it's "email".
+    .PARAMETER SendGridSubdomain
+        Specifies an optional subdomain to be used. Use when you don't want SendGrid to automatically generate a subdomain like em1234.
 
     .PARAMETER DisableAutomaticSecurity
         Specify whether to not allow SendGrid to manage your SPF records, DKIM keys, and DKIM key rotation. Default is that SendGrid manages 
         those records.
 
     .PARAMETER CustomDkimSelector
-        Add a custom DKIM selector. Accepts three letters or numbers. Defaults to 'sg'.
+        Add a custom DKIM selector. Accepts three letters or numbers.
 
     .PARAMETER Force
         Specifies if the current domain (parameter Domain) should be created despite it contains a subdomain (email.example.com).
@@ -59,7 +59,7 @@
     [CmdletBinding(SupportsShouldProcess)]
     param (
 
-        # Specifies a domain. It's not recommended to provide a full domain including a subdomain, for instance email.example.com.
+        # Specifies a domain. It's recommended to provide a full domain including a subdomain, for instance email.example.com.
         [Parameter(
             Mandatory,
             Position = 0
@@ -67,12 +67,11 @@
         [ValidatePattern('^([a-zA-Z0-9]([-a-zA-Z0-9]{0,61}[a-zA-Z0-9])?\.)?([a-zA-Z0-9]{1,2}([-a-zA-Z0-9]{0,252}[a-zA-Z0-9])?)\.([a-zA-Z]{2,63})$')]
         [string]$Domain,
 
-        # Specifies a subdomain to be used, in most cases it's "email".
+        # Specifies an optional subdomain to be used. Use when you don't want SendGrid to automatically generate a subdomain like em1234.
         [Parameter(
-            Mandatory,
             Position = 1
         )]
-        [string]$Subdomain,
+        [string]$SendGridSubdomain,
 
         # Specifies a subuser to be used, this is optional.
         [Parameter(
@@ -86,12 +85,12 @@
         )]
         [switch]$DisableAutomaticSecurity,
 
-        # Add a custom DKIM selector. Accepts three letters or numbers. Defaults to 'sg'.
+        # Add a custom DKIM selector. Accepts three letters or numbers.
         [Parameter(
             Position = 4
         )]
         [ValidatePattern('^[a-zA-Z\d]{3}$')]
-        $CustomDkimSelector = 'sg',
+        $CustomDkimSelector,
 
         # Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
         [Parameter()]
@@ -127,11 +126,11 @@
     begin {
         [hashtable]$ContentBody = [hashtable]::new()
         $ContentBody.Add('domain', $Domain)
-        if ($Domain -match '.*\..*\..*' -and -not $PSBoundParameters.ContainsKey('Subdomain')) {
-            Write-Verbose -Message ("SendGrid will automatically generate a custom subdomain for you. Example:em1234.$Subdomain.$Domain") -Verbose
+        if ($Domain -match '.*\..*\..*' -and -not $PSBoundParameters.ContainsKey('SendGridSubdomain')) {
+            Write-Verbose -Message ("SendGrid will automatically generate a custom subdomain for you. Example:em1234.$Domain") -Verbose
             $ProcessMessage = $Domain
         }
-        elseif ($Domain -match '.*\..*\..*' -and $PSBoundParameters.ContainsKey('Subdomain') -and -not $Force.IsPresent) {
+        elseif ($Domain -match '.*\..*\..*' -and $PSBoundParameters.ContainsKey('SendGridSubdomain') -and -not $Force.IsPresent) {
             Write-Warning -Message "It's not recommended to use a double custom subdomain. If you know what you are doing, re-run with -Force. Terminating function..."
             break
         }
@@ -145,9 +144,12 @@
             $ProcessMessage = "$Domain"
             
         }
-        $ContentBody.Add('custom_dkim_selector', $CustomDkimSelector)
+
         $ContentBody.Add('default', $false)
 
+        if ($PSBoundParameters.ContainsKey('CustomDkimSelector')) {
+            $ContentBody.Add('custom_dkim_selector', $CustomDkimSelector)
+        }
         if ($PSBoundParameters.ContainsKey('SubUser')) {
             $ContentBody.Add('username', $SubUser)
         }

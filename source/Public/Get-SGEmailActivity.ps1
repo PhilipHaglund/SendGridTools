@@ -52,6 +52,14 @@
             Mandatory
         )]
         [string]$Filter,
+
+        # Specifies the a raw SendGrid query to filter email activity. The query will not be URL encoded. Therefor, you must provide a URL encoded query.
+        [Parameter(
+            ParameterSetName = 'SendGridFilterSet',
+            Position = 0,
+            Mandatory
+        )]
+        [string]$SendGridFilter,
         
         [Parameter()]
         [ValidateRange(1, 1000)]
@@ -60,7 +68,7 @@
     DynamicParam {
         # Create a dictionary to hold the dynamic parameters
         $ParamDictionary = [System.Management.Automation.RuntimeDefinedParameterDictionary]::new()
-        if ($PSCmdlet.ParameterSetName -ne 'FilterSet') {
+        if ($PSCmdlet.ParameterSetName -ne 'FilterSet' -or $PSCmdlet.ParameterSetName -ne 'SendGridFilterSet') {
             if ($Property -notmatch 'LastEventTime|Events') {
                 # Create the Equal parameter attribute
                 $EqualParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
@@ -548,6 +556,9 @@
         }
         if ($PSCmdlet.ParameterSetName -eq 'FilterSet') {
             $EncodedFilter = $Filter | ConvertTo-FilterQuery
+        }
+        elseif ($PSCmdlet.ParameterSetName -eq 'SendGridFilterSet') {
+            $EncodedFilter = $SendGridFilter
         }
         else {
             if ($PSBoundParameters['Value'].Count -gt 1 -and $PSBoundParameters.ContainsKey('EQ')) {

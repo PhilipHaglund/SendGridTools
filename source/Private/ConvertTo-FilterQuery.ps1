@@ -10,21 +10,21 @@
     )
 
     $OperatorFormatStructure = @{
-        'EQ'          = ('(Property{0})' -f ([uri]::EscapeDataString('="Value"')))
-        'NE'          = ('(Property{0})' -f ([uri]::EscapeDataString('!="Value"')))
-        'GT'          = ('(Property{0})' -f ([uri]::EscapeDataString('>Value"')))
-        'LT'          = ('(Property{0})' -f ([uri]::EscapeDataString('<Value"')))
-        'IN'          = ('(Property IN ({0}))' -f ([uri]::EscapeDataString('"Value"'))) # Array = ("Value1", "Value2")
-        'NotIn'       = ('(Property NOT IN ({0}))' -f ([uri]::EscapeDataString('"Value"'))) # Array = ("Value1", "Value2")
-        'Like'        = ('(Property LIKE {0})' -f ([uri]::EscapeDataString('"%Value%"'))) #'(Property LIKE "%Value%")'
-        'NotLike'     = ('(Property NOT LIKE {0})' -f ([uri]::EscapeDataString('"%Value%"'))) #'(Property NOT LIKE "%Value%")'
-        'Contains'    = ('(Contains(Property{0}))' -f ([uri]::EscapeDataString(',"Value"'))) #'(Contains(Property,"Value"))'
-        'NotContains' = ('(Not Contains(Property{0}))' -f ([uri]::EscapeDataString(',"Value"'))) #'(Not Contains(Property,"Value"))'
-        'IsEmpty'     = '(Property IS NULL)'
-        'IsNotEmpty'  = '(Property IS NOT NULL)'
-        'Between'     = '(Property BETWEEN Value1 AND Property Value2)' # (last_event_time BETWEEN TIMESTAMP "2024-06-30T00:00:00.000Z" AND TIMESTAMP "2024-07-02T23:59:59.999Z")
-        'OR'          = ' OR '
-        'AND'         = ' AND '
+        'EQ'          = ('(Property{0})' -f ([uri]::EscapeDataString('=Value')))
+        'NE'          = ('(Property{0})' -f ([uri]::EscapeDataString('!=Value')))
+        'GT'          = ('(Property{0})' -f ([uri]::EscapeDataString('>Value')))
+        'LT'          = ('(Property{0})' -f ([uri]::EscapeDataString('<Value')))
+        'IN'          = ('(Property+IN+({0}))' -f ([uri]::EscapeDataString('Value'))) # Array = ("Value1", "Value2")
+        'NotIn'       = ('(Property+NOT+IN ({0}))' -f ([uri]::EscapeDataString('Value'))) # Array = ("Value1", "Value2")
+        'Like'        = ('(Property+LIKE+{0})' -f ([uri]::EscapeDataString('%Value%'))) #'(Property LIKE "%Value%")'
+        'NotLike'     = ('(Property+NOT+LIKE+{0})' -f ([uri]::EscapeDataString('%Value%'))) #'(Property NOT LIKE "%Value%")'
+        'Contains'    = ('(Contains(Property{0}))' -f ([uri]::EscapeDataString(',Value'))) #'(Contains(Property,"Value"))'
+        'NotContains' = ('(Not Contains(Property{0}))' -f ([uri]::EscapeDataString(',Value'))) #'(Not Contains(Property,"Value"))'
+        'IsEmpty'     = '(Property+IS+NULL)'
+        'IsNotEmpty'  = '(Property+IS+NOT NULL)'
+        'Between'     = '(Property+BETWEEN+TIMESTAMP+Value1+AND+TIMESTAMP+Value2)' # (last_event_time BETWEEN TIMESTAMP "2024-06-30T00:00:00.000Z" AND TIMESTAMP "2024-07-02T23:59:59.999Z")
+        'OR'          = '+OR+'
+        'AND'         = '+AND+'
     }
     $Properties = @{
         'MessageId'             = 'msg_id'
@@ -47,7 +47,7 @@
         'AsmGroupName'          = 'asm_group_id'
         'Teammate'              = 'teammate'
         'Date'                  = 'last_event_time'
-        'Timestamp'             = 'last_event_time'
+        'timestamp'             = 'last_event_time'
     }
     # Regular expression to match the conditions and logical operators
     $MultiSeparateRegex = '(-AND|-OR)'
@@ -69,6 +69,7 @@
     # Create a loop for the number of matches using the separator list
     [System.Text.StringBuilder]$QueryString = [System.Text.StringBuilder]::new()
     for ($i = 0; $i -le $LogicalOperatorsInOrder.Count; $i++) {
+        $DateTime = $false
         $RegMatches = [regex]::Matches(($Filters[$i].Trim()), $Regex, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
         $Match = $RegMatches[0]
         $Property = $Match.Groups[1].Value.Trim()
@@ -132,19 +133,18 @@
             }
             $Value = $MultipleValues -join ','
         }
-        elseif ($DateTime -eq $false) {
+        elseif ($DateTime -eq $false -or $null -eq $DateTime) {
             $ModifiedValue = $Value.Trim() -replace '^''|"|''|"$'
             $Value = "`"$ModifiedValue`""
         }
 
-        if ($DateTime) {
+        if ($DateTime -eq $true) {
             Write-Verbose -Message "DateTime: $Value"
             $EncodedValue1 = [uri]::EscapeDataString($Value.Split(',')[0])
             $EncodedValue2 = [uri]::EscapeDataString($Value.Split(',')[1])
             $null = $QueryString.Append(($OperatorFormatStructure[$Operator.Replace('-', '')] -replace 'Property', $Property -replace 'Value1', $EncodedValue1 -replace 'Value2', $EncodedValue2))
         }
         else {
-            Write-Verbose -Message "DateTime: $Value"
             $EncodedValue = [uri]::EscapeDataString($Value)
             $null = $QueryString.Append(($OperatorFormatStructure[$Operator.Replace('-', '')] -replace 'Property', $Property -replace 'Value', $EncodedValue))
         }
