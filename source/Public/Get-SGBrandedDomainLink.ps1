@@ -85,6 +85,10 @@
         [Alias('Id')]
         [string]$UniqueId,
 
+        # Specifies if the DNS records should be shown.
+        [Parameter()]
+        [switch]$ShowDNS,
+
         # Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
         [Parameter()]
         [string]$OnBehalfOf
@@ -96,7 +100,12 @@
             ErrorAction   = 'Stop'
             CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
         }
-        
+
+        # Get-SGBrandedDomainLink -ShowDNS'
+        if ($PSBoundParameters.ShowDNS) {
+            $InvokeSplat['CallingCmdlet'] = "$($PSCmdlet.MyInvocation.MyCommand.Name) -ShowDNS"
+        }
+
         if ($PSBoundParameters.OnBehalfOf) {
             $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
         }

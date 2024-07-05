@@ -95,6 +95,7 @@
         Remove-EmptyHashtable -Hashtable $BrandedDomainSplat
         if ($AuthDomainSplat['CustomSPF'] -eq $false -and -not $DisableAutomaticSecurity.IsPresent) {
             $AuthDomainSplat.Remove('CustomSPF')
+            $AuthDomainSplat.Remove('DisableAutomaticSecurity')
         }
         if ($CustomSPF.IsPresent -and $DisableAutomaticSecurity.IsPresent -eq $false) {
             throw 'The CustomSPF parameter can only be used with the DisableAutomaticSecurity parameter.'

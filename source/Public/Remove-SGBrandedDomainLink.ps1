@@ -59,8 +59,8 @@
                 $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
                 $GetSplat.Add('OnBehalfOf', $OnBehalfOf)
             }
-            $SGBrandedDomainLink = Get-SGBrandedDomainLink @GetSplat
-            Write-Verbose -Message ("Don't forget to remove DNS records:") -Verbose
+            $SGBrandedDomainLink = Get-SGBrandedDomainLink @GetSplat -ShowDNS
+            Write-Verbose -Message ("Don't forget to remove DNS records.") -Verbose
             $SGBrandedDomainLink
 
             if ($PSCmdlet.ShouldProcess(('{0}.{1}' -f $SGBrandedDomainLink.Subdomain, $SGBrandedDomainLink.Domain))) {

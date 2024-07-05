@@ -1,60 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <Configuration>
     <Controls>
-        <Control>
-            <Name>SendGridTools.Get.SGAuthenticatedDomain.GroupingFormat</Name>
-            <CustomControl>
-                <CustomEntries>
-                    <CustomEntry>
-                        <CustomItem>
-                            <Text>Valid Type  Host                                             Data</Text>
-                            <NewLine/>
-                            <Text>----- ----  ----                                             ----</Text>
-                            <NewLine/>
-                            <ExpressionBinding>
-                                <ScriptBlock>
-$Properties = @('Dnsdkim1', 'Dnsdkim2', 'Dnsmailcname');
-$Output = foreach ($prop in $properties) {
-    $DNSRecord = $_.$prop;
-    if ($DNSRecord) {
-        '{0}  {1}  {2}  {3}' -f $DNSRecord.valid, $DNSRecord.type, $DNSRecord.host, $DNSRecord.data
-    }
-}
-$output -join "`n"
-                                </ScriptBlock>
-                            </ExpressionBinding>
-                        </CustomItem>
-                    </CustomEntry>
-                </CustomEntries>
-            </CustomControl>
-        </Control>
-        <Control>
-            <Name>SendGridTools.Get.SGBrandedDomainLink.GroupingFormat</Name>
-            <CustomControl>
-                <CustomEntries>
-                    <CustomEntry>
-                        <CustomItem>
-                            <Text>Valid Type  Host                                             Data</Text>
-                            <NewLine/>
-                            <Text>----- ----  ----                                             ----</Text>
-                            <NewLine/>
-                            <ExpressionBinding>
-                                <ScriptBlock>
-$Properties = @('Dnsdomaincname', 'Dnsownercname);
-$Output = foreach ($prop in $properties) {
-    $DNSRecord = $_.$prop;
-    if ($DNSRecord) {
-        '{0}  {1}  {2}  {3}' -f $DNSRecord.valid, $DNSRecord.type, $DNSRecord.host, $DNSRecord.data
-    }
-}
-$output -join "`n"
-                                </ScriptBlock>
-                            </ExpressionBinding>
-                        </CustomItem>
-                    </CustomEntry>
-                </CustomEntries>
-            </CustomControl>
-        </Control>
     </Controls>
     <ViewDefinitions>
         <View>
@@ -113,10 +59,6 @@ $output -join "`n"
             <ViewSelectedBy>
                 <TypeName>SendGridTools.Get.SGAuthenticatedDomain</TypeName>
             </ViewSelectedBy>
-            <GroupBy>
-                <PropertyName>*</PropertyName>
-                <CustomControlName>SendGridTools.Get.SGAuthenticatedDomain.GroupingFormat</CustomControlName>
-            </GroupBy>
             <TableControl>
                 <TableHeaders>
                     <TableColumnHeader>
@@ -210,10 +152,6 @@ $output -join "`n"
             <ViewSelectedBy>
                 <TypeName>SendGridTools.Get.SGBrandedDomainLink</TypeName>
             </ViewSelectedBy>
-            <GroupBy>
-                <PropertyName>*</PropertyName>
-                <CustomControlName>SendGridTools.Get.SGBrandedDomainLink.GroupingFormat</CustomControlName>
-            </GroupBy>
             <TableControl>
                 <TableHeaders>
                     <TableColumnHeader>

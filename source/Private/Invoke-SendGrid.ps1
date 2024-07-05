@@ -142,6 +142,14 @@ function Invoke-SendGrid {
                     $PSTypeName = 'SendGridTools.Get.SGAuthenticatedDomain'
                     break
                 }
+                'Get-SGAuthenticatedDomain -ShowDNS' {
+                    # Need a format view that is friendly to the user. Pull request requested from one happy user.
+                    break
+                }
+                'Get-SGBrandedDomainLink -ShowDNS' {
+                    # Need a format view that is friendly to the user. Pull request requested from one happy user.
+                    break
+                }
                 'Get-SGBrandedDomainLink' {
                     $PSTypeName = 'SendGridTools.Get.SGBrandedDomainLink'
                     break
