@@ -127,7 +127,7 @@ function Invoke-SendGrid {
                     }
                     'Messages' {
                         $Query = $Query.messages
-                        $PSTypeName = 'SendGridTools.Get.EmailActivity'
+                        $PSTypeName = 'SendGridTools.Get.SGEmailActivity'
                         break;
                     }
                     Default {
@@ -137,6 +137,23 @@ function Invoke-SendGrid {
                 $Properties = Get-UniqueProperties -InputObject $Query
             }
 
+            switch ($CallingCmdlet) {
+                'Get-SGAuthenticatedDomain' {
+                    $PSTypeName = 'SendGridTools.Get.SGAuthenticatedDomain'
+                    break
+                }
+                'Get-SGBrandedDomainLink' {
+                    $PSTypeName = 'SendGridTools.Get.SGBrandedDomainLink'
+                    break
+                }
+                'Get-SGCombinedDomain' {
+                    $PSTypeName = 'SendGridTools.Get.SGCombinedDomain'
+                    break
+                }
+                Default {
+                    break
+                }
+            }
 
             # Process each object in the query.
             foreach ($Object in $Query) {
@@ -154,22 +171,22 @@ function Invoke-SendGrid {
 
                         # Process each inline property.
                         foreach ($InlineProperty in $InlineProperties) {
-                            $PSObject | Add-Member -MemberType NoteProperty -Name (('{0}{1}' -f ($Property -replace '[\s_-]+'), $($InlineProperty -replace '[\s_-]+')) | ConvertTo-TitleCase) -Value $Object.$Property.$InlineProperty
+                            $PSObject | Add-Member -MemberType NoteProperty -Name (('{0}{1}' -f ($Property -replace '[\s_-]+'), $($InlineProperty | ConvertTo-TitleCase) -replace '[\s_-]+')) -Value $Object.$Property.$InlineProperty
                         }
                     }
 
                     # Switch based on the property type.
                     switch ($Object.$Property) {
                         { $_ -is [int64] -and $Property -match 'valid|created|updated' } {
-                            $PSObject | Add-Member -MemberType NoteProperty -Name (($Property -replace '[\s_-]+') | ConvertTo-TitleCase) -Value ([UnixTime]::FromUnixTime($_))
+                            $PSObject | Add-Member -MemberType NoteProperty -Name (($Property | ConvertTo-TitleCase) -replace '[\s_-]+') -Value ([UnixTime]::FromUnixTime($_))
                             break
                         }
                         { $_ -is [string] -and $Property -match '^date$'} {
-                            $PSObject | Add-Member -MemberType NoteProperty -Name (($Property -replace '[\s_-]+') | ConvertTo-TitleCase) -Value ([datetime]::Parse($_))
+                            $PSObject | Add-Member -MemberType NoteProperty -Name (($Property | ConvertTo-TitleCase) -replace '[\s_-]+') -Value ([datetime]::Parse($_))
                             break
                         }
                         Default {
-                            $PSObject | Add-Member -MemberType NoteProperty -Name (($Property -replace '[\s_-]+') | ConvertTo-TitleCase) -Value $Object.$Property -Force
+                            $PSObject | Add-Member -MemberType NoteProperty -Name (($Property | ConvertTo-TitleCase) -replace '[\s_-]+') -Value $Object.$Property -Force
                             break
                         }
                     }

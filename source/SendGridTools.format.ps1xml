@@ -1,12 +1,66 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <Configuration>
     <Controls>
+        <Control>
+            <Name>SendGridTools.Get.SGAuthenticatedDomain.GroupingFormat</Name>
+            <CustomControl>
+                <CustomEntries>
+                    <CustomEntry>
+                        <CustomItem>
+                            <Text>Valid Type  Host                                             Data</Text>
+                            <NewLine/>
+                            <Text>----- ----  ----                                             ----</Text>
+                            <NewLine/>
+                            <ExpressionBinding>
+                                <ScriptBlock>
+$Properties = @('Dnsdkim1', 'Dnsdkim2', 'Dnsmailcname');
+$Output = foreach ($prop in $properties) {
+    $DNSRecord = $_.$prop;
+    if ($DNSRecord) {
+        '{0}  {1}  {2}  {3}' -f $DNSRecord.valid, $DNSRecord.type, $DNSRecord.host, $DNSRecord.data
+    }
+}
+$output -join "`n"
+                                </ScriptBlock>
+                            </ExpressionBinding>
+                        </CustomItem>
+                    </CustomEntry>
+                </CustomEntries>
+            </CustomControl>
+        </Control>
+        <Control>
+            <Name>SendGridTools.Get.SGBrandedDomainLink.GroupingFormat</Name>
+            <CustomControl>
+                <CustomEntries>
+                    <CustomEntry>
+                        <CustomItem>
+                            <Text>Valid Type  Host                                             Data</Text>
+                            <NewLine/>
+                            <Text>----- ----  ----                                             ----</Text>
+                            <NewLine/>
+                            <ExpressionBinding>
+                                <ScriptBlock>
+$Properties = @('Dnsdomaincname', 'Dnsownercname);
+$Output = foreach ($prop in $properties) {
+    $DNSRecord = $_.$prop;
+    if ($DNSRecord) {
+        '{0}  {1}  {2}  {3}' -f $DNSRecord.valid, $DNSRecord.type, $DNSRecord.host, $DNSRecord.data
+    }
+}
+$output -join "`n"
+                                </ScriptBlock>
+                            </ExpressionBinding>
+                        </CustomItem>
+                    </CustomEntry>
+                </CustomEntries>
+            </CustomControl>
+        </Control>
     </Controls>
     <ViewDefinitions>
         <View>
-            <Name>SendGridTools.Get.EmailActivity</Name>
+            <Name>SendGridTools.Get.SGEmailActivity</Name>
             <ViewSelectedBy>
-                <TypeName>SendGridTools.Get.EmailActivity</TypeName>
+                <TypeName>SendGridTools.Get.SGEmailActivity</TypeName>
             </ViewSelectedBy>
             <TableControl>
                 <TableHeaders>
@@ -48,6 +102,186 @@
                             </TableColumnItem>
                             <TableColumnItem>
                                 <PropertyName>Lasteventtime</PropertyName>
+                            </TableColumnItem>
+                        </TableColumnItems>
+                    </TableRowEntry>
+                </TableRowEntries>
+            </TableControl>
+        </View>
+        <View>
+            <Name>SendGridTools.Get.SGAuthenticatedDomain</Name>
+            <ViewSelectedBy>
+                <TypeName>SendGridTools.Get.SGAuthenticatedDomain</TypeName>
+            </ViewSelectedBy>
+            <GroupBy>
+                <PropertyName>*</PropertyName>
+                <CustomControlName>SendGridTools.Get.SGAuthenticatedDomain.GroupingFormat</CustomControlName>
+            </GroupBy>
+            <TableControl>
+                <TableHeaders>
+                    <TableColumnHeader>
+                        <Label>Domain</Label>
+                        <Width>40</Width>
+                    </TableColumnHeader>
+                    <TableColumnHeader>
+                        <Label>Id</Label>
+                        <Width>8</Width>
+                    </TableColumnHeader>
+                    <TableColumnHeader>
+                        <Label>Automaticsecurity</Label>
+                        <Width>17</Width>
+                    </TableColumnHeader>
+                    <TableColumnHeader>
+                        <Label>Customspf</Label>
+                        <Width>9</Width>
+                    </TableColumnHeader>
+                    <TableColumnHeader>
+                        <Label>Default</Label>
+                        <Width>7</Width>
+                    </TableColumnHeader>
+                    <TableColumnHeader>
+                        <Label>Lastvalidationattemptat</Label>
+                        <Width>23</Width>
+                    </TableColumnHeader>
+                    <TableColumnHeader>
+                        <Label>Legacy</Label>
+                        <Width>6</Width>
+                    </TableColumnHeader>
+                    <TableColumnHeader>
+                        <Label>Subdomain</Label>
+                        <Width>9</Width>
+                    </TableColumnHeader>
+                    <TableColumnHeader>
+                        <Label>Userid</Label>
+                        <Width>8</Width>
+                    </TableColumnHeader>
+                    <TableColumnHeader>
+                        <Label>Username</Label>
+                        <Width>40</Width>
+                    </TableColumnHeader>
+                    <TableColumnHeader>
+                        <Label>Valid</Label>
+                        <Width>5</Width>
+                    </TableColumnHeader>
+                </TableHeaders>
+                <TableRowEntries>
+                    <TableRowEntry>
+                        <TableColumnItems>
+                            <TableColumnItem>
+                                <PropertyName>Domain</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>Id</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>AutomaticSecurity</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>CustomSPF</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>Default</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>LastValidationAttemptAt</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>Legacy</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>Subdomain</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>UserId</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>Username</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>Valid</PropertyName>
+                            </TableColumnItem>
+                        </TableColumnItems>
+                    </TableRowEntry>
+                </TableRowEntries>
+            </TableControl>
+        </View>
+        <View>
+            <Name>SendGridTools.Get.SGBrandedDomainLink</Name>
+            <ViewSelectedBy>
+                <TypeName>SendGridTools.Get.SGBrandedDomainLink</TypeName>
+            </ViewSelectedBy>
+            <GroupBy>
+                <PropertyName>*</PropertyName>
+                <CustomControlName>SendGridTools.Get.SGBrandedDomainLink.GroupingFormat</CustomControlName>
+            </GroupBy>
+            <TableControl>
+                <TableHeaders>
+                    <TableColumnHeader>
+                        <Label>Default</Label>
+                        <Width>7</Width>
+                    </TableColumnHeader>
+                    <TableColumnHeader>
+                        <Label>Domain</Label>
+                        <Width>40</Width>
+                    </TableColumnHeader>
+                    <TableColumnHeader>
+                        <Label>Id</Label>
+                        <Width>8</Width>
+                    </TableColumnHeader>
+                    <TableColumnHeader>
+                        <Label>Lastvalidationattemptat</Label>
+                        <Width>23</Width>
+                    </TableColumnHeader>
+                    <TableColumnHeader>
+                        <Label>Legacy</Label>
+                        <Width>6</Width>
+                    </TableColumnHeader>
+                    <TableColumnHeader>
+                        <Label>Subdomain</Label>
+                        <Width>9</Width>
+                    </TableColumnHeader>
+                    <TableColumnHeader>
+                        <Label>Userid</Label>
+                        <Width>8</Width>
+                    </TableColumnHeader>
+                    <TableColumnHeader>
+                        <Label>Username</Label>
+                        <Width>40</Width>
+                    </TableColumnHeader>
+                    <TableColumnHeader>
+                        <Label>Valid</Label>
+                        <Width>5</Width>
+                    </TableColumnHeader>
+                </TableHeaders>
+                <TableRowEntries>
+                    <TableRowEntry>
+                        <TableColumnItems>
+                            <TableColumnItem>
+                                <PropertyName>Default</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>Domain</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>Id</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>LastValidationAttemptAt</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>Legacy</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>Subdomain</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>UserId</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>Username</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>Valid</PropertyName>
                             </TableColumnItem>
                         </TableColumnItems>
                     </TableRowEntry>

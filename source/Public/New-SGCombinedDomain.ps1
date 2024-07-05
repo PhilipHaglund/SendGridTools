@@ -93,9 +93,16 @@
         # Remove empty Hashtables
         Remove-EmptyHashtable -Hashtable $AuthDomainSplat
         Remove-EmptyHashtable -Hashtable $BrandedDomainSplat
+        if ($AuthDomainSplat['CustomSPF'] -eq $false -and -not $DisableAutomaticSecurity.IsPresent) {
+            $AuthDomainSplat.Remove('CustomSPF')
+        }
+        if ($CustomSPF.IsPresent -and $DisableAutomaticSecurity.IsPresent -eq $false) {
+            throw 'The CustomSPF parameter can only be used with the DisableAutomaticSecurity parameter.'
+        }
         if ($PSCmdlet.ShouldProcess($Domain)) {
             # Add the new authenticated domain
             New-SGAuthenticatedDomain @AuthDomainSplat
+            $AuthDomainSplat
             
             # Add the new branded domain link
             New-SGBrandedDomainLink @BrandedDomainSplat
