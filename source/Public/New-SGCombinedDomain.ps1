@@ -103,7 +103,6 @@
         if ($PSCmdlet.ShouldProcess($Domain)) {
             # Add the new authenticated domain
             New-SGAuthenticatedDomain @AuthDomainSplat
-            $AuthDomainSplat
             
             # Add the new branded domain link
             New-SGBrandedDomainLink @BrandedDomainSplat

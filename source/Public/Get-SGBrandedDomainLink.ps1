@@ -93,6 +93,35 @@
         [Parameter()]
         [string]$OnBehalfOf
     )
+    DynamicParam {
+        # Create a dictionary to hold the dynamic parameters
+        $ParamDictionary = [System.Management.Automation.RuntimeDefinedParameterDictionary]::new()
+        if ($null -eq $UniqueId) {
+            # Create the Equal parameter attribute
+            $DomainNameParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
+            $DomainNameParamAttribute.ParameterSetName = 'DomainNameSet'
+
+            # Add the parameter attributes to an attribute collection
+            $DomainNameAttributeCollection = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
+            $DomainNameAttributeCollection.Add($DomainNameParamAttribute)
+
+            # Add ValidateSet to the parameter
+            $script:SGDomains = Invoke-SGCommand -Namespace 'whitelabel/links' # Can't reference self Get-SGAuthenticatedDomain.
+            $DomainNameValidateSet = [System.Management.Automation.ValidateSetAttribute]::new([string[]]$script:SGDomains.Domain)
+            $DomainNameAttributeCollection.Add($DomainNameValidateSet)
+
+            # Add Alias to the parameter
+            $DomainNameAliasAttribute = [System.Management.Automation.AliasAttribute]::new('Domain')
+            $DomainNameAttributeCollection.Add($DomainNameAliasAttribute)
+
+            # Create the actual parameter(s)
+            $DomainNameParam = [System.Management.Automation.RuntimeDefinedParameter]::new('DomainName', [string[]], $DomainNameAttributeCollection)
+
+            # Push the parameter(s) into a parameter dictionary
+            $ParamDictionary.Add('DomainName', $DomainNameParam)
+        }
+        return $ParamDictionary
+    }
     process {
         $InvokeSplat = @{
             Method        = 'Get'
@@ -108,6 +137,9 @@
 
         if ($PSBoundParameters.OnBehalfOf) {
             $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
+        }
+        if ($PSCmdlet.ParameterSetName -eq 'DomainNameSet') {
+            $UniqueId = ($script:SGDomains | Where-Object { $_.Domain -eq ($PSBoundParameters['DomainName']) }).Id
         }
         if ($PSBoundParameters.UniqueId) {
             foreach ($Id in $UniqueId) {

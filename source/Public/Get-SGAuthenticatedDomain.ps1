@@ -105,8 +105,8 @@
     )
     DynamicParam {
         # Create a dictionary to hold the dynamic parameters
+        $ParamDictionary = [System.Management.Automation.RuntimeDefinedParameterDictionary]::new()
         if ($null -eq $UniqueId) {
-            $ParamDictionary = [System.Management.Automation.RuntimeDefinedParameterDictionary]::new()
             # Create the Equal parameter attribute
             $DomainNameParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
             $DomainNameParamAttribute.ParameterSetName = 'DomainNameSet'
@@ -129,10 +129,8 @@
 
             # Push the parameter(s) into a parameter dictionary
             $ParamDictionary.Add('DomainName', $DomainNameParam)
-            return $ParamDictionary
         }
-        
-        
+        return $ParamDictionary
     }
     process {
         $InvokeSplat = @{
