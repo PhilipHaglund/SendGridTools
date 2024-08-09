@@ -33,8 +33,9 @@ Install-Module -Name SendGridTools -Scope CurrentUser
 ### Installing from Source
 Clone the repository and import the module:
 ```PowerShell
-git clone https://github.com/yourusername/SendGridTools.git
-Import-Module ./SendGridTools/SendGridTools.psd1
+git clone https://github.com/PhilipHaglund/SendGridTools.git
+build.ps1 -Tasks build
+Import-Module SendGridTools/output/SendGridTools.psd1
 ```
 
 ### Usage
@@ -80,6 +81,7 @@ Send-SGMailMessage -To 'recipient@example.com' -From 'sender@example.com' -Subje
 Get-SGAuthenticatedDomain
 ```
 ### Retrieving Email Activity
+*Requires the SendGrid [30 Days Additional Email Activity History Addon](https://sendgrid.com/en-us/solutions/add-ons/30-days-additional-email-activity-history)*
 ```PowerShell
 Get-SGEmailActivity -Property ToEmail -Like 'recipient@example.com' -Verbose
 ```
@@ -87,7 +89,7 @@ Get-SGEmailActivity -Property ToEmail -Like 'recipient@example.com' -Verbose
 Get-SGEmailActivity -Filter "fromemail -contains @example.com"
 ```
 ```PowerShell
-Get-SGEmailActivity -SendGridFilter "to_email%3D%22example%40example.com%22"
+Get-SGEmailActivity -SendGridFilter "from_email%3D%22sender%40example.com%22"
 ```
 ### Removing an Email from the Suppression List
 ```PowerShell
