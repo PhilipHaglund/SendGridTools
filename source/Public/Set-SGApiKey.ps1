@@ -29,14 +29,22 @@
         SupportsShouldProcess
     )]
     param (
-        # Specifies the ID of the API Key to be updated.
+        # Specifies the UniqueId of the API Key to be updated.
         [Parameter(
-            Mandatory = $true,
+            Mandatory,
             ValueFromPipeline,
             ValueFromPipelineByPropertyName,
-            Position = 0
+            DontShow,
+            ParameterSetName = 'InputObject'
         )]
-        [string[]]$ApiKeyID,
+        # Specifies the UniqueId of the API Key to be updated.
+        [Parameter(
+            Mandatory,
+            Position = 0,
+            ParameterSetName = 'UniqueId'
+        )]
+        [Alias('Id')]
+        [string[]]$UniqueId,
 
         # Specifies the new scopes of the API Key.
         [Parameter(
@@ -53,13 +61,23 @@
         [Parameter()]
         [string]$OnBehalfOf
     )
-    
     process {
-        if ($ApiKeyID.Count -gt 1 -and $PSBoundParameters.ContainsKey('NewName')) {
-            Write-Warning ('Only one API Key can renamed per Set-SGApiKey. Scopes will be updated for {0} API Keys.' -f ($ApiKeyID.Count - 1))
+        if ($PSCmdlet.ParameterSetName -eq 'InputObject') {
+            $UniqueId = @()
+            foreach ($Object in $InputObject) {
+                switch ($Object) {
+                    { $_ -is [string] } { $UniqueId += $_; break }
+                    { $_ -is [int] } { $UniqueId += $_; break }
+                    { $_ -is [System.Management.Automation.PSCustomObject] } { $UniqueId += $_.Id; break }
+                    default { Write-Error ('Failed to convert InputObject to Id.') -ErrorAction Stop }
+                }
+            }            
+        }
+        if ($UniqueId.Count -gt 1 -and $PSBoundParameters.ContainsKey('NewName')) {
+            Write-Warning ('Only one API Key can renamed per Set-SGApiKey. Scopes will be updated for {0} API Keys.' -f ($UniqueId.Count - 1))
             $PSBoundParameters.Remove('NewName')
         }
-        foreach ($Id in $ApiKeyID) {
+        foreach ($Id in $UniqueId) {
             $InvokeSplat = @{
                 Method        = 'Put'
                 Namespace     = "api_keys/$Id"

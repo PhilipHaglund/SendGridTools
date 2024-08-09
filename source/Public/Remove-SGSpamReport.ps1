@@ -28,9 +28,17 @@
     param (
         # Specifies the invalid email address to remove.
         [Parameter(
-            Mandatory = $true,
+            Mandatory,
             ValueFromPipeline,
             ValueFromPipelineByPropertyName,
+            DontShow,
+            ParameterSetName = 'InputObject'
+        )]
+        [Object[]]$InputObject,
+
+        # Specifies the invalid email address to remove.
+        [Parameter(
+            Mandatory,
             ParameterSetName = 'Default',
             Position = 0
         )]
@@ -47,6 +55,16 @@
         [string]$OnBehalfOf
     )
     process {
+        if ($PSCmdlet.ParameterSetName -eq 'InputObject') {
+            $EmailAddress = @()
+            foreach ($Object in $InputObject) {
+                switch ($Object) {
+                    { $_ -is [string] } { $EmailAddress += $_; break }
+                    { $_ -is [System.Management.Automation.PSCustomObject] } { $UniqueId += $_.Email; break }
+                    default { Write-Error ('Failed to convert InputObject to Id.') -ErrorAction Stop }
+                }
+            }            
+        }
         if ($PSCmdlet.ParameterSetName -eq 'DeleteAll') {
             $InvokeSplat = @{
                 Method        = 'Delete'
@@ -66,22 +84,24 @@
                 }
             }
         }
-        foreach ($Id in $EmailAddress) {
-            $InvokeSplat = @{
-                Method        = 'Delete'
-                Namespace     = "suppression/spam_reports/$($Id.Address)"
-                ErrorAction   = 'Stop'
-                CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
-            }
-            if ($PSBoundParameters.OnBehalfOf) {
-                $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
-            }
-            if ($PSCmdlet.ShouldProcess(('Remove email address {0} from spam report.' -f $Id.Address))) {
-                try {
-                    Invoke-SendGrid @InvokeSplat
+        else {
+            foreach ($Id in $EmailAddress) {
+                $InvokeSplat = @{
+                    Method        = 'Delete'
+                    Namespace     = "suppression/spam_reports/$($Id.Address)"
+                    ErrorAction   = 'Stop'
+                    CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
                 }
-                catch {
-                    Write-Error ('Failed to remove email address "{0}" from SendGrid spam report. {0}' -f $Id.Address, $_.Exception.Message) -ErrorAction Stop
+                if ($PSBoundParameters.OnBehalfOf) {
+                    $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
+                }
+                if ($PSCmdlet.ShouldProcess(('Remove email address {0} from spam report.' -f $Id.Address))) {
+                    try {
+                        Invoke-SendGrid @InvokeSplat
+                    }
+                    catch {
+                        Write-Error ('Failed to remove email address "{0}" from SendGrid spam report. {0}' -f $Id.Address, $_.Exception.Message) -ErrorAction Stop
+                    }
                 }
             }
         }

@@ -28,13 +28,19 @@
         SupportsShouldProcess,
         ConfirmImpact = 'High')]
     param (
-
         # Specifies a the UniqueId for the branded link to remove.
         [Parameter(
             Mandatory,
             ValueFromPipeline,
             ValueFromPipelineByPropertyName,
-            Position = 0
+            DontShow,
+            ParameterSetName = 'InputObject'
+        )]
+        # Specifies a the UniqueId for the branded link to remove.
+        [Parameter(
+            Mandatory,
+            Position = 0,
+            ParameterSetName = 'UniqueId'
         )]
         [Alias('Id')]
         [string]$UniqueId,
@@ -44,6 +50,17 @@
         [string]$OnBehalfOf
     )
     process {
+        if ($PSCmdlet.ParameterSetName -eq 'InputObject') {
+            $UniqueId = @()
+            foreach ($Object in $InputObject) {
+                switch ($Object) {
+                    { $_ -is [string] } { $UniqueId += $_; break }
+                    { $_ -is [int] } { $UniqueId += $_; break }
+                    { $_ -is [System.Management.Automation.PSCustomObject] } { $UniqueId += $_.Id; break }
+                    default { Write-Error ('Failed to convert InputObject to Id.') -ErrorAction Stop }
+                }
+            }            
+        }
         foreach ($Id in $UniqueId) { 
             $InvokeSplat = @{
                 Method        = 'Delete'

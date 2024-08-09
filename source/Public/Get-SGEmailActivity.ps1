@@ -13,33 +13,15 @@
         PS C:\> Get-SGEmailActivity -Query "to_email%3D%22example%40example.com%22" -Limit 50
         This command retrieves the email activity for the email address 'example@example.com' with a limit of 50 messages.
     #>
-    [CmdletBinding()]
+    [CmdletBinding(
+        DefaultParameterSetName = 'PropertySet'
+    )]
     [Alias('Get-SGActivity')]
     param (
         [Parameter(
             Position = 0,
             Mandatory = $true,
-            ParameterSetName = 'EqualSet'
-        )]
-        [Parameter(
-            Position = 0,
-            Mandatory = $true,
-            ParameterSetName = 'ThanSet'
-        )]
-        [Parameter(
-            Position = 0,
-            Mandatory = $true,
-            ParameterSetName = 'ContainsSet'
-        )]
-        [Parameter(
-            Position = 0,
-            Mandatory = $true,
-            ParameterSetName = 'EmptySet'
-        )]
-        [Parameter(
-            Position = 0,
-            Mandatory = $true,
-            ParameterSetName = 'LikeSet'
+            ParameterSetName = 'PropertySet'
         )]
         [Alias('Object')]
         [ValidateSet('ApiKeyId', 'ApiKeyName', 'AsmGroupId', 'AsmGroupName', 'Categories', 'Clicks', 'Events', 'FromEmail', 'LastEventTime', 'MarketingCampaignId', 'MarketingCampaignName', 'MessageId', 'OutboundIp', 'Status', 'Subject', 'Teammate', 'TemplateId', 'TemplateName', 'ToEmail')]
@@ -61,24 +43,22 @@
         )]
         [string]$SendGridFilter,
         
-        [Parameter()]
+        [Parameter(ParameterSetName = 'PropertySet')]
+        [Parameter(ParameterSetName = 'FilterSet')]
+        [Parameter(ParameterSetName = 'SendGridFilterSet')]
         [ValidateRange(1, 1000)]
         [int]$Limit = 10
     )
     DynamicParam {
         # Create a dictionary to hold the dynamic parameters
         $ParamDictionary = [System.Management.Automation.RuntimeDefinedParameterDictionary]::new()
-        if ($PSCmdlet.ParameterSetName -ne 'FilterSet' -or $PSCmdlet.ParameterSetName -ne 'SendGridFilterSet') {
+        if ($null -eq $Filter -and  $null -eq $SendGridFilter) {
             if ($Property -notmatch 'LastEventTime|Events') {
                 # Create the Equal parameter attribute
                 $EqualParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
-                #$EqualParamAttribute.Position = 1
-                $EqualParamAttribute.ParameterSetName = 'EqualSet'
 
                 # Create the NotEqual parameter attribute
                 $NotEqualParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
-                #$NotEqualParamAttribute.Position = 1
-                $NotEqualParamAttribute.ParameterSetName = 'EqualSet'
 
                 # Add the parameter attributes to an attribute collection
                 $EqualAttributeCollection = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
@@ -103,13 +83,9 @@
             if ($Property -eq 'Clicks') {
                 # Create the GreaterThan parameter attribute
                 $GTParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
-                #$GTParamAttribute.Position = 1
-                $GTParamAttribute.ParameterSetName = 'ThanSet'
 
                 # Create the LessThan parameter attribute
                 $LTParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
-                #$LTParamAttribute.Position = 1
-                $LTParamAttribute.ParameterSetName = 'ThanSet'
 
                 # Add the parameter attributes to an attribute collection
                 $GTAttributeCollection = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
@@ -134,13 +110,9 @@
             if ($Property -match 'TemplateId|TemplateName|OriginatingIp|OutboundIp|Events|MarketingCampaignName|MarketingCampaignId|Categories|AsmGroupId|AsmGroupName|Teammate') {
                 # Create the Contains parameter attribute
                 $ContainsParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
-                #$ContainsParamAttribute.Position = 1
-                $ContainsParamAttribute.ParameterSetName = 'ContainsSet'
 
                 # Create the NotContains parameter attribute
                 $NotContainsParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
-                #$NotContainsParamAttribute.Position = 1
-                $NotContainsParamAttribute.ParameterSetName = 'ContainsSet'
 
                 # Add the parameter attributes to an attribute collection
                 $ContainsAttributeCollection = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
@@ -159,13 +131,9 @@
             if ($Property -match 'Subject|TemplateId|MarketingCampaignName|MarketingCampaignId|ApiKeyId|Categories|OutboundIp|Clicks|AsmGroupId|Teammate|Events') {
                 # Create the IsEmpty parameter attribute
                 $IsEmptyParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
-                #$IsEmptyParamAttribute.Position = 1
-                $IsEmptyParamAttribute.ParameterSetName = 'EmptySet'
 
                 # Create the IsNotEmpty parameter attribute
                 $IsNotEmptyParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
-                #$IsNotEmptyParamAttribute.Position = 1
-                $IsNotEmptyParamAttribute.ParameterSetName = 'EmptySet'
 
                 # Add the parameter attributes to an attribute collection
                 $IsEmptyAttributeCollection = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
@@ -184,14 +152,9 @@
             if ($Property -match 'MessageId|FromEmail|Subject|ToEmail|OutboundIp|OriginatingIp') {
                 # Create the Like parameter attribute
                 $LikeParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
-                #$IsEmptyParamAttribute.Position = 1
-                $LikeParamAttribute.ParameterSetName = 'LikeSet'
 
                 # Create the IsNotEmpty parameter attribute
                 $NotLikeParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
-                #$IsNotEmptyParamAttribute.Position = 1
-                $IsNotEmptyParamAttribute.ParameterSetName = 'LikeSet'
-
                 # Add the parameter attributes to an attribute collection
                 $LikeAttributeCollection = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
                 $LikeAttributeCollection.Add($LikeParamAttribute)
@@ -532,7 +495,7 @@
             'AsmGroupName'          = 'asm_group_id'
             'Teammate'              = 'teammate'
         }
-        $Operators = @{
+        $Operators = [ordered]@{
             'EQ'          = '='
             'NE'          = '!='
             'GT'          = '>'
@@ -570,36 +533,20 @@
                 $ValueIsArray = $true
             }
             else {
+                $PSBoundParameters
                 $ValueIsArray = $false
-                $UsedOperator = $Operators.Keys | Where-Object { $PSBoundParameters.ContainsKey($_) } | ForEach-Object {
-                    $Operators[$_]
-                } | Select-Object -First 1
+                foreach ($key in $Operators.Keys) {
+                    if ($PSBoundParameters.ContainsKey($key)) {
+                        $UsedOperator = $Operators[$key]
+                        break
+                    }
+                }
             }
 
             [System.Text.StringBuilder]$FilterQuery = [System.Text.StringBuilder]::new()
 
             $null = $FilterQuery.Append('(')
-            if ($PSBoundParameters.ContainsKey('Contains') -or $PSBoundParameters.ContainsKey('NotContains')) {
-                $null = $FilterQuery.Append('(')
-                foreach ($Var in ($PSBoundParameters['Value'])) {
-                
-                    $null = $FilterQuery.Append([uri]::EscapeDataString($UsedOperator))
-                    $null = $FilterQuery.Append('(')
-                    $null = $FilterQuery.Append($Properties[$Property])
-                    $null = $FilterQuery.Append(',')
-                    $null = $FilterQuery.Append([uri]::EscapeDataString("""$Var"""))
-                    $null = $FilterQuery.Append(')')
-                    $null = $FilterQuery.Append(' OR ')
-                }
-                $null = $FilterQuery.Remove($FilterQuery.Length - 4, 4) # Remove the last ' OR ' using the length of the string and the number of characters to remove
-                $null = $FilterQuery.Append(')')
-            }
-            elseif ($PSBoundParameters.ContainsKey('IsEmpty') -or $PSBoundParameters.ContainsKey('IsNotEmpty')) {
-                $null = $FilterQuery.Append($Properties[$Property])
-                $null = $FilterQuery.Append(' ')
-                $null = $FilterQuery.Append($UsedOperator)
-            }
-            elseif ($PSBoundParameters.ContainsKey('EQ') -or $PSBoundParameters.ContainsKey('NE')) {
+            if ($PSBoundParameters.ContainsKey('EQ') -or $PSBoundParameters.ContainsKey('NE')) {
                 $null = $FilterQuery.Append($Properties[$Property])
                 $null = $FilterQuery.Append(' ')
                 $null = $FilterQuery.Append([uri]::EscapeDataString($UsedOperator))
@@ -630,6 +577,26 @@
                 $null = $FilterQuery.Append([uri]::EscapeDataString($UsedOperator))
                 $null = $FilterQuery.Append(' ')
                 $null = $FilterQuery.Append([uri]::EscapeDataString("""%$($PSBoundParameters['Value'])%"""))
+            }
+            elseif ($PSBoundParameters.ContainsKey('Contains') -or $PSBoundParameters.ContainsKey('NotContains')) {
+                $null = $FilterQuery.Append('(')
+                foreach ($Var in ($PSBoundParameters['Value'])) {
+                
+                    $null = $FilterQuery.Append([uri]::EscapeDataString($UsedOperator))
+                    $null = $FilterQuery.Append('(')
+                    $null = $FilterQuery.Append($Properties[$Property])
+                    $null = $FilterQuery.Append(',')
+                    $null = $FilterQuery.Append([uri]::EscapeDataString("""$Var"""))
+                    $null = $FilterQuery.Append(')')
+                    $null = $FilterQuery.Append(' OR ')
+                }
+                $null = $FilterQuery.Remove($FilterQuery.Length - 4, 4) # Remove the last ' OR ' using the length of the string and the number of characters to remove
+                $null = $FilterQuery.Append(')')
+            }
+            elseif ($PSBoundParameters.ContainsKey('IsEmpty') -or $PSBoundParameters.ContainsKey('IsNotEmpty')) {
+                $null = $FilterQuery.Append($Properties[$Property])
+                $null = $FilterQuery.Append(' ')
+                $null = $FilterQuery.Append($UsedOperator)
             }
             else {
                 $null = $FilterQuery.Append($Properties[$Property])

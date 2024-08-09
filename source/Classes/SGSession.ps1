@@ -50,7 +50,7 @@ class SendGridSession {
         This function establishes a connection to the SendGrid API by using the user's stored credentials.
     #>
     [void] Connect () {
-        $SessionLifeTime = (Get-Date).AddHours(-12)
+        $SessionLifeTime = (Get-Date).AddHours(-1)
         if ($null -eq $this._CreateDateTime -or $SessionLifeTime -gt $this._CreateDateTime) {
             $this.Disconnect()
             throw 'Session lifetime exceeded, reconnect.'
@@ -141,7 +141,7 @@ class SendGridSession {
         if ($this._Connected -eq $false) {
             throw 'You must call the Connect-SendGrid cmdlet before calling any other cmdlets.'
         }
-        $SessionLifeTime = (Get-Date).AddHours(-12)
+        $SessionLifeTime = (Get-Date).AddHours(-1)
         if ($null -eq $this._CreateDateTime -or $SessionLifeTime -gt $this._CreateDateTime) {
             $this.Disconnect()
             return 'Session lifetime exceeded, reconnect.'
@@ -197,7 +197,7 @@ class SendGridSession {
             Write-Verbose -Message ('ContentBody: Key: {0}, Value: {1}, Type:{2}' -f $Key, $ContentBody[$Key], $ContentBody[$Key].GetType())
         }
         $Body = $ContentBody | ConvertTo-Json -Depth 5 -ErrorAction Stop
-        $SessionLifeTime = (Get-Date).AddHours(-12)
+        $SessionLifeTime = (Get-Date).AddHours(-1)
         if ($null -eq $this._CreateDateTime -or $SessionLifeTime -gt $this._CreateDateTime) {
             $this.Disconnect()
             return 'Session lifetime exceeded, reconnect.'
@@ -252,7 +252,7 @@ class SendGridSession {
         if ($this._Connected -eq $false) {
             throw 'You must call the Connect-SendGrid cmdlet before calling any other cmdlets.'
         }
-        $SessionLifeTime = (Get-Date).AddHours(-12)
+        $SessionLifeTime = (Get-Date).AddHours(-1)
         if ($null -eq $this._CreateDateTime -or $SessionLifeTime -gt $this._CreateDateTime) {
             $this.Disconnect()
             return 'Session lifetime exceeded, reconnect.'
@@ -309,7 +309,7 @@ class SendGridSession {
     #>
     [PSCustomObject[]] InvokeQuery ([Microsoft.PowerShell.Commands.WebRequestMethod]$WebRequestMethod, [string]$Endpoint, [hashtable]$ContentBody, [string]$OnBehalfOf) {
         $Body = $ContentBody | ConvertTo-Json -Depth 5 -ErrorAction Stop
-        $SessionLifeTime = (Get-Date).AddHours(-12)
+        $SessionLifeTime = (Get-Date).AddHours(-1)
         if ($null -eq $this._CreateDateTime -or $SessionLifeTime -gt $this._CreateDateTime) {
             $this.Disconnect()
             return 'Session lifetime exceeded, reconnect.'

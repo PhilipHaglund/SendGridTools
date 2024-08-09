@@ -41,7 +41,6 @@
         SupportsShouldProcess
     )]
     param (
-
         [Parameter(
             Mandatory,
             Position = 0

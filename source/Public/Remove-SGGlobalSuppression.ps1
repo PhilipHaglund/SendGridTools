@@ -22,39 +22,61 @@
     #>
     [CmdletBinding(
         SupportsShouldProcess,
-        ConfirmImpact = 'High'
+        ConfirmImpact = 'High',
+        DefaultParameterSetName = 'Default'
     )]
     param (
         # Specifies the email address to remove from the global suppressions list.
         [Parameter(
-            Mandatory = $true,
+            Mandatory,
             ValueFromPipeline,
             ValueFromPipelineByPropertyName,
+            DontShow,
+            ParameterSetName = 'InputObject'
+        )]
+        [Object[]]$InputObject,
+        # Specifies the email address to remove from the global suppressions list.
+        [Parameter(
+            Mandatory,
+            ParameterSetName = 'Default',
             Position = 0
         )]
         [Alias('Email')]
-        [string]$EmailAddress,
+        [MailAddress[]]$EmailAddress,
 
         # Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
         [Parameter(ParameterSetName = 'Default')]
         [string]$OnBehalfOf
     )
     process {
-        $InvokeSplat = @{
-            Method        = 'Delete'
-            Namespace     = "suppression/unsubscribes/$EmailAddress"
-            ErrorAction   = 'Stop'
-            CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
+        if ($PSCmdlet.ParameterSetName -eq 'InputObject') {
+            $UniqueId = @()
+            foreach ($Object in $InputObject) {
+                switch ($Object) {
+                    { $_ -is [string] } { $UniqueId += $_; break }
+                    { $_ -is [int] } { $UniqueId += $_; break }
+                    { $_ -is [System.Management.Automation.PSCustomObject] } { $UniqueId += $_.Id; break }
+                    default { Write-Error ('Failed to convert InputObject to Id.') -ErrorAction Stop }
+                }
+            }            
         }
-        if ($PSBoundParameters.OnBehalfOf) {
-            $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
-        }
-        if ($PSCmdlet.ShouldProcess(('Remove email address {0} from global suppressions list.' -f $EmailAddress))) {
-            try {
-                Invoke-SendGrid @InvokeSplat
+        foreach ($Id in $EmailAddress) {
+            $InvokeSplat = @{
+                Method        = 'Delete'
+                Namespace     = "suppression/unsubscribes/$Id"
+                ErrorAction   = 'Stop'
+                CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
             }
-            catch {
-                Write-Error ('Failed to remove email address "{0}" from global suppressions list. {0}' -f $EmailAddress, $_.Exception.Message) -ErrorAction Stop
+            if ($PSBoundParameters.OnBehalfOf) {
+                $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
+            }
+            if ($PSCmdlet.ShouldProcess(('Remove email address {0} from global suppressions list.' -f $Id))) {
+                try {
+                    Invoke-SendGrid @InvokeSplat
+                }
+                catch {
+                    Write-Error ('Failed to remove email address "{0}" from global suppressions list. {0}' -f $Id, $_.Exception.Message) -ErrorAction Stop
+                }
             }
         }
     }

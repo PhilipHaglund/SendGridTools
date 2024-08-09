@@ -34,10 +34,17 @@
             Mandatory,
             ValueFromPipeline,
             ValueFromPipelineByPropertyName,
-            Position = 0
+            DontShow,
+            ParameterSetName = 'InputObject'
+        )]
+        # Specifies the ID of the suppression group.
+        [Parameter(
+            Mandatory,
+            Position = 0,
+            ParameterSetName = 'UniqueId'
         )]
         [Alias('Id')]
-        [int]$GroupId,
+        [int]$UniqueId,
 
         # Specifies the name of the suppression group.
         [Parameter(
@@ -60,9 +67,20 @@
         [string]$OnBehalfOf
     )
     process {
+        if ($PSCmdlet.ParameterSetName -eq 'InputObject') {
+            $UniqueId = @()
+            foreach ($Object in $InputObject) {
+                switch ($Object) {
+                    { $_ -is [string] } { $UniqueId += $_; break }
+                    { $_ -is [int] } { $UniqueId += $_; break }
+                    { $_ -is [System.Management.Automation.PSCustomObject] } { $UniqueId += $_.Id; break }
+                    default { Write-Error ('Failed to convert InputObject to Id.') -ErrorAction Stop }
+                }
+            }            
+        }
         $InvokeSplat = @{
             Method        = 'Patch'
-            Namespace     = "asm/groups/$GroupId"
+            Namespace     = "asm/groups/$UniqueId"
             ErrorAction   = 'Stop'
             CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
         }
@@ -74,7 +92,7 @@
             'description' = $Description
             'is_default' = $IsDefault.IsPresent
         }
-        if ($PSCmdlet.ShouldProcess(('Update suppression group with ID {0}.' -f $GroupId))) {
+        if ($PSCmdlet.ShouldProcess(('Update suppression group with ID {0}.' -f $UniqueId))) {
             try {
                 Invoke-SendGrid @InvokeSplat
             }

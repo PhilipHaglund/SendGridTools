@@ -90,8 +90,8 @@
             ValueFromPipelineByPropertyName,
             Position = 0
         )]
-        [Alias('Id')]
-        [string[]]$UniqueId,
+        [Alias('UniqueId')]
+        [string[]]$Id,
 
         # Specifies if the DNS records should be shown.
         [Parameter(
@@ -106,7 +106,7 @@
     DynamicParam {
         # Create a dictionary to hold the dynamic parameters
         $ParamDictionary = [System.Management.Automation.RuntimeDefinedParameterDictionary]::new()
-        if ($null -eq $UniqueId) {
+        if ($null -eq $Id) {
             # Create the Equal parameter attribute
             $DomainNameParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
             $DomainNameParamAttribute.ParameterSetName = 'DomainNameSet'
@@ -116,7 +116,7 @@
             $DomainNameAttributeCollection.Add($DomainNameParamAttribute)
 
             # Add ValidateSet to the parameter
-            $script:SGDomains = Invoke-SGCommand -Namespace 'whitelabel/domains' # Can't reference self Get-SGAuthenticatedDomain.
+            $script:SGDomains = Invoke-SGCommand -Namespace 'whitelabel/domains' # Can't reference if self Get-SGAuthenticatedDomain for reasons unknown to me.
             $DomainNameValidateSet = [System.Management.Automation.ValidateSetAttribute]::new([string[]]$script:SGDomains.Domain)
             $DomainNameAttributeCollection.Add($DomainNameValidateSet)
 
@@ -147,12 +147,12 @@
             $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
         }
         if ($PSCmdlet.ParameterSetName -eq 'DomainNameSet') {
-            $UniqueId = ($script:SGDomains | Where-Object { $_.Domain -eq ($PSBoundParameters['DomainName']) }).Id
+            $Id = ($script:SGDomains | Where-Object { $_.Domain -eq ($PSBoundParameters['DomainName']) }).Id
         }
-        if ($null -ne $UniqueId) {
-            foreach ($Id in $UniqueId) {
-                if ($PSCmdlet.ShouldProcess(('{0}' -f $Id))) {
-                    $InvokeSplat['Namespace'] = "whitelabel/domains/$Id"
+        if ($null -ne $Id) {
+            foreach ($UniqueId in $Id) {
+                if ($PSCmdlet.ShouldProcess(('{0}' -f $UniqueId))) {
+                    $InvokeSplat['Namespace'] = "whitelabel/domains/$UniqueId"
                     try {
                         Invoke-SendGrid @InvokeSplat
                     }

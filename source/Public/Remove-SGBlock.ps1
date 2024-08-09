@@ -30,9 +30,16 @@
     param (
         # Specifies the email address of the block to remove.
         [Parameter(
-            Mandatory = $true,
+            Mandatory,
             ValueFromPipeline,
             ValueFromPipelineByPropertyName,
+            DontShow,
+            ParameterSetName = 'InputObject'
+        )]
+        [Object[]]$InputObject,
+        # Specifies the email address of the block to remove.
+        [Parameter(
+            Mandatory,
             ParameterSetName = 'Default',
             Position = 0
         )]
@@ -42,7 +49,7 @@
         # Specifies whether to delete all emails on the bounces list.
         [Parameter(
             ParameterSetName = 'DeleteAll',
-            Mandatory = $true,
+            Mandatory,
             Position = 0
         )]
         [switch]$DeleteAll,
@@ -53,6 +60,16 @@
         [string]$OnBehalfOf
     )
     process {
+        if ($PSCmdlet.ParameterSetName -eq 'InputObject') {
+            $EmailAddress = @()
+            foreach ($Object in $InputObject) {
+                switch ($Object) {
+                    { $_ -is [string] } { $EmailAddress += $_; break }
+                    { $_ -is [System.Management.Automation.PSCustomObject] } { $UniqueId += $_.Email; break }
+                    default { Write-Error ('Failed to convert InputObject to Id.') -ErrorAction Stop }
+                }
+            }            
+        }
         if ($PSCmdlet.ParameterSetName -eq 'DeleteAll') {
             $InvokeSplat = @{
                 Method        = 'Delete'

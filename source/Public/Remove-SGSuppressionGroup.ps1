@@ -26,26 +26,44 @@
             Mandatory,
             ValueFromPipeline,
             ValueFromPipelineByPropertyName,
-            Position = 0
+            DontShow,
+            ParameterSetName = 'InputObject'
+        )]
+        # Specifies the ID of the suppression group.
+        [Parameter(
+            Mandatory,
+            Position = 0,
+            ParameterSetName = 'UniqueId'
         )]
         [Alias('Id')]
-        [int]$GroupId,
+        [int]$UniqueId,
 
         # Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
         [Parameter()]
         [string]$OnBehalfOf
     )
     process {
+        if ($PSCmdlet.ParameterSetName -eq 'InputObject') {
+            $UniqueId = @()
+            foreach ($Object in $InputObject) {
+                switch ($Object) {
+                    { $_ -is [string] } { $UniqueId += $_; break }
+                    { $_ -is [int] } { $UniqueId += $_; break }
+                    { $_ -is [System.Management.Automation.PSCustomObject] } { $UniqueId += $_.Id; break }
+                    default { Write-Error ('Failed to convert InputObject to Id.') -ErrorAction Stop }
+                }
+            }            
+        }
         $InvokeSplat = @{
             Method        = 'Delete'
-            Namespace     = "asm/groups/$GroupId"
+            Namespace     = "asm/groups/$UniqueId"
             ErrorAction   = 'Stop'
             CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
         }
         if ($PSBoundParameters.ContainsKey('OnBehalfOf')) {
             $InvokeSplat.OnBehalfOf = $OnBehalfOf
         }
-        if ($PSCmdlet.ShouldProcess(('Delete suppression group with ID {0}.' -f $GroupId))) {
+        if ($PSCmdlet.ShouldProcess(('Delete suppression group with ID {0}.' -f $UniqueId))) {
             try {
                 Invoke-SendGrid @InvokeSplat
             }

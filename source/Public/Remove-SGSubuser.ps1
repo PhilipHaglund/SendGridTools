@@ -26,7 +26,6 @@
             ValueFromPipelineByPropertyName,
             Position = 0
         )]
-        [Alias('ID')]
         [string]$Username
     )
 

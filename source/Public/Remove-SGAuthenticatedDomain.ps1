@@ -29,13 +29,20 @@
         SupportsShouldProcess,
         ConfirmImpact = 'High')]
     param (
-
-        # Specifies the unique identifier for the authenticated domain to remove.
+        # Specifies the UniqueId for the authenticated domain to remove.
         [Parameter(
             Mandatory,
             ValueFromPipeline,
             ValueFromPipelineByPropertyName,
-            Position = 0
+            DontShow,
+            ParameterSetName = 'InputObject'
+        )]
+        [Object[]]$InputObject,
+        # Specifies the UniqueId for the authenticated domain to remove.
+        [Parameter(
+            Mandatory,
+            Position = 0,
+            ParameterSetName = 'UniqueId'
         )]
         [Alias('Id')]
         [string[]]$UniqueId,
@@ -43,8 +50,19 @@
         # Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
         [Parameter()]
         [string]$OnBehalfOf
-    )   
+    )
     process {
+        if ($PSCmdlet.ParameterSetName -eq 'InputObject') {
+            $UniqueId = @()
+            foreach ($Object in $InputObject) {
+                switch ($Object) {
+                    { $_ -is [string] } { $UniqueId += $_; break }
+                    { $_ -is [int] } { $UniqueId += $_; break }
+                    { $_ -is [System.Management.Automation.PSCustomObject] } { $UniqueId += $_.Id; break }
+                    default { Write-Error ('Failed to convert InputObject to Id.') -ErrorAction Stop }
+                }
+            }            
+        }
         foreach ($Id in $UniqueId) { 
             $InvokeSplat = @{
                 Method        = 'Delete'
@@ -65,7 +83,7 @@
             Write-Verbose -Message ("Don't forget to remove DNS records.") -Verbose
             $SGAuthenticatedDomain
 
-            if ($PSCmdlet.ShouldProcess(('{0}.{1}' -f $SGAuthenticatedDomain.Subdomain, $SGAuthenticatedDomain.Domain))) {
+            if ($PSCmdlet.ShouldProcess(('{0}.{1}({2})' -f $SGAuthenticatedDomain.Subdomain, $SGAuthenticatedDomain.Domain,$Id))) {
                 try {
                     Invoke-SendGrid @InvokeSplat
                 }

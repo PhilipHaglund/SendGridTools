@@ -19,14 +19,22 @@
         ConfirmImpact = 'High'
     )]
     param (
-        # Specifies the ID of the API Key to be deleted.
+        # Specifies the UniqueId of the API Key to be updated.
         [Parameter(
-            Mandatory = $true,
+            Mandatory,
             ValueFromPipeline,
             ValueFromPipelineByPropertyName,
-            Position = 0
+            DontShow,
+            ParameterSetName = 'InputObject'
         )]
-        [string[]]$ApiKeyId,
+        # Specifies the UniqueId of the API Key to be updated.
+        [Parameter(
+            Mandatory,
+            Position = 0,
+            ParameterSetName = 'UniqueId'
+        )]
+        [Alias('Id')]
+        [string[]]$UniqueId,
         
         # Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
         [Parameter()]
@@ -34,7 +42,18 @@
     )
     
     process {
-        foreach ($Id in $ApiKeyID) {
+        if ($PSCmdlet.ParameterSetName -eq 'InputObject') {
+            $UniqueId = @()
+            foreach ($Object in $InputObject) {
+                switch ($Object) {
+                    { $_ -is [string] } { $UniqueId += $_; break }
+                    { $_ -is [int] } { $UniqueId += $_; break }
+                    { $_ -is [System.Management.Automation.PSCustomObject] } { $UniqueId += $_.Id; break }
+                    default { Write-Error ('Failed to convert InputObject to Id.') -ErrorAction Stop }
+                }
+            }            
+        }
+        foreach ($Id in $UniqueId) {
             $InvokeSplat = @{
                 Method        = 'Delete'
                 Namespace     = "api_keys/$Id"

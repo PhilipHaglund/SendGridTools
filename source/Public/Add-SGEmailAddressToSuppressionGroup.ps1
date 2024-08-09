@@ -32,7 +32,7 @@
             Position = 0
         )]
         [Alias('Id')]
-        [int]$GroupId,
+        [int]$UniqueId,
 
         # Specifies the email addresses to add to the suppression group.
         [Parameter(
@@ -48,7 +48,7 @@
     process {
         $InvokeSplat = @{
             Method        = 'Post'
-            Namespace     = "asm/groups/$GroupId/suppressions"
+            Namespace     = "asm/groups/$UniqueId/suppressions"
             ContentBody   = @{ recipient_emails = $EmailAddresses | ForEach-Object { $_.Address } }
             ErrorAction   = 'Stop'
             CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
@@ -56,7 +56,7 @@
         if ($PSBoundParameters.ContainsKey('OnBehalfOf')) {
             $InvokeSplat.OnBehalfOf = $OnBehalfOf
         }
-        if ($PSCmdlet.ShouldProcess(('Add email addresses to suppression group with ID {0}.' -f $GroupId))) {
+        if ($PSCmdlet.ShouldProcess(('Add email addresses to suppression group with ID {0}.' -f $UniqueId))) {
             try {
                 Invoke-SendGrid @InvokeSplat
             }
