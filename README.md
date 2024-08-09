@@ -56,15 +56,6 @@ Password for user apikey:
 
 
 ## Cmdlets
-
-Here are some of the key cmdlets provided by the SendGridTools module:
-
-- [`Get-SGAuthenticatedDomain`](command:_github.copilot.openSymbolFromReferences?%5B%22Get-SGAuthenticatedDomain%22%2C%5B%7B%22uri%22%3A%7B%22%24mid%22%3A1%2C%22fsPath%22%3A%22c%3A%5C%5CGit%5C%5CSendGridTools%5C%5Cbuild.ps1%22%2C%22_sep%22%3A1%2C%22external%22%3A%22file%3A%2F%2F%2Fc%253A%2FGit%2FSendGridTools%2Fbuild.ps1%22%2C%22path%22%3A%22%2Fc%3A%2FGit%2FSendGridTools%2Fbuild.ps1%22%2C%22scheme%22%3A%22file%22%7D%2C%22pos%22%3A%7B%22line%22%3A423%2C%22character%22%3A32%7D%7D%5D%5D "Go to definition"): Retrieves authenticated domains.
-- `Send-SGMailMessage`: Sends a new email.
-- [`Get-SGEmailStatistics`](command:_github.copilot.openSymbolFromReferences?%5B%22Get-SGEmailStatistics%22%2C%5B%7B%22uri%22%3A%7B%22%24mid%22%3A1%2C%22fsPath%22%3A%22c%3A%5C%5CGit%5C%5CSendGridTools%5C%5Cbuild.ps1%22%2C%22_sep%22%3A1%2C%22external%22%3A%22file%3A%2F%2F%2Fc%253A%2FGit%2FSendGridTools%2Fbuild.ps1%22%2C%22path%22%3A%22%2Fc%3A%2FGit%2FSendGridTools%2Fbuild.ps1%22%2C%22scheme%22%3A%22file%22%7D%2C%22pos%22%3A%7B%22line%22%3A423%2C%22character%22%3A32%7D%7D%5D%5D "Go to definition"): Retrieves email statistics.
-- [`New-SGAuthenticatedDomain`](command:_github.copilot.openSymbolFromReferences?%5B%22Get-SGSuppressionList%22%2C%5B%7B%22uri%22%3A%7B%22%24mid%22%3A1%2C%22fsPath%22%3A%22c%3A%5C%5CGit%5C%5CSendGridTools%5C%5Cbuild.ps1%22%2C%22_sep%22%3A1%2C%22external%22%3A%22file%3A%2F%2F%2Fc%253A%2FGit%2FSendGridTools%2Fbuild.ps1%22%2C%22path%22%3A%22%2Fc%3A%2FGit%2FSendGridTools%2Fbuild.ps1%22%2C%22scheme%22%3A%22file%22%7D%2C%22pos%22%3A%7B%22line%22%3A423%2C%22character%22%3A32%7D%7D%5D%5D "Go to definition"): Retrieves the suppression list.
-- `Remove-SGSuppression`: Removes an email from the suppression list.
-
 For a full list of cmdlets, use the following command:
 
 ```PowerShell
