@@ -37,6 +37,7 @@
             ParameterSetName = 'InputObject'
         )]
         [Object[]]$InputObject,
+        
         # Specifies the invalid email address to remove.
         [Parameter(
             Mandatory,

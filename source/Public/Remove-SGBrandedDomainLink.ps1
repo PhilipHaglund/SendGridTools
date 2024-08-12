@@ -1,7 +1,7 @@
 ﻿function Remove-SGBrandedDomainLink {
     <#
     .SYNOPSIS
-        Removes a Branded Domain Link from the current Sendgrid instance.
+        Removes a Branded Domain Link from the current SendGrid instance.
 
     .DESCRIPTION
         Remove-SGBrandedDomainLink removes a branded domain link from the current SendGrid instance. Branded Domain Links allows all of the click-tracked links, 
@@ -36,6 +36,8 @@
             DontShow,
             ParameterSetName = 'InputObject'
         )]
+        [Object[]]$InputObject,
+        
         # Specifies a the UniqueId for the branded link to remove.
         [Parameter(
             Mandatory,
@@ -43,7 +45,7 @@
             ParameterSetName = 'UniqueId'
         )]
         [Alias('Id')]
-        [string]$UniqueId,
+        [string[]]$UniqueId,
 
         # Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
         [Parameter()]

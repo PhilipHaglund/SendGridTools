@@ -41,7 +41,6 @@
             ValueFromPipeline,
             ValueFromPipelineByPropertyName,
             Position = 0
-            
         )]
         [string[]]$ApiKeyId,
 

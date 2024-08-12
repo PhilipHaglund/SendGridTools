@@ -40,6 +40,7 @@
             ParameterSetName = 'InputObject'
         )]
         [Object[]]$InputObject,
+        
         # Specifies the unique ID of the branded link to validate. This parameter is mandatory.
         [Parameter(
             Mandatory,

@@ -38,6 +38,7 @@
             ParameterSetName = 'InputObject'
         )]
         [Object[]]$InputObject,
+        
         # Specifies the UniqueId for the authenticated domain to remove.
         [Parameter(
             Mandatory,

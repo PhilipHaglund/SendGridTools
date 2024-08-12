@@ -29,6 +29,8 @@
             DontShow,
             ParameterSetName = 'InputObject'
         )]
+        [Object[]]$InputObject,
+        
         # Specifies the ID of the suppression group.
         [Parameter(
             Mandatory,

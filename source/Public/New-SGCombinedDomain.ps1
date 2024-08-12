@@ -63,7 +63,7 @@
         [Parameter(
             Position = 3
         )]
-        [ValidatePattern('^[a-zA-Z\d]{3}$')]
+        [ValidatePattern('^[a-zA-Z\d]{1,3}$')]
         [string]$CustomDkimSelector,
 
         # Specifies whether to use a custom SPF or allow SendGrid to manage your SPF. This option is only available to authenticated domains set up for manual security (DisableAutomaticSecurity).

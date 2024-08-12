@@ -37,6 +37,8 @@
             DontShow,
             ParameterSetName = 'InputObject'
         )]
+        [Object[]]$InputObject,
+        
         # Specifies the UniqueId of the API Key to be updated.
         [Parameter(
             Mandatory,

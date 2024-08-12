@@ -36,6 +36,7 @@
             ParameterSetName = 'InputObject'
         )]
         [Object[]]$InputObject,
+        
         # Specifies the UniqueId of the alert to delete.
         [Parameter(
             Mandatory,

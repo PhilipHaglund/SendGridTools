@@ -35,6 +35,7 @@
             ParameterSetName = 'InputObject'
         )]
         [Object[]]$InputObject,
+        
         # Specifies the email address to remove from the global suppressions list.
         [Parameter(
             Mandatory,

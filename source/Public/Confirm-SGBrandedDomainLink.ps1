@@ -34,6 +34,8 @@
             DontShow,
             ParameterSetName = 'InputObject'
         )]
+        [Object[]]$InputObject,
+        
         # Specifies the unique ID of the branded link to validate. This parameter is mandatory.
         [Parameter(
             Mandatory,
@@ -41,7 +43,7 @@
             ParameterSetName = 'UniqueId'
         )]
         [Alias('Id')]
-        [string]$UniqueId,
+        [string[]]$UniqueId,
 
         # Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
         [Parameter()]

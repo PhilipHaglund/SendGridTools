@@ -138,10 +138,10 @@
         if ($PSBoundParameters.OnBehalfOf) {
             $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
         }
-        if ($PSCmdlet.ParameterSetName -eq 'DomainNameSet') {
+        if ($null -ne ($PSBoundParameters['DomainName'])) {
             $UniqueId = ($script:SGDomains | Where-Object { $_.Domain -eq ($PSBoundParameters['DomainName']) }).Id
         }
-        if ($PSBoundParameters.UniqueId) {
+        if ($PSBoundParameters.UniqueId -or $PSBoundParameters.DomainName) {
             foreach ($Id in $UniqueId) {
                 if ($PSCmdlet.ShouldProcess(('{0}' -f $Id))) {
                     $InvokeSplat['Namespace'] = "whitelabel/links/$Id"

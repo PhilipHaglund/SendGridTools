@@ -44,6 +44,8 @@
             DontShow,
             ParameterSetName = 'InputObject'
         )]
+        [Object[]]$InputObject,
+        
         # Specifies the email address of the bounce to remove.
         [Parameter(
             Mandatory,

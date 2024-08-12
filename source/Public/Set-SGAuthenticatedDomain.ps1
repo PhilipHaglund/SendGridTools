@@ -32,6 +32,7 @@
             ParameterSetName = 'InputObject'
         )]
         [Object[]]$InputObject,
+        
         # Specifies the unique identifier for the authenticated domain to modify.
         [Parameter(
             Mandatory,

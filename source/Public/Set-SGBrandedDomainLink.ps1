@@ -26,6 +26,8 @@
             DontShow,
             ParameterSetName = 'InputObject'
         )]
+        [Object[]]$InputObject,
+        
         # Specifies the unique identifier for the branded domain link to modify.
         [Parameter(
             Mandatory,
