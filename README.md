@@ -20,7 +20,7 @@ SendGridTools is a PowerShell module designed to help you manage SendGrid using 
 
 ### Prerequisites
 
-- PowerShell 6.0 or higher
+- PowerShell 6.0 or higher *(Can be lowered to 5.1 if highly requested)*
 - SendGrid API Key
 
 ### Installing from PowerShell Gallery
@@ -56,6 +56,8 @@ Password for user apikey:
 
 
 ## Cmdlets
+Currently contains **61** functions.
+
 For a full list of cmdlets, use the following command:
 
 ```PowerShell
