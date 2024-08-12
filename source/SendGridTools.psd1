@@ -99,16 +99,16 @@ PrivateData = @{
             Tags   = @('SendGrid', 'PSEdition_Core', 'Mail')
 
         # A URL to the license for this module.
-        # LicenseUri = ''
+            LicenseUri = 'https://github.com/PhilipHaglund/SendGridTools/blob/main/LICENSE'
 
         # A URL to the main website for this project.
-        # ProjectUri = ''
+        ProjectUri = 'https://github.com/PhilipHaglund/SendGridTools/'
 
         # A URL to an icon representing this module.
-        # IconUri = ''
+        IconUri = 'https://raw.githubusercontent.com/PhilipHaglund/SendGridTools/main/SendGridTools.png'
 
         # ReleaseNotes of this module
-        # ReleaseNotes = ''
+        ReleaseNotes = 'Inital public release of SendGridTools, version 0.4.2.'
 
         # Prerelease string of this module
         # Prerelease = ''
