@@ -121,6 +121,10 @@ function Invoke-SendGrid {
                         $Query = $Query.result
                         break;
                     }
+                    'Results' {
+                        $Query = $Query.results
+                        break;
+                    }
                     'Suppressions' {
                         $Query = $Query.suppressions
                         break;
@@ -128,6 +132,22 @@ function Invoke-SendGrid {
                     'Messages' {
                         $Query = $Query.messages
                         $PSTypeName = 'SendGridTools.Get.SGEmailActivity'
+                        break;
+                    }
+                    Default {
+                        break;
+                    }
+                }
+                $Properties = Get-UniqueProperties -InputObject $Query
+            }
+            elseif ($Query -is [System.Management.Automation.PSObject[]] -and $Properties.Count -gt 1 -and ($Properties -eq 'Result' -or $Properties -eq 'Results')) {
+                switch ($Properties | Where-Object { $_ -notmatch 'Metadata' }) {
+                    'Result' {
+                        $Query = $Query.result
+                        break;
+                    }
+                    'Results' {
+                        $Query = $Query.results
                         break;
                     }
                     Default {
@@ -185,11 +205,11 @@ function Invoke-SendGrid {
 
                     # Switch based on the property type.
                     switch ($Object.$Property) {
-                        { $_ -is [int64] -and $Property -match 'valid|created|updated' } {
+                        { $_ -is [int64] -and $Property -match 'valid|created|updated|lastat' } {
                             $PSObject | Add-Member -MemberType NoteProperty -Name (($Property | ConvertTo-TitleCase) -replace '[\s_-]+') -Value ([UnixTime]::FromUnixTime($_))
                             break
                         }
-                        { $_ -is [string] -and $Property -match '^date$'} {
+                        { $_ -is [string] -and $Property -match '^date$' } {
                             $PSObject | Add-Member -MemberType NoteProperty -Name (($Property | ConvertTo-TitleCase) -replace '[\s_-]+') -Value ([datetime]::Parse($_))
                             break
                         }
