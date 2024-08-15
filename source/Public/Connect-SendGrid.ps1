@@ -81,7 +81,7 @@
                         $script:Session.Connect($Credential)
                     }
                     else {
-                        $script:Session.Connect((Get-Credential -Message 'Enter your ApiKey' -UserName 'apikey' -Title 'Connect-SendGrid'))
+                        $script:Session.Connect((Get-Credential -Message 'Enter your ApiKey' -UserName 'apikey')) # Removed -Title 'Connect-SendGrid' to make it PowerShell 5.1 compatible
                     }
                     Write-Verbose -Message 'Connection to SendGrid established.' -Verbose
                 }

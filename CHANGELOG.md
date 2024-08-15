@@ -7,25 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added initial 0.3.0 version release.
+- 
 
 ### Changed
 
-- For changes in existing functionality.
+- Made it Windows PowerShell 5.1 compatible by using ArgumentCompleter instead of using " : System.Management.Automation.IValidateSetValuesGenerator"
+
+
 
 ### Deprecated
 
-- For soon-to-be removed features.
+- 
 
 ### Removed
 
-- For now removed features.
+- 
 
 ### Fixed
 
-- For any bug fix.
+- 
 
 ### Security
 
-- In case of vulnerabilities.
+- 
 

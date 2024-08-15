@@ -51,8 +51,24 @@
             Mandatory,
             Position = 1
         )]
-        [ValidateSet([SendGridScopes])]
-        [string[]]$Scopes,
+        #[ValidateSet([SendGridScopes])] Removed to make it PowerShell 5.1 compatible
+        [ArgumentCompleter({
+                param(
+                    [string]$CommandName,
+                    [string]$ParameterName,
+                    [string]$WordToComplete,
+                    $CommandAst,
+                    $FakeBoundParameters
+                )
+                $ReturnedValue = [SendGridScopes]::ValidScopes()
+
+                if ($WordToComplete) {
+                    $ReturnedValue | Where-Object { $_ -like "$WordToComplete*" }
+                }
+                else {
+                    $ReturnedValue
+                } })]
+        [string[]]$Scope,
 
         [Parameter(
             ParameterSetName = 'FullAccess',
@@ -70,7 +86,7 @@
             name = $Name
         }
         if ($PSCmdlet.ParameterSetName -eq 'Scopes') {
-            $ContentBody.Add('scopes', $Scopes)
+            $ContentBody.Add('scopes', $Scope)
         }
     }
     process {

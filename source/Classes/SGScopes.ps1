@@ -1,4 +1,4 @@
-class SendGridScopes : System.Management.Automation.IValidateSetValuesGenerator {
+class SendGridScopes { # Removed " : System.Management.Automation.IValidateSetValuesGenerator" to make it PowerShell 5.1 compatible
     [string[]]$Scopes
 
     SendGridScopes () {

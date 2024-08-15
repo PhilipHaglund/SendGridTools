@@ -33,7 +33,7 @@ Copyright = '(c) Philip Haglund. All rights reserved.'
 Description = 'Manage SendGrid using its API with PowerShell functions and wrappers.'
 
 # Minimum version of the PowerShell engine required by this module
-PowerShellVersion = '6.0'
+PowerShellVersion = '5.1'
 
 # Name of the PowerShell host required by this module
 # PowerShellHostName = ''
