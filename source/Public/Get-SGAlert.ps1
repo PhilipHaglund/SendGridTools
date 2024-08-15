@@ -34,7 +34,6 @@
         [string[]]$AlertId,
 
         # Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
-        [Parameter(ParameterSetName = 'Default')]
         [string]$OnBehalfOf
     )
     process {

@@ -52,6 +52,7 @@
         # Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
         [Parameter(ParameterSetName = 'Default')]
         [Parameter(ParameterSetName = 'DeleteAll')]
+        [Parameter(ParameterSetName = 'InputObject')]
         [string]$OnBehalfOf
     )
     process {
@@ -60,7 +61,7 @@
             foreach ($Object in $InputObject) {
                 switch ($Object) {
                     { $_ -is [string] } { $EmailAddress += $_; break }
-                    { $_ -is [System.Management.Automation.PSCustomObject] } { $UniqueId += $_.Email; break }
+                    { $_ -is [System.Management.Automation.PSCustomObject] } { $EmailAddress += $_.Email; break }
                     default { Write-Error ('Failed to convert InputObject to Id.') -ErrorAction Stop }
                 }
             }            

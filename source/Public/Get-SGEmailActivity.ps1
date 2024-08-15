@@ -533,7 +533,6 @@
                 $ValueIsArray = $true
             }
             else {
-                $PSBoundParameters
                 $ValueIsArray = $false
                 foreach ($key in $Operators.Keys) {
                     if ($PSBoundParameters.ContainsKey($key)) {
