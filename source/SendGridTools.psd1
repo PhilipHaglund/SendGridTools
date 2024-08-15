@@ -12,7 +12,7 @@
 RootModule = 'SendGridTools.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.0.2'
+ModuleVersion = '0.4.6'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -96,7 +96,7 @@ PrivateData = @{
 
         Prerelease = ''
         # Tags applied to this module. These help with module discovery in online galleries.
-            Tags   = @('SendGrid', 'PSEdition_Core', 'Mail')
+            Tags   = @('SendGrid', 'Mail', 'PSEdition_Core', 'PSEdition_Desktop')
 
         # A URL to the license for this module.
             LicenseUri = 'https://github.com/PhilipHaglund/SendGridTools/blob/main/LICENSE'
@@ -108,7 +108,7 @@ PrivateData = @{
         IconUri = 'https://raw.githubusercontent.com/PhilipHaglund/SendGridTools/main/SendGridTools.png'
 
         # ReleaseNotes of this module
-        ReleaseNotes = 'Inital public release of SendGridTools, version 0.4.2.'
+        ReleaseNotes = 'Will be added when built.'
 
         # Prerelease string of this module
         # Prerelease = ''
@@ -130,6 +130,3 @@ PrivateData = @{
 # DefaultCommandPrefix = ''
 
 }
-
-
-
