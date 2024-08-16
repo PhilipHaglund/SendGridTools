@@ -16,6 +16,7 @@ variables:
   buildArtifactName: output
   testResultFolderName: testResults
   defaultBranch: main
+  Agent.Source.Git.ShallowFetchDepth: 0 # override ShallowFetchDepth
 
 stages:
   - stage: Build
@@ -26,7 +27,7 @@ stages:
           vmImage: 'ubuntu-latest'
         steps:
           - pwsh: |
-              dotnet tool install --global GitVersion.Tool
+              dotnet tool install --global GitVersion.Tool --version 5.*
               $gitVersionObject = dotnet-gitversion | ConvertFrom-Json
               $gitVersionObject.PSObject.Properties.ForEach{
                   Write-Host -Object "Setting Task Variable '$($_.Name)' with value '$($_.Value)'."
@@ -283,7 +284,7 @@ stages:
           eq(variables['Build.SourceBranch'], 'refs/heads/main'),
           startsWith(variables['Build.SourceBranch'], 'refs/tags/')
         ),
-        contains(variables['System.TeamFoundationCollectionUri'], 'StenaMetall')
+        contains(variables['System.TeamFoundationCollectionUri'], 'Omnicit')
       )
     jobs:
       - job: Deploy_Module
