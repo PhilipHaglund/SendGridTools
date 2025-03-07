@@ -87,6 +87,7 @@
         [hashtable]$BrandedDomainSplat = @{
             Domain = $Domain
             SendGridSubDomain = $Subdomain
+            OnBehalfOf        = $OnBehalfOf
             ErrorAction = 'Stop'
         }
         # Remove empty Hashtables
