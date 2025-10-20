@@ -317,7 +317,7 @@
                 $ContentBody.Add('attachments', @(
                         foreach ($A in $Attachment) {
                             @{
-                                content     = [Convert]::ToBase64String([IO.File]::ReadAllBytes($A.ContentStream.Name))
+                                content     = [Convert]::ToBase64String([IO.File]::ReadAllBytes($A.ContentStream))
                                 filename    = $A.Name
                                 type        = $A.ContentType.MediaType
                                 disposition = 'attachment'
