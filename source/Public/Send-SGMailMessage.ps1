@@ -316,8 +316,12 @@
             if ($PSBoundParameters.ContainsKey('Attachment')) {
                 $ContentBody.Add('attachments', @(
                         foreach ($A in $Attachment) {
+                            $ByteArray = [byte[]]::new($A.ContentStream.Length)
+                            $A.ContentStream.Position = 0
+                            $A.ContentStream.Read($ByteArray, 0, $A.ContentStream.Length) | Out-Null
+                            $Base64String = [Convert]::ToBase64String($ByteArray)
                             @{
-                                content     = [Convert]::ToBase64String([IO.File]::ReadAllBytes($A.ContentStream.Name))
+                                content     = $Base64String
                                 filename    = $A.Name
                                 type        = $A.ContentType.MediaType
                                 disposition = 'attachment'
