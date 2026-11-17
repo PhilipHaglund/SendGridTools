@@ -5,41 +5,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- The module imports in a new Windows PowerShell 5.1 session; the internal session class named a type that 5.1 had not loaded when the module is parsed. `New-SGSubuser` now also works in 5.1; it used a parameter that 5.1 does not have.
+- `New-SGAuthenticatedDomain` sends the addresses given with `-IPAddress` (it sent an empty value) and asks for a custom SPF only when `-CustomSPF` is set, and `New-SGCombinedDomain` no longer asks for one when only `-DisableAutomaticSecurity` is given.
+- `New-SGAuthenticatedDomain`, `New-SGBrandedDomainLink` and `New-SGCombinedDomain` send the subdomain given with `-SendGridSubdomain` and none when none is given; before, they failed, sent an empty subdomain or dropped it.
+- `Set-SGAuthenticatedDomain`, `Remove-SGAlert`, `Remove-SGSuppressionGroup`, `Set-SGSuppressionGroup`, `Remove-SGGlobalSuppression` and `New-SGSubuser` act on each id, address or object given, also from the pipeline. `Set-SGAuthenticatedDomain` made no change before, and `Set-SGSuppressionGroup` sends only the values given.
+- An expired session raises an error that names `Connect-SendGrid -Force`; it returned a text as if it were data.
+- Help: `Connect-SendGrid` gives the real session lifetime of one hour (it said 12 hours); `New-SGAuthenticatedDomain`, `New-SGBrandedDomainLink` and `New-SGCombinedDomain` no longer document a `-Force` parameter they do not have; `Get-SGBounce`, `Get-SGBlock`, `Get-SGGlobalSuppression`, `Get-SGInvalidEmail` and `Get-SGSpamReport` no longer state a 500-item limit; the first `New-SGBrandedDomainLink` example names the link it asks for.
+
+### Security
+
+- Verbose output names the keys and value types of a request body but not its values, so a subuser password no longer shows with `-Verbose`.
+- `New-SGSubuser` returns only the created subuser and no longer writes its internal request, with the password in plain text, to the output. `Set-SGForwardSpamSetting` no longer writes its request, with the forwarding addresses, to the output.
+
 ### Changed
 
-- The build now resolves its dependencies locally into `output/RequiredModules` at pinned versions, and the quality tests run on Pester 5.
 - The module is built and tested on Linux, Windows and macOS in PowerShell 7 and in Windows PowerShell 5.1, and published to the PowerShell Gallery from GitHub Actions: every merge to main publishes a preview, and a full release comes only from a version tag.
-- The changelog now lists every released version.
-- The README states the real requirements (Windows PowerShell 5.1 or PowerShell 7) and the install and build steps.
-- `about_SendGridTools` now has real content.
-- The transport (the internal session class and `Invoke-SendGrid`) now has unit tests with mocked HTTP; the code coverage threshold is raised from 0 to 9, and the tests check that the API key never appears in errors, verbose, debug or output.
-- The build now imports only the four Sampler task files that build and test use, so the publish and tag tasks are no longer defined and the `pack` workflow alias is gone.
-- A quality test now checks that the number of exported functions equals the number of files in `source/Public`.
-- `New-SGSubuser` now has unit tests with mocked HTTP in both shells, and the exposure tests check that request body values never appear in verbose, debug, errors or output.
-- `New-SGAuthenticatedDomain`, `New-SGBrandedDomainLink`, `New-SGCombinedDomain`, `Set-SGAuthenticatedDomain` and the alert, suppression and forward spam commands fixed below now have unit tests with mocked HTTP, and the code coverage threshold is raised from 9 to 21.
+- The build resolves its dependencies locally into `output/RequiredModules` at pinned versions, runs the tests on Pester 5, and imports only the four Sampler task files that build and test use, so the publish and tag tasks and the `pack` workflow alias are gone.
+- Unit tests with mocked HTTP cover the transport and the commands whose requests or output are fixed above, in both shells, and check that the API key and request body values never appear in output, errors, verbose or debug. Quality tests import the built module in a new PowerShell 7 process and, on Windows, a new Windows PowerShell process, and check that the exported functions match the files in `source/Public`. The code coverage threshold is raised from 0 to 21.
+- The README states the real requirements (Windows PowerShell 5.1 or PowerShell 7) and the install and build steps, `about_SendGridTools` has real content, and the changelog lists every released version.
 
 ### Removed
 
 - The Azure Pipelines definition is removed.
-
-### Fixed
-
-- The module now imports in a new Windows PowerShell 5.1 session. The four `InvokeQuery` methods of the internal session class named a type that 5.1 has not loaded when the module is parsed; a quality test now imports the built module in a new PowerShell 7 process and, on Windows, a new Windows PowerShell process.
-- Help for `New-SGAuthenticatedDomain`, `New-SGBrandedDomainLink` and `New-SGCombinedDomain` no longer documents a `-Force` parameter they do not have, and help for `Get-SGBounce`, `Get-SGBlock`, `Get-SGGlobalSuppression`, `Get-SGInvalidEmail` and `Get-SGSpamReport` no longer states a 500-item limit.
-- Help for `Connect-SendGrid` now gives the real session lifetime of one hour (it said 12 hours), and the first `New-SGBrandedDomainLink` example names the link it asks for.
-- `New-SGSubuser` now works in Windows PowerShell 5.1; it turned the password into plain text with a parameter that 5.1 does not have.
-- `New-SGSubuser` returns only the created subuser; it also wrote its internal request to the output.
-- `New-SGAuthenticatedDomain`, `New-SGBrandedDomainLink` and `New-SGCombinedDomain` now send the subdomain given with `-SendGridSubdomain` and send none when none is given; the first two failed or sent an empty subdomain, and `New-SGCombinedDomain` dropped it.
-- `Set-SGAuthenticatedDomain` now updates each domain it is given with `-UniqueId` or from the pipeline; it made no change before.
-- `Remove-SGAlert`, `Remove-SGSuppressionGroup`, `Set-SGSuppressionGroup` and `Remove-SGGlobalSuppression` now act on each id or address given, also from the pipeline, and `Set-SGSuppressionGroup` sends only the values given.
-- An expired session now raises an error that names `Connect-SendGrid -Force`; it returned a text as if it were data.
-- `New-SGSubuser` now sends the values of each piped object.
-
-### Security
-
-- Verbose output names the keys and value types of a request body but no longer its values, so a subuser password no longer shows with `-Verbose`.
-- `New-SGSubuser` no longer writes its internal request, with the password in plain text, to the output.
-- `Set-SGForwardSpamSetting` no longer writes its request, with the forwarding addresses, to the output.
 
 ## [0.4.7] - 2025-11-08
 

@@ -10,7 +10,7 @@ BeforeAll {
     Install-SgtSessionHelper
     $script:Cred = [pscredential]::new('apikey', (ConvertTo-SecureString -String 'test-key-not-real' -AsPlainText -Force))
     # The DynamicParam block calls Get-SGIPAddress; answer it in module scope so it makes no recorded call.
-    Mock -CommandName Get-SGIPAddress -ModuleName SendGridTools -MockWith { [pscustomobject]@{ Ip = '192.0.2.10' } }
+    Mock -CommandName Get-SGIPAddress -ModuleName SendGridTools -MockWith { [pscustomobject]@{ Ip = '192.0.2.10' }, [pscustomobject]@{ Ip = '192.0.2.11' } }
 }
 
 AfterAll {
@@ -156,6 +156,78 @@ Describe 'New-SGAuthenticatedDomain request' {
             $Calls[0].Headers['on-behalf-of'] | Should -Be 'subuser-placeholder'
             $Sent = $Calls[0].Body | ConvertFrom-Json
             @($Sent.PSObject.Properties.Name | Sort-Object) | Should -Be @('automatic_security', 'domain')
+        }
+    }
+
+    It 'Sends the one IP address it is given as an array' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $null = New-SGAuthenticatedDomain -Domain 'example.com' -IPAddress '192.0.2.10' -Confirm:$false
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Sent = $Calls[0].Body | ConvertFrom-Json
+            @($Sent.PSObject.Properties.Name | Sort-Object) | Should -Be @('automatic_security', 'domain', 'ips')
+            @($Sent.ips) | Should -Be @('192.0.2.10')
+            $Calls[0].Body | Should -Match '"ips":\s*\[\s*"192\.0\.2\.10"\s*\]'
+        }
+    }
+
+    It 'Sends every IP address it is given' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $null = New-SGAuthenticatedDomain -Domain 'example.com' -IPAddress '192.0.2.10', '192.0.2.11' -Confirm:$false
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Sent = $Calls[0].Body | ConvertFrom-Json
+            @($Sent.ips) | Should -Be @('192.0.2.10', '192.0.2.11')
+        }
+    }
+
+    It 'Sends no ips when no IP address is given' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $null = New-SGAuthenticatedDomain -Domain 'example.com' -Confirm:$false
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Sent = $Calls[0].Body | ConvertFrom-Json
+            $Sent.PSObject.Properties.Name | Should -Not -Contain 'ips'
+        }
+    }
+
+    It 'Sends no custom SPF flag when custom SPF is given as false' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $null = New-SGAuthenticatedDomain -Domain 'example.com' -DisableAutomaticSecurity -CustomSPF:$false -Confirm:$false
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Sent = $Calls[0].Body | ConvertFrom-Json
+            @($Sent.PSObject.Properties.Name | Sort-Object) | Should -Be @('automatic_security', 'domain')
+            $Sent.automatic_security | Should -BeFalse
+        }
+    }
+
+    It 'Rejects custom SPF without disabling automatic security and makes no call' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            # -CustomSPF exists only with -DisableAutomaticSecurity, so binding fails. The error id is an ambiguity error today because Username and the dynamic IPAddress share position 2; assert the binding failure, not that id.
+            { New-SGAuthenticatedDomain -Domain 'example.com' -CustomSPF -Confirm:$false } | Should -Throw -ExceptionType ([System.Management.Automation.ParameterBindingException])
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 0
         }
     }
 
