@@ -116,20 +116,48 @@ BeforeAll {
 }
 
 Describe 'Changelog Management' -Tag 'Changelog' {
-    It 'Changelog has been updated' -Skip:(
-        !([bool](Get-Command git -EA SilentlyContinue) -and
-            [bool](&(Get-Process -Id $PID).Path -NoProfile -Command 'git rev-parse --is-inside-work-tree 2>$null'))
-    ) {
-        # Get the list of changed files compared with master
-        $HeadCommit = &git rev-parse HEAD
-        $MasterCommit = &git rev-parse origin/main
-        $filesChanged = &git @('diff', "$MasterCommit...$HeadCommit", '--name-only')
-
-        if ($HeadCommit -ne $MasterCommit)
+    It 'Changelog has been updated' {
+        # Committed changes are the authority: compare the merge base with origin/main, never HEAD with itself.
+        # Every git call runs in the project path, not in the current directory.
+        $skipReason = $null
+        $hasGit = [bool](Get-Command -Name git -ErrorAction SilentlyContinue)
+        if (-not $hasGit)
         {
-            # if we're not testing same commit (i.e. master..master)
-            $filesChanged.Where{ (Split-Path $_ -Leaf) -match '^changelog' } | Should -Not -BeNullOrEmpty
+            $skipReason = 'git is not available'
         }
+        elseif ((& git -C $projectPath rev-parse --is-inside-work-tree 2>$null) -ne 'true')
+        {
+            $skipReason = 'the project is not inside a git work tree'
+        }
+        elseif (-not (& git -C $projectPath rev-parse --verify --quiet 'refs/remotes/origin/main^{commit}' 2>$null))
+        {
+            $skipReason = 'origin/main does not exist, so there is no merge base to compare with'
+        }
+        else
+        {
+            $branchName = (& git -C $projectPath rev-parse --abbrev-ref HEAD 2>$null)
+            $headCommit = (& git -C $projectPath rev-parse HEAD 2>$null)
+            $mainCommit = (& git -C $projectPath rev-parse 'refs/remotes/origin/main' 2>$null)
+            if ($branchName -eq 'main')
+            {
+                $skipReason = 'on main: the changelog is compared only on branches that merge into main'
+            }
+            elseif ($branchName -eq 'HEAD' -and $headCommit -eq $mainCommit)
+            {
+                $skipReason = 'on main: detached HEAD equals origin/main, so there is nothing to compare'
+            }
+        }
+
+        if ($skipReason)
+        {
+            Set-ItResult -Skipped -Because $skipReason
+            return
+        }
+
+        $mergeBase = (& git -C $projectPath merge-base HEAD 'refs/remotes/origin/main' 2>$null)
+        $mergeBase | Should -Not -BeNullOrEmpty -Because 'HEAD and origin/main must share a merge base'
+        $filesChanged = @(& git -C $projectPath diff --name-only $mergeBase HEAD)
+        $filesChanged.Where{ (Split-Path -Path $_ -Leaf) -ceq 'CHANGELOG.md' } | Should -Not -BeNullOrEmpty -Because 'CHANGELOG.md must change on this branch since the merge base with origin/main'
     }
 
     It 'Changelog format compliant with keepachangelog format' -Skip:(![bool](Get-Command git -EA SilentlyContinue)) {
