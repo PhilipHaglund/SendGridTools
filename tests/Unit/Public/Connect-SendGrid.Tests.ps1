@@ -42,7 +42,7 @@ Describe 'Connect-SendGrid parameters' {
     It 'Refuses -Region together with -BaseUri without a call' {
         InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
             Set-SgtNetworkStub -Response ([pscustomobject]@{})
-            { Connect-SendGrid -Credential $Cred -Region EU -BaseUri https://example.com } | Should -Throw
+            { Connect-SendGrid -Credential $Cred -Region EU -BaseUri https://example.com } | Should -Throw -ErrorId 'AmbiguousParameterSet*'
             Get-SgtNetworkCall | Should -BeNullOrEmpty
         }
     }
@@ -143,6 +143,20 @@ Describe 'Connect-SendGrid base URL' {
             $Calls = Get-SgtNetworkCall
             $Calls.Count | Should -Be 1
             "$($Calls[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/scopes'
+        }
+    }
+
+    It 'Refreshes an existing EU session with a bare Connect-SendGrid' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $Existing = New-SgtTestSession -Credential $Cred -AgeHours 0
+            $Existing._BaseURL = [uri]'https://api.eu.sendgrid.com/v3'
+            $script:Session = $Existing
+            Connect-SendGrid
+            [object]::ReferenceEquals($script:Session, $Existing) | Should -BeTrue
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Calls[0].Method | Should -Be 'Get'
+            "$($Calls[0].Uri)" | Should -Be 'https://api.eu.sendgrid.com/v3/scopes'
         }
     }
 
