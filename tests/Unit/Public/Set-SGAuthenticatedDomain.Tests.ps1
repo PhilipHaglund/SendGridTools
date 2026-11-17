@@ -62,14 +62,15 @@ Describe 'Set-SGAuthenticatedDomain request' {
         }
     }
 
-    It 'Names the domain id in the confirmation text' {
+    It 'Sends nothing under WhatIf' {
         InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
             $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
             Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
 
-            $Leak = Get-SgtLeakText -Action { $null = Set-SGAuthenticatedDomain -UniqueId '1001' -SetDefault -Confirm:$false }
+            $null = Set-SGAuthenticatedDomain -UniqueId '1001', '1002' -SetDefault -WhatIf
 
-            $Leak.Verbose | Should -BeLike '*"Authenticated Domain 1001"*'
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 0
         }
     }
 

@@ -12,7 +12,7 @@
         Specifies whether to set a custom SPF record for the authenticated domain.
 
     .PARAMETER InputObject
-        Hidden parameter that accepts objects from the pipeline, each an ID given as a string or integer or an object with an Id property. With the current code the collected IDs are not used, because the update loop runs over a variable that is never set, so nothing is modified (the same applies to UniqueId).
+        Hidden parameter that accepts objects from the pipeline, each an ID given as a string or integer or an object with an Id property. Each ID is collected and the authenticated domain with that ID is updated.
 
     .PARAMETER OnBehalfOf
         Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
@@ -72,10 +72,10 @@
                 }
             }
         }
-        foreach ($UniqueId in $Id) {
+        foreach ($DomainId in $UniqueId) {
             $InvokeSplat = @{
                 Method        = 'Patch'
-                Namespace     = "whitelabel/domains/$UniqueId"
+                Namespace     = "whitelabel/domains/$DomainId"
                 ErrorAction   = 'Stop'
                 CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
             }
@@ -90,7 +90,7 @@
                 $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
             }
             $InvokeSplat.Add('ContentBody', $ContentBody)
-            if ($PSCmdlet.ShouldProcess(('Authenticated Domain {0}' -f $UniqueId))) {
+            if ($PSCmdlet.ShouldProcess(('Authenticated Domain {0}' -f $DomainId))) {
                 try {
                     Invoke-SendGrid @InvokeSplat
                 }
