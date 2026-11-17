@@ -12,7 +12,7 @@
         Specifies whether to set a custom SPF record for the authenticated domain.
 
     .PARAMETER InputObject
-        Specifies one or more objects to modify, typically received from the pipeline. Each object can be an ID given as a string or integer, or an object with an Id property, such as the output of Get-SGAuthenticatedDomain. Use UniqueId to specify the IDs directly.
+        Hidden parameter that accepts objects from the pipeline, each an ID given as a string or integer or an object with an Id property. With the current code the collected IDs are not used, because the update loop runs over a variable that is never set, so nothing is modified (the same applies to UniqueId).
 
     .PARAMETER OnBehalfOf
         Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.

@@ -13,7 +13,7 @@
         Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
 
     .PARAMETER InputObject
-        Specifies one or more objects to delete, typically received from the pipeline. Each object can be an ID given as a string or integer, or an object with an Id property, such as the output of Get-SGSuppressionGroup. Use UniqueId to specify the IDs directly.
+        Hidden parameter that accepts objects from the pipeline. With the current code this parameter set fails with a conversion error, because the collected IDs are assigned to the integer UniqueId variable, so nothing is deleted. Use UniqueId instead.
 
     .EXAMPLE
         PS C:\> Remove-SGSuppressionGroup -GroupId 123

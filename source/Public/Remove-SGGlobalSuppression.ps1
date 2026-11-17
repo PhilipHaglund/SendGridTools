@@ -13,7 +13,7 @@
         Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
 
     .PARAMETER InputObject
-        Specifies one or more objects to remove from the global suppressions list, typically received from the pipeline, such as the output of Get-SGGlobalSuppression. Use EmailAddress to specify the addresses directly.
+        Hidden parameter that accepts objects from the pipeline. With the current code the IDs collected from these objects are not used, because the removal loop runs over EmailAddress, so piped objects are not removed from the global suppressions list. Use EmailAddress instead.
 
     .EXAMPLE
         PS C:\> Remove-SGGlobalSuppression -EmailAddress 'test@example.com'
