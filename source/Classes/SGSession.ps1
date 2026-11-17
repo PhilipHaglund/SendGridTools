@@ -132,12 +132,12 @@ class SendGridSession {
         The specific endpoint in the SendGrid API to send the query to.
 
     .INPUTS
-        Microsoft.PowerShell.Commands.WebRequestMethod, string.
+        string, string.
 
     .OUTPUTS
         PSCustomObject[]
     #>
-    [PSCustomObject[]] InvokeQuery ([Microsoft.PowerShell.Commands.WebRequestMethod]$WebRequestMethod, [string]$Endpoint) {
+    [PSCustomObject[]] InvokeQuery ([string]$WebRequestMethod, [string]$Endpoint) {
         if ($this._Connected -eq $false) {
             throw 'You must call the Connect-SendGrid cmdlet before calling any other cmdlets.'
         }
@@ -187,12 +187,12 @@ class SendGridSession {
         The payload to send to the specified endpoint.
 
     .INPUTS
-        Microsoft.PowerShell.Commands.WebRequestMethod, string, hashtable.
+        string, string, hashtable.
 
     .OUTPUTS
         PSCustomObject[]
     #>
-    [PSCustomObject[]] InvokeQuery ([Microsoft.PowerShell.Commands.WebRequestMethod]$WebRequestMethod, [string]$Endpoint, [hashtable]$ContentBody) {
+    [PSCustomObject[]] InvokeQuery ([string]$WebRequestMethod, [string]$Endpoint, [hashtable]$ContentBody) {
         foreach ($Key in $ContentBody.Keys) {
             Write-Verbose -Message ('ContentBody: Key: {0}, Value: {1}, Type:{2}' -f $Key, $ContentBody[$Key], $ContentBody[$Key].GetType())
         }
@@ -243,12 +243,12 @@ class SendGridSession {
         The username of the subuser to send the query on behalf of.
 
     .INPUTS
-        Microsoft.PowerShell.Commands.WebRequestMethod, string.
+        string, string.
 
     .OUTPUTS
         PSCustomObject[]
     #>
-    [PSCustomObject[]] InvokeQuery ([Microsoft.PowerShell.Commands.WebRequestMethod]$WebRequestMethod, [string]$Endpoint, [string]$OnBehalfOf) {
+    [PSCustomObject[]] InvokeQuery ([string]$WebRequestMethod, [string]$Endpoint, [string]$OnBehalfOf) {
         if ($this._Connected -eq $false) {
             throw 'You must call the Connect-SendGrid cmdlet before calling any other cmdlets.'
         }
@@ -302,12 +302,12 @@ class SendGridSession {
         The username of the subuser or account-id to send the query on behalf of.
 
     .INPUTS
-        Microsoft.PowerShell.Commands.WebRequestMethod, string, hashtable.
+        string, string, hashtable.
 
     .OUTPUTS
         PSCustomObject[]
     #>
-    [PSCustomObject[]] InvokeQuery ([Microsoft.PowerShell.Commands.WebRequestMethod]$WebRequestMethod, [string]$Endpoint, [hashtable]$ContentBody, [string]$OnBehalfOf) {
+    [PSCustomObject[]] InvokeQuery ([string]$WebRequestMethod, [string]$Endpoint, [hashtable]$ContentBody, [string]$OnBehalfOf) {
         $Body = $ContentBody | ConvertTo-Json -Depth 5 -ErrorAction Stop
         $SessionLifeTime = (Get-Date).AddHours(-1)
         if ($null -eq $this._CreateDateTime -or $SessionLifeTime -gt $this._CreateDateTime) {
