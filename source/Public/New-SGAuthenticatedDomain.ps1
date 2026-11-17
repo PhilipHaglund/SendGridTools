@@ -29,9 +29,6 @@
     .PARAMETER CustomDkimSelector
         Add a custom DKIM selector. Accepts three letters or numbers.
 
-    .PARAMETER Force
-        Specifies if the current domain (parameter Domain) should be created despite it contains a subdomain (email.example.com).
-
     .PARAMETER CustomSPF
         This is a dynamic parameter and only becomes available when the 'DisableAutomaticSecurity' switch is set.
         Specifies whether to use a custom SPF or allow SendGrid to manage your SPF. This option is only available to authenticated domains set up for manual security.
@@ -55,7 +52,7 @@
     .EXAMPLE
         PS C:\> New-SGAuthenticatedDomain -Domain 'sub.example.com' -SendGridSubdomain 'email'
 
-        Adds a new authenticated domain 'email.sub.example.com' with the subdomain 'email' and forces the creation despite the domain containing a subdomain.
+        Adds a new authenticated domain for the domain 'sub.example.com', which itself contains a subdomain, with the SendGrid subdomain 'email'.
 
     .EXAMPLE
         PS C:\> New-SGAuthenticatedDomain -Domain 'example.com' -SendGridSubdomain 'email' -DisableAutomaticSecurity -CustomSPF
