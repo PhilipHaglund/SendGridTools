@@ -179,14 +179,14 @@
         else {
             $ContentBody.Add('automatic_security', $true)
         }
-        if ($PSBoundParameters.ContainsKey('CustomSPF')) {
+        if ($PSBoundParameters.ContainsKey('CustomSPF') -and [bool]$PSBoundParameters['CustomSPF']) {
             $ContentBody.Add('custom_spf', $true)
         }
         if ($PSBoundParameters.ContainsKey('Username')) {
             $ContentBody.Add('username', $Username)
         }
         if ($PSBoundParameters.ContainsKey('IPAddress')) {
-            $ContentBody.Add('ips', @($IPAddress))
+            $ContentBody.Add('ips', @($PSBoundParameters['IPAddress']))
         }
         $InvokeSplat = @{
             Method        = 'Post'
