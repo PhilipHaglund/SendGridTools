@@ -637,7 +637,7 @@ jobs:
           $Notes = (@($Manifest.PrivateData.PSData.ReleaseNotes) -join [System.Environment]::NewLine).Trim()
 
           if ([string]::IsNullOrWhiteSpace($Notes)) {
-              Write-Warning "The built manifest carries no ReleaseNotes. CHANGELOG.md's Unreleased section is the source of that value and tests/QA/module.tests.ps1 holds the section's body after its heading line to at least one sentence, so this should be unreachable."
+              Write-Warning "The built manifest carries no ReleaseNotes. The build copies CHANGELOG.md's [Unreleased] section into the manifest's ReleaseNotes, so an empty value means that section was empty or the build did not copy it. The release gets a one-line fallback note."
               $Notes = "$ModuleName $Version was published to the PowerShell Gallery from $env:GITHUB_SHA."
           }
 
@@ -649,6 +649,8 @@ jobs:
               $Arguments += '--prerelease'
               Write-Host "$Version carries the prerelease label '$env:PublishPrerelease', so the release is marked as a prerelease."
           }
+          # On a tag run the tag exists; --verify-tag makes gh fail instead of ever creating a stable tag.
+          if ($env:GITHUB_REF -clike 'refs/tags/*') { $Arguments += '--verify-tag' }
 
           gh @Arguments
           if ($LASTEXITCODE -ne 0) { throw "gh release create failed with exit code $LASTEXITCODE. $ModuleName $Version IS ALREADY PUBLISHED, and a re-run of this job cannot create the release: tag and release by hand -- see the comment on this step." }

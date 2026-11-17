@@ -3,8 +3,11 @@ mode: ContinuousDelivery
 # 0.4.6 on origin, written without a leading v; the default tag prefix makes
 # the v optional). Without the old ordinary-word patterns that base would give
 # 0.4.7-preview... under the already released stable 0.4.7, so next-version
-# lifts the first preview to 0.4.8-preview0001. next-version never gives a
-# stable version, and it stops winning once a v0.4.8... tag exists.
+# lifts the first preview to 0.4.8-preview0001. next-version is a base number
+# only and never removes the preview label on main. After a v0.4.8-previewNNNN
+# tag exists the preview counter continues from that tag (preview0002, ...).
+# After a stable v0.4.8 tag the base is that tag, and the next build counts
+# from 0.4.9.
 # tests/QA/module.tests.ps1 holds the built version in [0.4.8, 1.0.0).
 #
 # Only explicit tokens move the version: a +semver: token in a commit message

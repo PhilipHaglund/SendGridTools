@@ -6,7 +6,7 @@
         of it file by file.
 
     .DESCRIPTION
-        The publish job must ship the bytes the three required checks tested, and nothing else.
+        The publish job must ship the bytes the required checks tested, and nothing else.
         Both halves of that proof live in this one file so they cannot drift apart: a recorder and
         a verifier that enumerated or hashed differently would fail on honest artefacts and agree
         on tampered ones.

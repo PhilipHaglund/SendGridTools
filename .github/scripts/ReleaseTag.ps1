@@ -13,6 +13,9 @@
 
         THE RULE: a tag or a release is created only on the commit whose build THIS job published.
 
+        A run that is not a v<X.Y.Z> tag run only ever tags a preview: such a run whose build
+        carries no prerelease label is REFUSED before any other decision, whatever else is true.
+
         When the publish step found the version already on the Gallery and skipped, this job
         cannot tell which commit's build the Gallery holds. A later merge to main computes the
         same version while the tag is missing, and used to tag itself. So:
@@ -127,6 +130,12 @@ foreach ($Line in @($RemoteTag)) {
     if ($Answer.Groups[2].Success) { $PeeledCommit = $Answer.Groups[1].Value } else { $PlainCommit = $Answer.Groups[1].Value }
 }
 $TagCommit = if ($PeeledCommit) { $PeeledCommit } else { $PlainCommit }
+
+# A run that is not a v tag run only ever tags a preview. No Create or Skip answer below may let a
+# stable version through on such a run, so this comes first.
+if (-not $IsTagRun -and ([string]::IsNullOrEmpty($Prerelease) -or $Version -notlike '*-*')) {
+    throw "REFUSING TO TAG. This run was started by $Ref, which is not a v tag run, but it carries the version $Version without a prerelease label. A run that is not a v tag run only ever tags a preview, and this workflow never creates a stable tag. The step 'Refuse a version the triggering ref does not call for' should have stopped the run before the publish. Nothing was tagged."
+}
 
 $Flag = if ([string]::IsNullOrEmpty($Prerelease)) { '' } else { ' --prerelease' }
 $ReleaseCommand = "gh release create $Tag --verify-tag --title $Tag$Flag --notes-file <a file holding the Unreleased section of CHANGELOG.md at that commit>"

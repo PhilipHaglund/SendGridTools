@@ -106,6 +106,32 @@ Describe 'ReleaseTag.ps1' -Skip:$script:OnDesktop {
         }
     }
 
+    Context 'When a run is not a tag run' {
+        It 'refuses a stable version on a run that is not a tag run (<Case>)' -ForEach @(
+            @{ Case = 'main, no label'; Change = @{ Version = '0.5.0'; Ref = 'refs/heads/main'; Prerelease = '' } }
+            @{ Case = 'main, label and version disagree'; Change = @{ Version = '0.5.0'; Ref = 'refs/heads/main'; Prerelease = 'preview0001' } }
+            @{ Case = 'another branch'; Change = @{ Version = '0.5.0'; Ref = 'refs/heads/chore/x'; Prerelease = '' } }
+        ) {
+            $Message = Get-ReleaseTagRefusal -Change $Change
+            $Message | Should -BeLike 'REFUSING TO TAG.*'
+            $Message | Should -BeLike "*$($Change.Ref)*"
+            $Message | Should -BeLike '*0.5.0*'
+            $Message | Should -BeLike '*never creates a stable tag*'
+        }
+
+        It 'refuses it even when the release already exists' {
+            $Message = Get-ReleaseTagRefusal -Change @{ Version = '0.5.0'; Prerelease = ''; ReleaseExists = $true; RemoteTag = @("$($script:Sha)`trefs/tags/v0.5.0") }
+            $Message | Should -BeLike 'REFUSING TO TAG.*'
+            $Message | Should -BeLike '*never creates a stable tag*'
+        }
+
+        It 'refuses it even when this job did not publish' {
+            $Message = Get-ReleaseTagRefusal -Change @{ Version = '0.5.0'; Prerelease = ''; PublishedByThisJob = '' }
+            $Message | Should -BeLike 'REFUSING TO TAG.*'
+            $Message | Should -BeLike '*never creates a stable tag*'
+        }
+    }
+
     Context 'When the publish step skipped' {
         It 'skips when the release already exists' {
             $Decision = Invoke-ReleaseTag -Change @{ PublishedByThisJob = ''; ReleaseExists = $true; RemoteTag = @("$($script:OtherSha)`trefs/tags/v0.4.8-preview0002") }
@@ -376,6 +402,28 @@ Describe 'ReleaseTag.ps1' -Skip:$script:OnDesktop {
             $Created.Count | Should -Be 1
             $Created[0] | Should -BeLike "gh release create v0.4.8-preview0002 --target $($script:Sha) --title v0.4.8-preview0002 --notes-file *--prerelease"
             @($Run.Calls | Where-Object { $_ -eq 'git ls-remote origin refs/tags/v0.4.8-preview0002 refs/tags/v0.4.8-preview0002^{}' }).Count | Should -Be 1
+        }
+
+        It 'passes --verify-tag on a tag run, so gh never creates the stable tag' {
+            $Run = Invoke-TagStep -Environment @{
+                GITHUB_REF         = 'refs/tags/v0.5.0'
+                PublishVersion     = '0.5.0'
+                PublishPrerelease  = ''
+                PublishedByThisJob = 'true'
+            } -GitOutput @("$($script:TagObject)`trefs/tags/v0.5.0", "$($script:Sha)`trefs/tags/v0.5.0^{}")
+            $Run.Thrown | Should -BeNullOrEmpty
+            $Created = @($Run.Calls | Where-Object { $_ -like 'gh release create*' })
+            $Created.Count | Should -Be 1
+            $Created[0] | Should -BeLike '* --verify-tag*'
+            $Created[0] | Should -Not -BeLike '*--prerelease*'
+        }
+
+        It 'does not pass --verify-tag on main, where the preview tag does not exist yet' {
+            $Run = Invoke-TagStep
+            $Run.Thrown | Should -BeNullOrEmpty
+            $Created = @($Run.Calls | Where-Object { $_ -like 'gh release create*' })
+            $Created.Count | Should -Be 1
+            $Created[0] | Should -Not -BeLike '*--verify-tag*'
         }
 
         It 'stops before it asks for a decision when git ls-remote fails' {
