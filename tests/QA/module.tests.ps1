@@ -160,7 +160,7 @@ Describe 'Changelog Management' -Tag 'Changelog' {
         ($filesChanged -ccontains 'CHANGELOG.md') | Should -BeTrue -Because 'the root CHANGELOG.md must change on this branch since the merge base with origin/main'
     }
 
-    It 'Changelog format compliant with keepachangelog format' -Skip:(![bool](Get-Command git -EA SilentlyContinue)) {
+    It 'Changelog format compliant with keepachangelog format' {
         { Get-ChangelogData (Join-Path $projectPath 'CHANGELOG.md') -ErrorAction Stop } | Should -Not -Throw
     }
 }
@@ -191,7 +191,7 @@ Describe 'Quality for module' -Tags 'TestQuality' {
             Should -BeTrue -Because "$Name has no $Name.Tests.ps1 under tests\. Write the unit test; do not add $Name to UnitTestBaseline.txt"
     }
 
-    # An empty baseline gives no cases; Pester 5 fails on an empty -ForEach, so the It is only emitted when there are entries.
+    # An empty baseline gives no cases; Pester 5 skips an It with an empty -ForEach without running anything, so the It is only emitted when there are entries to keep the report clear.
     if ($baselineTestCases.Count -gt 0)
     {
         It 'Should still need the baseline entry <Name>' -ForEach $baselineTestCases {
