@@ -156,8 +156,8 @@ Describe 'Changelog Management' -Tag 'Changelog' {
 
         $mergeBase = (& git -C $projectPath merge-base HEAD 'refs/remotes/origin/main' 2>$null)
         $mergeBase | Should -Not -BeNullOrEmpty -Because 'HEAD and origin/main must share a merge base'
-        $filesChanged = @(& git -C $projectPath diff --name-only $mergeBase HEAD)
-        $filesChanged.Where{ (Split-Path -Path $_ -Leaf) -ceq 'CHANGELOG.md' } | Should -Not -BeNullOrEmpty -Because 'CHANGELOG.md must change on this branch since the merge base with origin/main'
+        $filesChanged = @(& git -C $projectPath diff --name-only --relative $mergeBase HEAD)
+        $filesChanged | Should -Contain 'CHANGELOG.md' -CaseSensitive -Because 'the root CHANGELOG.md must change on this branch since the merge base with origin/main'
     }
 
     It 'Changelog format compliant with keepachangelog format' -Skip:(![bool](Get-Command git -EA SilentlyContinue)) {
