@@ -79,20 +79,10 @@ BeforeDiscovery {
         }
     )
 
-    if (Get-Command -Name Invoke-ScriptAnalyzer -ErrorAction SilentlyContinue)
+    # Never skip or throw here: a missing PSScriptAnalyzer is reported by the named test 'Should have PSScriptAnalyzer available'.
+    if (-not (Get-Command -Name Invoke-ScriptAnalyzer -ErrorAction SilentlyContinue))
     {
-        $scriptAnalyzerRules = Get-ScriptAnalyzerRule
-    }
-    else
-    {
-        if ($ErrorActionPreference -ne 'Stop')
-        {
-            Write-Warning -Message 'ScriptAnalyzer not found!'
-        }
-        else
-        {
-            throw 'ScriptAnalyzer not found!'
-        }
+        Write-Warning -Message 'ScriptAnalyzer not found!'
     }
 }
 
