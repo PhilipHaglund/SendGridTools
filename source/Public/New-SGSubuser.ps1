@@ -71,7 +71,7 @@
         [hashtable]$ContentBody = [ordered]@{
             username = $Username
             email    = $Email.Address
-            password = (ConvertFrom-SecureString -SecureString $Password -AsPlainText)
+            password = [System.Net.NetworkCredential]::new('', $Password).Password
             ips      = @($IPs.IPAddressToString)
         }
     }
