@@ -15,9 +15,6 @@
     .PARAMETER SendGridSubdomain
         Specifies an optional subdomain to be used. Use when you don't want SendGrid to automatically generate a subdomain like url1234.
 
-    .PARAMETER Force
-        Specifies if the current domain (parameter Domain) should be created despite it contains a subdomain (email.example.com).
-
     .PARAMETER Default
         Specifies that the new branded domain link becomes the default one for the SendGrid instance. The current default is replaced, so a confirmation prompt is shown.
 
@@ -32,7 +29,7 @@
     .EXAMPLE
         PS C:\> New-SGBrandedDomainLink -Domain 'sub.example.com'
 
-        Adds a new branded domain link 'url123.sub.example.com' and forces the creation despite the domain containing a subdomain.
+        Adds a new branded domain link for the domain 'sub.example.com', which itself contains a subdomain, and lets SendGrid generate the link subdomain. Passing a domain that includes a subdomain is not recommended, as the Domain parameter help describes.
 
     .NOTES
         To use this function, you must be connected to a SendGrid instance. Use the Connect-SendGrid function to establish a connection.

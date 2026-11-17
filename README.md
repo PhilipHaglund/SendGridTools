@@ -2,6 +2,8 @@
 
 Manage SendGrid using PowerShell
 
+[![Build and test](https://github.com/PhilipHaglund/SendGridTools/actions/workflows/build-and-test.yml/badge.svg?branch=main)](https://github.com/PhilipHaglund/SendGridTools/actions/workflows/build-and-test.yml)
+
 ## Table of Contents
 
 - [Introduction](#introduction)
@@ -20,7 +22,7 @@ SendGridTools is a PowerShell module designed to help you manage SendGrid using 
 
 ### Prerequisites
 
-- PowerShell 6.0 or higher *(Can be lowered to 5.1 if highly requested)*
+- Windows PowerShell 5.1 or PowerShell 7
 - SendGrid API Key
 
 ### Installing from PowerShell Gallery
@@ -28,14 +30,37 @@ SendGridTools is a PowerShell module designed to help you manage SendGrid using 
 You can install the SendGridTools module directly from the PowerShell Gallery:
 
 ```PowerShell
+Install-PSResource -Name SendGridTools
+```
+
+Or with PowerShellGet:
+
+```PowerShell
 Install-Module -Name SendGridTools -Scope CurrentUser
 ```
+
+Preview versions are published to the gallery as prereleases:
+
+```PowerShell
+Install-PSResource -Name SendGridTools -Prerelease
+```
+
 ### Installing from Source
-Clone the repository and import the module:
+
+Clone the repository, resolve the build dependencies, build and test the module:
+
 ```PowerShell
 git clone https://github.com/PhilipHaglund/SendGridTools.git
-build.ps1 -Tasks build
-Import-Module SendGridTools/output/SendGridTools.psd1
+Set-Location SendGridTools
+./build.ps1 -ResolveDependency -Tasks noop   # resolve build modules
+./build.ps1 -Tasks build
+./build.ps1 -Tasks test
+```
+
+The build writes the module to a versioned output directory. Import the built module from there:
+
+```PowerShell
+Import-Module ./output/SendGridTools/<version>/SendGridTools.psd1
 ```
 
 ### Usage
@@ -67,7 +92,7 @@ Get-Command -Module SendGridTools
 ## Examples
 ### Sending an Email
 ```PowerShell
-Send-SGMailMessage -To 'recipient@example.com' -From 'sender@example.com' -Subject 'Test Email' -Body 'This is a test email.'
+Send-SGMailMessage -To '<address>' -From '<address>' -Subject 'Test Email' -Body 'This is a test email.'
 ```
 ### Retrieving Authenticated Domains
 ```PowerShell
@@ -76,17 +101,18 @@ Get-SGAuthenticatedDomain
 ### Retrieving Email Activity
 *Requires the SendGrid [30 Days Additional Email Activity History Addon](https://sendgrid.com/en-us/solutions/add-ons/30-days-additional-email-activity-history)*
 ```PowerShell
-Get-SGEmailActivity -Property ToEmail -Like 'recipient@example.com' -Verbose
+Get-SGEmailActivity -Property ToEmail -Like -Value '<address>' -Verbose
 ```
 ```PowerShell
-Get-SGEmailActivity -Filter "fromemail -contains @example.com"
+Get-SGEmailActivity -Filter "fromemail -contains '<domain>'"
 ```
 ```PowerShell
-Get-SGEmailActivity -SendGridFilter "from_email%3D%22sender%40example.com%22"
+Get-SGEmailActivity -SendGridFilter "from_email%3D%22<address>%22"
 ```
-### Removing an Email from the Suppression List
+*`-SendGridFilter` is sent as given, so the query must already be URL encoded.*
+### Removing an Email from the Global Suppression List
 ```PowerShell
-Remove-SGSuppression -Email 'user@example.com'
+Remove-SGGlobalSuppression -EmailAddress '<address>'
 ```
 
 
@@ -110,7 +136,7 @@ Thank you to all those who contributed to this module by writing code, sharing o
 If you encounter any issues, please check the GitHub repository for known issues and new releases. You can also open a new issue if you need further assistance.
 
 ## See Also
-SendGrid API Documentation
-PowerShell Documentation
-Keywords
-SendGrid, PowerShell, Email, API, Automation
+- [SendGrid v3 API documentation](https://docs.sendgrid.com/api-reference)
+- [PowerShell documentation](https://learn.microsoft.com/powershell/)
+
+Keywords: SendGrid, PowerShell, Email, API, Automation

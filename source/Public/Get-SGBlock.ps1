@@ -19,7 +19,7 @@
         Specifies the end of the time range (inclusive) to retrieve entries for. The value is converted to a Unix timestamp before it is sent to SendGrid.
 
     .PARAMETER Limit
-        Sets the maximum number of items returned for a single API request. If omitted, 100 items are requested. SendGrid allows at most 500 items per page for this endpoint.
+        Sets the page size. The value is sent as the limit query parameter of a single request; if omitted, 100 is requested. The module does not check an upper bound for the value.
 
     .PARAMETER Offset
         Specifies the number of items to skip before the first returned item. The default of 0 starts at the beginning of the list; use multiples of Limit to request further consecutive pages.
@@ -56,7 +56,7 @@
         )]
         [UnixTime]$EndTime,
 
-        # Sets the page size, i.e., the maximum number of items from the list to be returned for a single API request. If omitted, the default page size is used. The maximum page size for this endpoint is 500 items per page.
+        # Sets the page size. The value is sent as the limit query parameter of a single request; if omitted, 100 is requested. The module does not check an upper bound for the value.
         [Parameter(
             Position = 3
         )]

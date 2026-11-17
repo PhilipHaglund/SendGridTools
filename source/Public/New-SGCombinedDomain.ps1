@@ -24,8 +24,6 @@
 
     .PARAMETER CustomSPF
         Indicates whether a custom SPF record should be used for the authenticated domain.
-    .PARAMETER Force
-        Specifies if the current domain should be created despite it contains a subdomain (email.example.com) for the branded domain link.
 
     .PARAMETER OnBehalfOf
         Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
