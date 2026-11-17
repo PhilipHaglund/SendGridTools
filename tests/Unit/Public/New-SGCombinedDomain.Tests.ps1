@@ -113,6 +113,53 @@ Describe 'New-SGCombinedDomain request' {
     }
 }
 
+Describe 'New-SGCombinedDomain forwarding' {
+    BeforeEach {
+        Mock -CommandName New-SGAuthenticatedDomain -ModuleName SendGridTools -MockWith { }
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+        }
+    }
+
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Forwards neither security switch when neither is given' {
+        InModuleScope SendGridTools {
+            $null = New-SGCombinedDomain -Domain 'example.com' -Confirm:$false
+        }
+
+        Should -Invoke New-SGAuthenticatedDomain -ModuleName SendGridTools -Times 1 -Exactly -ParameterFilter {
+            -not $PesterBoundParameters.ContainsKey('CustomSPF') -and -not $PesterBoundParameters.ContainsKey('DisableAutomaticSecurity')
+        }
+    }
+
+    It 'Forwards only DisableAutomaticSecurity when custom SPF is not given' {
+        InModuleScope SendGridTools {
+            $null = New-SGCombinedDomain -Domain 'example.com' -DisableAutomaticSecurity -Confirm:$false
+        }
+
+        Should -Invoke New-SGAuthenticatedDomain -ModuleName SendGridTools -Times 1 -Exactly -ParameterFilter {
+            $PesterBoundParameters['DisableAutomaticSecurity'] -eq $true -and -not $PesterBoundParameters.ContainsKey('CustomSPF')
+        }
+    }
+
+    It 'Forwards both switches when both are given' {
+        InModuleScope SendGridTools {
+            $null = New-SGCombinedDomain -Domain 'example.com' -DisableAutomaticSecurity -CustomSPF -Confirm:$false
+        }
+
+        Should -Invoke New-SGAuthenticatedDomain -ModuleName SendGridTools -Times 1 -Exactly -ParameterFilter {
+            $PesterBoundParameters['DisableAutomaticSecurity'] -eq $true -and $PesterBoundParameters['CustomSPF'] -eq $true
+        }
+    }
+}
+
 Describe 'Network tripwire' {
     It 'Made no unmocked network call' {
         Assert-SgtNetworkTripwireActive
