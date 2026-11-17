@@ -32,7 +32,6 @@ Get-SGTeammate
 Invoke-SGCommand
 New-SGAlert
 New-SGApiKey
-New-SGCombinedDomain
 New-SGSuppressionGroup
 Remove-SGAlert
 Remove-SGApiKey
