@@ -105,13 +105,12 @@
 
     process {
         # Resolve before anything else: a bad -BaseUri must neither reach the network nor disturb an existing session.
-        # The resolved address is not yet used to build the session.
         try {
             $ResolveParams = @{ Region = $Region }
             if ($PSBoundParameters.ContainsKey('BaseUri')) {
                 $ResolveParams['BaseUri'] = $BaseUri
             }
-            $null = Resolve-SendGridBaseUri @ResolveParams
+            $Target = Resolve-SendGridBaseUri @ResolveParams
         }
         catch {
             Write-Error -Message ('Unable to connect to SendGrid. Error detail: {0}' -f $_.Exception.Message) -ErrorAction Stop
@@ -119,8 +118,13 @@
 
         try {
             if ($PSCmdlet.ShouldProcess('SendGrid Session', 'Connect')) {
-                if ($Force -or -not $script:Session -or -not ($script:Session -is [SendGridSession])) {
-                    $script:Session = [SendGridSession]::new()
+                # A new session is built when forced, when none exists, or when -Region/-BaseUri names another host than the session's.
+                $NewSession = $Force -or -not $script:Session -or -not ($script:Session -is [SendGridSession])
+                if (-not $NewSession -and ($PSBoundParameters.ContainsKey('Region') -or $PSBoundParameters.ContainsKey('BaseUri'))) {
+                    $NewSession = -not [string]::Equals($script:Session._BaseURL.AbsoluteUri, $Target.AbsoluteUri, [System.StringComparison]::OrdinalIgnoreCase)
+                }
+                if ($NewSession) {
+                    $script:Session = [SendGridSession]::new($Target)
                     if ($Credential) {
                         $script:Session.Connect($Credential)
                     }
