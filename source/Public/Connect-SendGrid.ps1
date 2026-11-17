@@ -14,10 +14,28 @@
     .PARAMETER Force
         Indicates that this cmdlet forces a new connection, even if a connection already exists.
 
+    .PARAMETER Region
+        Specifies the SendGrid region to connect to, Global or EU. Global is the default. Use EU for an account that is hosted on the
+        EU host. It cannot be combined with BaseUri.
+
+    .PARAMETER BaseUri
+        Specifies an explicit SendGrid API address to use instead of a region. Only https is accepted, and '/v3' is appended when the
+        path does not end with it. It cannot be combined with Region.
+
     .EXAMPLE
         PS C:\> Connect-SendGrid -Credential $myCred
 
         This command attempts to establish a connection to SendGrid using the API key stored in $myCred.
+
+    .EXAMPLE
+        PS C:\> Connect-SendGrid -Credential $myCred -Region EU
+
+        This command selects the EU region for the connection, using the API key stored in $myCred.
+
+    .EXAMPLE
+        PS C:\> Connect-SendGrid -Credential $myCred -BaseUri 'https://proxy.example.com/sendgrid'
+
+        This command connects through an explicit base address. '/v3' is appended, so requests go to https://proxy.example.com/sendgrid/v3.
 
     .EXAMPLE
         PS C:\> Connect-SendGrid
@@ -55,6 +73,7 @@
         you'll need to reconnect using your credentials. This is done to help ensure the security of your API key.
     #>
     [CmdletBinding(
+        DefaultParameterSetName = 'Region',
         SupportsShouldProcess
     )]
     [Alias('Connect-SG')]
@@ -69,10 +88,35 @@
         [Parameter(
             Position = 1
         )]
-        [switch]$Force
+        [switch]$Force,
+
+        [Parameter(
+            ParameterSetName = 'Region'
+        )]
+        [ValidateSet('Global', 'EU')]
+        [string]$Region = 'Global',
+
+        [Parameter(
+            Mandatory,
+            ParameterSetName = 'BaseUri'
+        )]
+        [uri]$BaseUri
     )
 
     process {
+        # Resolve before anything else: a bad -BaseUri must neither reach the network nor disturb an existing session.
+        # The resolved address is not yet used to build the session.
+        try {
+            $ResolveParams = @{ Region = $Region }
+            if ($PSBoundParameters.ContainsKey('BaseUri')) {
+                $ResolveParams['BaseUri'] = $BaseUri
+            }
+            $null = Resolve-SendGridBaseUri @ResolveParams
+        }
+        catch {
+            Write-Error -Message ('Unable to connect to SendGrid. Error detail: {0}' -f $_.Exception.Message) -ErrorAction Stop
+        }
+
         try {
             if ($PSCmdlet.ShouldProcess('SendGrid Session', 'Connect')) {
                 if ($Force -or -not $script:Session -or -not ($script:Session -is [SendGridSession])) {
