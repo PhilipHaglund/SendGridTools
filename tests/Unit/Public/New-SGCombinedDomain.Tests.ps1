@@ -33,7 +33,8 @@ Describe 'New-SGCombinedDomain request' {
 
             $null = New-SGCombinedDomain -Domain 'example.com' -SendGridSubDomain 'email' -Confirm:$false
 
-            $Calls = @(@(Get-SgtNetworkCall) | Where-Object { $_.Method -ne 'Get' })
+            $All = Get-SgtNetworkCall
+            $Calls = @($All | Where-Object { $_.Method -ne 'Get' })
             $Calls.Count | Should -Be 2
             $Calls[0].Method | Should -Be 'Post'
             "$($Calls[0].Uri)" | Should -BeLike '*/whitelabel/domains'
@@ -53,7 +54,8 @@ Describe 'New-SGCombinedDomain request' {
 
             $null = New-SGCombinedDomain -Domain 'example.com' -Confirm:$false
 
-            $Calls = @(@(Get-SgtNetworkCall) | Where-Object { $_.Method -ne 'Get' })
+            $All = Get-SgtNetworkCall
+            $Calls = @($All | Where-Object { $_.Method -ne 'Get' })
             $Calls.Count | Should -Be 2
             $Calls[0].Method | Should -Be 'Post'
             $Calls[1].Method | Should -Be 'Post'
