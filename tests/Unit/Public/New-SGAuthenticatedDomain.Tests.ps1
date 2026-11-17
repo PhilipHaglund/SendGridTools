@@ -225,7 +225,8 @@ Describe 'New-SGAuthenticatedDomain request' {
 
             { New-SGAuthenticatedDomain -Domain 'example.com' -CustomSPF -Confirm:$false } | Should -Throw -ErrorId 'AmbiguousPositionalParameterNoName*'
 
-            @(Get-SgtNetworkCall).Count | Should -Be 0
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 0
         }
     }
 
