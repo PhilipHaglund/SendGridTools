@@ -158,8 +158,8 @@
 
         if ($PSBoundParameters.ContainsKey('SendGridSubdomain')) {
             Write-Verbose -Message ("SendGrid will not generate a custom subdomain. Domain to be used: $Domain") -Verbose
-            $ContentBody.Add('subdomain', $Subdomain)
-            $ProcessMessage = "$Subdomain.$Domain"
+            $ContentBody.Add('subdomain', $SendGridSubdomain)
+            $ProcessMessage = "$SendGridSubdomain.$Domain"
 
         }
         else {
