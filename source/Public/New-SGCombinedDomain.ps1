@@ -78,9 +78,7 @@
     process {
         [hashtable]$AuthDomainSplat = @{
             Domain = $Domain
-            DisableAutomaticSecurity = $DisableAutomaticSecurity.IsPresent
             CustomDkimSelector = $CustomDkimSelector
-            CustomSPF = $CustomSPF.IsPresent
             OnBehalfOf = $OnBehalfOf
             ErrorAction = 'Stop'
         }
@@ -94,13 +92,16 @@
             $AuthDomainSplat['SendGridSubDomain'] = $SendGridSubDomain
             $BrandedDomainSplat['SendGridSubDomain'] = $SendGridSubDomain
         }
+        # Forward the security switches only when they are present
+        if ($DisableAutomaticSecurity.IsPresent) {
+            $AuthDomainSplat['DisableAutomaticSecurity'] = $true
+        }
+        if ($CustomSPF.IsPresent) {
+            $AuthDomainSplat['CustomSPF'] = $true
+        }
         # Remove empty Hashtables
         Remove-EmptyHashtable -Hashtable $AuthDomainSplat
         Remove-EmptyHashtable -Hashtable $BrandedDomainSplat
-        if ($AuthDomainSplat['CustomSPF'] -eq $false -and -not $DisableAutomaticSecurity.IsPresent) {
-            $AuthDomainSplat.Remove('CustomSPF')
-            $AuthDomainSplat.Remove('DisableAutomaticSecurity')
-        }
         if ($CustomSPF.IsPresent -and $DisableAutomaticSecurity.IsPresent -eq $false) {
             throw 'The CustomSPF parameter can only be used with the DisableAutomaticSecurity parameter.'
         }
