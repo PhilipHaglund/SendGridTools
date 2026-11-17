@@ -1,24 +1,83 @@
 TOPIC
-    about_SMSendgrid
+    about_SendGridTools
 
 SHORT DESCRIPTION
-    Manage Sendgrid using PowerShell
+    Manage SendGrid from PowerShell through the SendGrid v3 Web API.
 
 LONG DESCRIPTION
-    {{ Add Long description here }}
+    SendGridTools is a PowerShell module that wraps the SendGrid v3 Web
+    API. It covers these areas:
+
+      - Mail: send messages (Send-SGMailMessage) and read email
+        activity (Get-SGEmailActivity).
+      - Suppressions: suppression groups, group members and global
+        suppressions.
+      - Bounces, blocks, spam reports and invalid emails: list and
+        remove entries.
+      - Authenticated domains and branded (link branding) domains:
+        create, verify, change and remove.
+      - Subusers: create, enable, disable and remove.
+      - API keys: list, create, change and remove.
+      - Alerts: create, change and remove.
+      - Settings: mail, bounce purge, forward bounce, forward spam and
+        address allow list settings.
+      - Invoke-SGCommand: call an endpoint the module has no command
+        for.
+
+    To list every command, run:
+
+        Get-Command -Module SendGridTools
+
+    SIGNING IN
+    Every session starts with Connect-SendGrid. It takes a PSCredential
+    object where the Password field holds the SendGrid API key; the
+    user name is not used. Connect-SendGrid -Force replaces an existing
+    session. Disconnect-SendGrid ends the session.
+
+    SESSION LIFETIME
+    A session lasts one hour. Each command that completes a request
+    renews the hour. When the hour passes without use, the next command
+    reports that the session lifetime is exceeded; run Connect-SendGrid
+    again.
 
 EXAMPLES
-    PS C:\> {{ add examples here }}
+    Example 1: Sign in
+
+    PS C:\> $Credential = Get-Credential
+    PS C:\> Connect-SendGrid -Credential $Credential
+
+    Enter any user name and the API key as the password.
+
+    Example 2: List authenticated domains with their DNS records
+
+    PS C:\> Get-SGAuthenticatedDomain -ShowDNS
+
+    Example 3: Send a message
+
+    PS C:\> $Message = @{
+        From    = '<address>'
+        To      = '<address>'
+        Subject = '<subject>'
+        Body    = '<text>'
+    }
+    PS C:\> Send-SGMailMessage @Message
 
 NOTE:
-    Thank you to all those who contributed to this module, by writing code, sharing opinions, and provided feedback.
+    Thank you to all those who contributed to this module, by writing
+    code, sharing opinions, and provided feedback.
 
 TROUBLESHOOTING NOTE:
-    Look out on the Github repository for issues and new releases.
+    If a command reports that the session lifetime is exceeded, run
+    Connect-SendGrid again.
+
+    Look out on the GitHub repository for issues and new releases.
 
 SEE ALSO
-  - {{ Please add Project URI such as github }}}
+    https://github.com/PhilipHaglund/SendGridTools
+    https://www.powershellgallery.com/packages/SendGridTools
+    Get-Command -Module SendGridTools
+    Get-Help Connect-SendGrid
 
 KEYWORDS
-      {{ Add coma separated keywords here }}
-
+    SendGrid, Email, Mail, API, Suppression, Bounce, Subuser, Domain,
+    Authentication
