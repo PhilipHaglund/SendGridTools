@@ -218,6 +218,17 @@ Describe 'New-SGAuthenticatedDomain request' {
         }
     }
 
+    It 'Rejects custom SPF without disabling automatic security and makes no call' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            { New-SGAuthenticatedDomain -Domain 'example.com' -CustomSPF -Confirm:$false } | Should -Throw -ErrorId 'NamedParameterNotFound*'
+
+            @(Get-SgtNetworkCall).Count | Should -Be 0
+        }
+    }
+
     It 'Makes no call under WhatIf' {
         InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
             $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0

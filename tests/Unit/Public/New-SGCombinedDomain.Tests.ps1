@@ -86,6 +86,22 @@ Describe 'New-SGCombinedDomain request' {
         }
     }
 
+    It 'Sends no custom SPF flag when only automatic security is disabled' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $null = New-SGCombinedDomain -Domain 'example.com' -DisableAutomaticSecurity -Confirm:$false
+
+            $All = Get-SgtNetworkCall
+            $Calls = @($All | Where-Object { $_.Method -ne 'Get' })
+            $Calls.Count | Should -Be 2
+            $SentDomain = $Calls[0].Body | ConvertFrom-Json
+            @($SentDomain.PSObject.Properties.Name | Sort-Object) | Should -Be @('automatic_security', 'domain')
+            $SentDomain.automatic_security | Should -BeFalse
+        }
+    }
+
     It 'Throws and makes no call when custom SPF is given without disabling automatic security' {
         InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
             $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
