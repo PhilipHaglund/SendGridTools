@@ -7,7 +7,8 @@
 # PowerShell Gallery as a preview, and pushing a `v<X.Y.Z>` tag on a green main tip publishes the
 # full release. Both go through the `publish` job at the bottom of this file, which is the only
 # thing in this repository that can publish anything. This workflow never calls Sampler's own
-# publish tasks, and it never creates a `v<X.Y.Z>` tag itself.
+# publish tasks, and it never creates a `v<X.Y.Z>` tag itself. `./build.ps1 -Tasks publish` is
+# deliberately undefined in build.yaml, so there is no local publish path; see the comment there.
 #
 # A PUBLISHED VERSION IS PERMANENT. The Gallery can unlist a version but it cannot delete one, so
 # everything between the Test step and Publish-PSResource is about proving that the bytes being
