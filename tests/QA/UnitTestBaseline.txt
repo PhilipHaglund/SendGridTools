@@ -48,7 +48,6 @@ Send-SGMailMessage
 Set-SGAddressWhitelistSetting
 Set-SGAlert
 Set-SGApiKey
-Set-SGAuthenticatedDomain
 Set-SGAuthenticatedDomainToSubUser
 Set-SGBouncePurgeSetting
 Set-SGBrandedDomainLink
