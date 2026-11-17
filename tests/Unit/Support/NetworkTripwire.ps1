@@ -38,8 +38,23 @@ function Disable-SgtNetworkTripwire {
     Remove-Variable -Name SgtUnmockedNetworkCall, SgtNetworkCall, SgtNetworkStub, SgtStubValue -Scope Global -ErrorAction SilentlyContinue
 }
 
-function Get-SgtUnmockedNetworkCall {
-    if (Test-Path -Path 'Variable:\global:SgtUnmockedNetworkCall') {
-        $global:SgtUnmockedNetworkCall.ToArray()
+function Assert-SgtNetworkTripwireActive {
+    # Fails the caller when the tripwire is not in place: both commands must resolve to the global functions
+    # and the state variable must exist. A broken or removed Enable-SgtNetworkTripwire fails here, before any test.
+    foreach ($Name in 'Invoke-RestMethod', 'Invoke-WebRequest') {
+        $Found = Get-Command -Name $Name -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($null -eq $Found -or $Found.CommandType -ne 'Function') {
+            throw "Network tripwire is not active: $Name does not resolve to the tripwire function (found: $(if ($Found) { $Found.CommandType } else { 'nothing' }))."
+        }
     }
+    if (-not (Test-Path -Path 'Variable:\global:SgtUnmockedNetworkCall')) {
+        throw 'Network tripwire is not active: the state variable SgtUnmockedNetworkCall does not exist.'
+    }
+}
+
+function Get-SgtUnmockedNetworkCall {
+    if (-not (Test-Path -Path 'Variable:\global:SgtUnmockedNetworkCall')) {
+        throw 'Network tripwire state is missing: the tripwire was never enabled or has been disabled, so "no call" would prove nothing.'
+    }
+    $global:SgtUnmockedNetworkCall.ToArray()
 }

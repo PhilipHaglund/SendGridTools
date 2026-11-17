@@ -42,7 +42,8 @@ function Install-SgtSessionHelper {
         }
         function Script:Get-SgtNetworkCall {
             , @($global:SgtNetworkCall)
-        }        function Script:New-SgtErrorRecord {
+        }
+        function Script:New-SgtErrorRecord {
             param([string]$Message, [string]$Details)
             $Record = [System.Management.Automation.ErrorRecord]::new([System.Exception]::new($Message), 'SgtTestError', [System.Management.Automation.ErrorCategory]::NotSpecified, $null)
             if ($Details) {

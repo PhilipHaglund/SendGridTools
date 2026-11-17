@@ -215,6 +215,8 @@ Describe 'General module control' -Tags 'FunctionalQuality' {
         $childCommand = "`$ErrorActionPreference = 'Stop'; Import-Module -Name '$quotedPath' -Force -ErrorAction Stop; 'SGT-IMPORT-OK'"
         $encoded = [System.Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($childCommand))
 
+        # A stderr line from the child under 2>&1 must not become a terminating error under a parent with Stop.
+        $ErrorActionPreference = 'Continue'
         $output = @(& $shellCommand.Source -NoProfile -NonInteractive -EncodedCommand $encoded 2>&1 | ForEach-Object -Process { "$_" })
         $childOutput = $output -join "`n"
 

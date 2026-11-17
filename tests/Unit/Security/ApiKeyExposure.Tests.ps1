@@ -23,6 +23,7 @@ BeforeAll {
         Get-Module -Name SendGridTools -ListAvailable | Select-Object -First 1 | Import-Module -ErrorAction Stop
     }
     Enable-SgtNetworkTripwire
+    Assert-SgtNetworkTripwireActive
     Install-SgtSessionHelper
     $script:Cred = [pscredential]::new('apikey', (ConvertTo-SecureString -String 'test-key-not-real' -AsPlainText -Force))
 }
@@ -77,6 +78,7 @@ Describe 'Leak detector self-test' {
         @{ Channel = 'Write-Debug' }
         @{ Channel = 'output' }
         @{ Channel = 'throw' }
+        @{ Channel = 'Write-Verbose, then throw' }
         @{ Channel = 'ErrorDetails message' }
         @{ Channel = 'ErrorDetails message passed through SendGrid error formatting' }
     ) {
@@ -87,6 +89,7 @@ Describe 'Leak detector self-test' {
                     'Write-Debug' { Write-Debug -Message 'planted test-key-not-real' }
                     'output' { 'planted test-key-not-real' }
                     'throw' { throw 'planted test-key-not-real' }
+                    'Write-Verbose, then throw' { Write-Verbose -Message 'planted test-key-not-real'; throw 'unrelated failure' }
                     'ErrorDetails message' { throw (New-SgtErrorRecord -Message 'http failure' -Details '{"errors":[{"message":"planted test-key-not-real"}]}') }
                     default { throw ('SendGrid Error: "{0}"' -f 'planted test-key-not-real') }
                 }
@@ -105,6 +108,7 @@ Describe 'Leak detector self-test' {
 
 Describe 'Network tripwire' {
     It 'Made no unmocked network call' {
+        Assert-SgtNetworkTripwireActive
         Get-SgtUnmockedNetworkCall | Should -BeNullOrEmpty
     }
 }

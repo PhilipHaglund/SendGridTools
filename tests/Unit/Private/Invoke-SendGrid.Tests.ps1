@@ -11,6 +11,7 @@ BeforeAll {
         Get-Module -Name SendGridTools -ListAvailable | Select-Object -First 1 | Import-Module -ErrorAction Stop
     }
     Enable-SgtNetworkTripwire
+    Assert-SgtNetworkTripwireActive
     Install-SgtSessionHelper
     $script:Cred = [pscredential]::new('apikey', (ConvertTo-SecureString -String 'test-key-not-real' -AsPlainText -Force))
 }
@@ -118,6 +119,7 @@ Describe 'Invoke-SendGrid with a connected session' {
 
 Describe 'Network tripwire' {
     It 'Made no unmocked network call' {
+        Assert-SgtNetworkTripwireActive
         Get-SgtUnmockedNetworkCall | Should -BeNullOrEmpty
     }
 }
