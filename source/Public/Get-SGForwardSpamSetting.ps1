@@ -4,6 +4,9 @@
         Retrieves the forward spam mail settings on SendGrid.
     .DESCRIPTION
         Get-SGForwardSpamSetting retrieves the forward spam mail settings on SendGrid.
+
+    .PARAMETER OnBehalfOf
+        Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
     .EXAMPLE
         PS C:\> Get-SGForwardSpamSetting
         This command retrieves the forward spam mail settings on SendGrid.

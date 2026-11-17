@@ -5,12 +5,18 @@
     .DESCRIPTION
         Get-SGEmailActivity uses the SendGrid Email Activity API to filter and retrieve email activity.
         For example, you can retrieve all bounced messages or all messages with the same subject line.
-    .PARAMETER Query
-        Specifies the query to filter email activity. The query must be URL encoded and use the following format: query={query_type}="{query_content}".
+    .PARAMETER SendGridFilter
+        Specifies a raw SendGrid query to filter email activity. The query is sent as provided and is not URL encoded, so it must already be URL encoded, for example to_email%3D%22user%40example.com%22.
     .PARAMETER Limit
         Sets the number of messages to be returned. This parameter must be greater than 0 and less than or equal to 1000. If omitted, the default is 10.
+
+    .PARAMETER Property
+        Specifies the email activity property to filter on, for example Status or FromEmail. Depending on the property, extra switches such as EQ and NE become available to choose how the property is compared.
+
+    .PARAMETER Filter
+        Specifies the query to filter email activity. Use native PowerShell operators; the query is URL encoded automatically.
     .EXAMPLE
-        PS C:\> Get-SGEmailActivity -Query "to_email%3D%22example%40example.com%22" -Limit 50
+        PS C:\> Get-SGEmailActivity -SendGridFilter "to_email%3D%22example%40example.com%22" -Limit 50
         This command retrieves the email activity for the email address 'example@example.com' with a limit of 50 messages.
     #>
     [CmdletBinding(

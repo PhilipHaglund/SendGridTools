@@ -12,6 +12,18 @@
     .PARAMETER OnBehalfOf
         Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
 
+    .PARAMETER StartTime
+        Specifies the start of the time range (inclusive) to retrieve entries for. The value is converted to a Unix timestamp before it is sent to SendGrid.
+
+    .PARAMETER EndTime
+        Specifies the end of the time range (inclusive) to retrieve entries for. The value is converted to a Unix timestamp before it is sent to SendGrid.
+
+    .PARAMETER Limit
+        Sets the maximum number of items returned for a single API request. If omitted, 100 items are requested. SendGrid allows at most 500 items per page for this endpoint.
+
+    .PARAMETER Offset
+        Specifies the number of items to skip before the first returned item. The default of 0 starts at the beginning of the list; use multiples of Limit to request further consecutive pages.
+
     .EXAMPLE
         PS C:\> Get-SGBlock -EmailAddress block@example.com
 

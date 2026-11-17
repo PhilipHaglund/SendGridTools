@@ -6,28 +6,31 @@
     .DESCRIPTION
         New-SGAlert creates a new alert on SendGrid based on the provided parameters.
 
-    .PARAMETER Type
-        Specifies the type of alert to create. Can be either 'usage_limit' or 'stats_notification'.
-
     .PARAMETER EmailTo
         Specifies the email address the alert will be sent to.
 
     .PARAMETER Frequency
-        Specifies how frequently the alert will be sent. Required for 'stats_notification'.
+        Specifies how frequently the alert will be sent. Required for the EmailStatisticsSummary alert.
 
     .PARAMETER Percentage
-        Specifies the usage threshold at which the alert will be sent. Required for 'usage_alert'.
+        Specifies the usage threshold at which the alert will be sent. Required for the EmailCreditUsage alert.
 
     .PARAMETER OnBehalfOf
         Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
 
+    .PARAMETER EmailCreditUsage
+        Specifies that a usage limit alert is created. The alert is sent when the Percentage of the email credits has been used. This switch cannot be combined with EmailStatisticsSummary.
+
+    .PARAMETER EmailStatisticsSummary
+        Specifies that a statistics notification alert is created. The alert is sent with the Frequency you provide. This switch cannot be combined with EmailCreditUsage.
+
     .EXAMPLE
-        PS C:\> New-SGAlert -Type 'usage_limit' -EmailTo 'test@example.com' -Percentage 90
+        PS C:\> New-SGAlert -EmailCreditUsage -EmailTo 'test@example.com' -Percentage 90
 
         This command creates a new 'usage_limit' alert on SendGrid that will be sent to 'test@example.com' when the usage threshold reaches 90%.
 
     .EXAMPLE
-        PS C:\> New-SGAlert -Type 'stats_notification' -EmailTo 'test@example.com' -Frequency 'daily' -OnBehalfOf 'Subuser'
+        PS C:\> New-SGAlert -EmailStatisticsSummary -EmailTo 'test@example.com' -Frequency 'Daily' -OnBehalfOf 'Subuser'
 
         This command creates a new 'stats_notification' alert on SendGrid that will be sent to 'test@example.com' daily on behalf of the Subuser 'Subuser'.
     #>
@@ -64,7 +67,7 @@
         )]
         [MailAddress]$EmailTo,
 
-        # Specifies how frequently the alert will be sent. Required for 'stats_notification'.
+        # Specifies how frequently the alert will be sent. Required for the EmailStatisticsSummary alert.
         [Parameter(
             Mandatory,
             ParameterSetName = 'Statistics',
@@ -73,7 +76,7 @@
         [ValidateSet('Daily', 'Weekly', 'Monthly')]
         [string]$Frequency,
 
-        # Specifies the usage threshold at which the alert will be sent. Required for 'usage_alert'.
+        # Specifies the usage threshold at which the alert will be sent. Required for the EmailCreditUsage alert.
         [Parameter(
             Mandatory,
             ParameterSetName = 'Usage',

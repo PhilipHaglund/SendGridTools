@@ -6,11 +6,14 @@
     .DESCRIPTION
         The Remove-SGSuppressionGroup function deletes a suppression group in SendGrid.
 
-    .PARAMETER GroupId
+    .PARAMETER UniqueId
         Specifies the ID of the suppression group.
 
     .PARAMETER OnBehalfOf
         Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
+
+    .PARAMETER InputObject
+        Specifies one or more objects to delete, typically received from the pipeline. Each object can be an ID given as a string or integer, or an object with an Id property, such as the output of Get-SGSuppressionGroup. Use UniqueId to specify the IDs directly.
 
     .EXAMPLE
         PS C:\> Remove-SGSuppressionGroup -GroupId 123

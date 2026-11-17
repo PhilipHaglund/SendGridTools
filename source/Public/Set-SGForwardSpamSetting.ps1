@@ -4,6 +4,15 @@
         Updates the forward spam mail settings on SendGrid.
     .DESCRIPTION
         Set-SGForwardSpamSetting updates the forward spam mail settings on SendGrid.
+
+    .PARAMETER Email
+        Specifies the email addresses that spam reports are forwarded to. Set this parameter to $null to stop forwarding spam reports.
+
+    .PARAMETER Enabled
+        Specifies whether the spam forwarding mail setting is enabled. Use -Enabled:$false to disable it.
+
+    .PARAMETER OnBehalfOf
+        Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
     .EXAMPLE
         PS C:\> Set-SGForwardSpamSetting -Email 'example@example.com' -Enabled $true
         This command updates the forward spam mail settings on SendGrid.

@@ -6,11 +6,14 @@
     .DESCRIPTION
         Remove-SGAlert deletes an existing alert on SendGrid based on the provided alert ID.
 
-    .PARAMETER AlertId
+    .PARAMETER UniqueId
         Specifies the ID of the alert to delete.
 
     .PARAMETER OnBehalfOf
         Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
+
+    .PARAMETER InputObject
+        Specifies one or more objects to delete, typically received from the pipeline. Each object can be an ID given as a string or integer, or an object with an Id property, such as the output of Get-SGAlert. Use UniqueId to specify the IDs directly.
 
     .EXAMPLE
         PS C:\> Remove-SGAlert -AlertId 123

@@ -12,6 +12,12 @@
     .PARAMETER OnBehalfOf
         Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
 
+    .PARAMETER InputObject
+        Specifies one or more objects to remove, typically received from the pipeline. Each object can be an email address given as a string, or an object with an Email property, such as the output of Get-SGBlock. Use EmailAddress to specify the addresses directly.
+
+    .PARAMETER DeleteAll
+        Specifies that all entries on the blocks list are deleted instead of single email addresses. This parameter cannot be combined with EmailAddress.
+
     .EXAMPLE
         PS C:\> Remove-SGBlock -EmailAddress "block1@example.com"
 

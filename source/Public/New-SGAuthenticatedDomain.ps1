@@ -19,8 +19,8 @@
     .PARAMETER SendGridSubdomain
         Specifies an optional subdomain to be used. Use when you don't want SendGrid to automatically generate a subdomain like em1234.
 
-    .PARAMETER SubUser
-        Specifies a subuser to be used, this is optional.
+    .PARAMETER Username
+        Specifies the username of the subuser the authenticated domain is created for. This parameter is optional.
 
     .PARAMETER DisableAutomaticSecurity
         Specify whether to not allow SendGrid to manage your SPF records, DKIM keys, and DKIM key rotation. Default is that SendGrid manages

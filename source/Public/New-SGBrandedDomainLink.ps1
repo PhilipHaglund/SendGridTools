@@ -18,6 +18,12 @@
     .PARAMETER Force
         Specifies if the current domain (parameter Domain) should be created despite it contains a subdomain (email.example.com).
 
+    .PARAMETER Default
+        Specifies that the new branded domain link becomes the default one for the SendGrid instance. The current default is replaced, so a confirmation prompt is shown.
+
+    .PARAMETER OnBehalfOf
+        Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
+
     .EXAMPLE
         PS C:\> New-SGBrandedDomainLink -Domain 'example.com' -Subdomain 'link'
 

@@ -6,7 +6,7 @@
     .DESCRIPTION
         Set-SGApiKey updates the name and scopes of a given API key.
 
-    .PARAMETER ApiKeyID
+    .PARAMETER UniqueId
         Specifies the ID of the API Key to be updated.
 
     .PARAMETER Scopes
@@ -14,6 +14,12 @@
 
     .PARAMETER NewName
         Specifies the new name of the API Key. This parameter is not mandatory.
+
+    .PARAMETER InputObject
+        Specifies one or more objects to update, typically received from the pipeline. Each object can be an ID given as a string or integer, or an object with an Id property, such as the output of Get-SGApiKey. Use UniqueId to specify the IDs directly.
+
+    .PARAMETER OnBehalfOf
+        Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
 
     .EXAMPLE
         PS C:\> Set-SGApiKey -ApiKeyID 'R2l2W3kZSQukQv4lCkG3zW' -Scopes 'access_settings.activity.read', 'alerts.create', 'alerts.read'

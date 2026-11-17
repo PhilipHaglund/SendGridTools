@@ -12,6 +12,12 @@
     .PARAMETER UniqueId
         Specifies the UniqueId of a specific Branded Domain Link to retrieve. If this parameter is not provided, all Branded Domain Links are retrieved.
 
+    .PARAMETER ShowDNS
+        Specifies that the DNS records that must be created for the branded domain link are included in the output.
+
+    .PARAMETER OnBehalfOf
+        Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
+
     .EXAMPLE
         PS C:\> Get-SGBrandedDomainLink
 

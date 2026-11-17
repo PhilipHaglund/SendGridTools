@@ -16,6 +16,9 @@
         Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
 
 
+    .PARAMETER Classification
+        Specifies the classification of the bounces to retrieve, for example Content or Reputation. If omitted, the totals for all classifications are retrieved.
+
     .EXAMPLE
         PS C:\> Get-SGBounceByClassification
 

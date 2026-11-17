@@ -14,6 +14,12 @@
     .PARAMETER UniqueId
         Specifies the unique ID of the branded link to validate. This parameter is mandatory.
 
+    .PARAMETER InputObject
+        Specifies one or more objects to validate, typically received from the pipeline. Each object can be an ID given as a string or integer, or an object with an Id property, such as the output of Get-SGAuthenticatedDomain. Use UniqueId to specify the IDs directly.
+
+    .PARAMETER OnBehalfOf
+        Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
+
     .EXAMPLE
         PS C:\> Confirm-SGAuthenticatedDomain -UniqueId '1234567'
 

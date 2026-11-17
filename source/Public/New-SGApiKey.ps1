@@ -10,14 +10,17 @@
     .PARAMETER Name
         Specifies the name to describe this API Key.
 
-    .PARAMETER Scopes
+    .PARAMETER Scope
         Specifies the individual permissions that you are giving to this API Key.
 
     .PARAMETER FullAccessKey
         Specifies to create a full access API Key. This will nullify the Scopes parameter.
 
+    .PARAMETER OnBehalfOf
+        Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
+
     .EXAMPLE
-        PS C:\> New-SGApiKey -Name 'MyAPIKey' -Scopes @('mail.send', 'alerts.create', 'alerts.read')
+        PS C:\> New-SGApiKey -Name 'MyAPIKey' -Scope @('mail.send', 'alerts.create', 'alerts.read')
 
         Creates a new API key with the name 'MyAPIKey' and assigns 'mail.send', 'alerts.create', 'alerts.read' scopes to the key.
 

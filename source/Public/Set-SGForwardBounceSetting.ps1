@@ -4,6 +4,15 @@
         Updates the forward bounce mail settings on SendGrid.
     .DESCRIPTION
         Set-SGForwardBounceSetting updates the forward bounce mail settings on SendGrid.
+
+    .PARAMETER Email
+        Specifies the email address that bounce reports are forwarded to. Set this parameter to $null to stop forwarding bounce reports.
+
+    .PARAMETER Enabled
+        Specifies whether the bounce forwarding mail setting is enabled. Use -Enabled:$false to disable it.
+
+    .PARAMETER OnBehalfOf
+        Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
     .EXAMPLE
         PS C:\> Set-SGForwardBounceSetting -Email 'example@example.com' -Enabled $true This command updates the forward bounce mail settings on SendGrid.
     .NOTES

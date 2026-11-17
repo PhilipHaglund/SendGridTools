@@ -15,6 +15,9 @@
     .PARAMETER DeleteAll
         Specifies whether to delete all emails on the bounces list.
 
+    .PARAMETER InputObject
+        Specifies one or more objects to remove, typically received from the pipeline. Each object can be an email address given as a string, or an object with an Email property, such as the output of Get-SGBounce. Use EmailAddress to specify the addresses directly.
+
     .EXAMPLE
         PS C:\> Remove-SGBounce -EmailAddress "bounce1@example.com"
 

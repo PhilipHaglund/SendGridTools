@@ -4,6 +4,9 @@
         Retrieves the forward bounce mail settings on SendGrid.
     .DESCRIPTION
         Get-SGForwardBounceSetting retrieves the forward bounce mail settings on SendGrid.
+
+    .PARAMETER OnBehalfOf
+        Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
     .EXAMPLE
         PS C:\> Get-SGForwardBounceSetting
         This command retrieves the forward bounce mail settings on SendGrid.

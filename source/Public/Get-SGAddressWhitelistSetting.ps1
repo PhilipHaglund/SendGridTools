@@ -4,6 +4,9 @@
         Retrieves the address whitelist mail settings on SendGrid.
     .DESCRIPTION
         Get-SGAddressWhitelistSetting retrieves the address whitelist mail settings on SendGrid.
+
+    .PARAMETER OnBehalfOf
+        Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
     .EXAMPLE
         PS C:\> Get-SGAddressWhitelistSetting
         This command retrieves the address whitelist mail settings on SendGrid.

@@ -6,7 +6,7 @@
     .DESCRIPTION
         The Add-SGEmailAddressToSuppressionGroup function adds email addresses to a suppression group in SendGrid.
 
-    .PARAMETER GroupId
+    .PARAMETER UniqueId
         Specifies the ID of the suppression group.
 
     .PARAMETER EmailAddresses
