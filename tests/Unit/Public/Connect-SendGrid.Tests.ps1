@@ -69,6 +69,91 @@ Describe 'Connect-SendGrid parameters' {
     }
 }
 
+Describe 'Connect-SendGrid base URL' {
+    BeforeEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ scopes = @('scopes.read') })
+        }
+    }
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Uses the global host when no new parameter is given' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Connect-SendGrid -Credential $Cred
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Calls[0].Method | Should -Be 'Get'
+            "$($Calls[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/scopes'
+            $script:Session._BaseURL.AbsoluteUri | Should -Be 'https://api.sendgrid.com/v3'
+        }
+    }
+
+    It 'Connects to <Url> for <Label>' -ForEach @(
+        @{ Label = '-Region Global'; Splat = @{ Region = 'Global' }; Url = 'https://api.sendgrid.com/v3/scopes' }
+        @{ Label = '-Region EU'; Splat = @{ Region = 'EU' }; Url = 'https://api.eu.sendgrid.com/v3/scopes' }
+        @{ Label = '-BaseUri'; Splat = @{ BaseUri = 'https://proxy.example.com' }; Url = 'https://proxy.example.com/v3/scopes' }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Splat = $Splat; Url = $Url } {
+            Connect-SendGrid -Credential $Cred @Splat
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            "$($Calls[0].Uri)" | Should -Be $Url
+        }
+    }
+
+    It 'Sends later commands to the host of the session' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Connect-SendGrid -Credential $Cred -Region EU
+            Set-SgtNetworkStub -Response ([pscustomobject]@{})
+            $null = Invoke-SGCommand -Namespace subusers
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            "$($Calls[0].Uri)" | Should -Be 'https://api.eu.sendgrid.com/v3/subusers'
+        }
+    }
+
+    It 'Creates a new session for another region without -Force' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $Existing = New-SgtTestSession -Credential $Cred -AgeHours 0
+            $script:Session = $Existing
+            Connect-SendGrid -Credential $Cred -Region EU
+            [object]::ReferenceEquals($script:Session, $Existing) | Should -BeFalse
+            $script:Session._BaseURL.AbsoluteUri | Should -Be 'https://api.eu.sendgrid.com/v3'
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            "$($Calls[0].Uri)" | Should -Be 'https://api.eu.sendgrid.com/v3/scopes'
+        }
+    }
+
+    It 'Refreshes the existing session <Label>' -ForEach @(
+        @{ Label = 'without new parameters'; Splat = @{} }
+        @{ Label = 'for -Region Global'; Splat = @{ Region = 'Global' } }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Splat = $Splat } {
+            $Existing = New-SgtTestSession -Credential $Cred -AgeHours 0
+            $script:Session = $Existing
+            Connect-SendGrid @Splat
+            [object]::ReferenceEquals($script:Session, $Existing) | Should -BeTrue
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            "$($Calls[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/scopes'
+        }
+    }
+
+    It 'Keeps the API key out of the output of -Region EU with -Verbose' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $Leak = Get-SgtLeakText -Action { Connect-SendGrid -Credential $Cred -Region EU -Verbose }
+            $Leak.Text | Should -Not -BeLike '*test-key-not-real*'
+        }
+    }
+}
+
 Describe 'Network tripwire' {
     It 'Made no unmocked network call' {
         Assert-SgtNetworkTripwireActive
