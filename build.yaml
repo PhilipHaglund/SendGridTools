@@ -69,10 +69,58 @@ BuildWorkflow:
   #merge:
     #- Merge_CodeCoverage_Files
 
-  publish:
-    - publish_module_to_gallery
-
-    - Publish_Release_To_GitHub
+  # ---------------------------------------------------------------------------------------------
+  # PUBLISH IS DELIBERATELY NOT DEFINED HERE, AND IS NOT COMING BACK.
+  #
+  # Publishing lives in .github/workflows/build-and-test.yml, in its `publish` job: every push to
+  # main publishes a preview to the PowerShell Gallery, and a `v<X.Y.Z>` tag publishes the full
+  # release. Both call Publish-PSResource against the built version folder.
+  #
+  # No workflow alias in this file publishes, and `./build.ps1 -Tasks publish` is unresolvable on
+  # purpose. The only publish path this repository offers is the runner: from an artefact whose
+  # per-file SHA-256 matches what the required checks tested.
+  #
+  # The Sampler and Sampler.GitHubTasks tasks are still imported through ModuleBuildTasks below
+  # (dropping that import would break the build), so these remain callable by name, directly:
+  # publish_module_to_gallery, publish_module_to_psresource_gallery and publish_nupkg_to_gallery
+  # (each guarded by `-if ($GalleryApiToken ...)`), Publish_release_to_GitHub (guarded by
+  # `-if ($GitHubToken ...)`), and Create_Release_Git_Tag, Push_Chocolatey_Package and
+  # Deploy_with_PSDeploy (no token `-if` guard: they depend on git credentials, a Chocolatey push
+  # source and key, and PSDeploy configuration respectively). Checked against Sampler 0.120.1 and
+  # Sampler.GitHubTasks 0.5.0. NEVER call any of them by name. The token-guarded ones skip without
+  # a token, and no token is ever set locally.
+  #
+  # Restoring Publish_Release_To_GitHub and publish_module_to_gallery instead was considered and
+  # rejected. The behaviour below was measured in the model repository for this setup, not read
+  # from documentation. The file:line references were checked against the versions this repository
+  # pins: Sampler 0.120.1, Sampler.GitHubTasks 0.5.0 and InvokeBuild 5.14.23.
+  #
+  #   * Both tasks skip silently. They are declared `-if ($GitHubToken -and ...)`
+  #     (Sampler.GitHubTasks New-Release.GitHub.build.ps1:61) and `-if ($GalleryApiToken -and ...)`
+  #     (Sampler release.module.build.ps1:196). A missing token publishes the package with no tag,
+  #     or publishes nothing at all, and the build reports success either way. The workflow's
+  #     publish job fails on an empty GALLERYAPITOKEN.
+  #   * publish_module_to_gallery writes "Package Published to PSGallery." even when $SkipPublish
+  #     is set (release.module.build.ps1:258, outside the `if (-not $SkipPublish)` block), so its
+  #     own log is not evidence that anything was published. The workflow asks the Gallery instead,
+  #     with Find-PSResource on the exact version, and goes red if it cannot see it.
+  #   * publish_module_to_gallery can rewrite the built manifest as it publishes
+  #     (release.module.build.ps1:211-217 uncomments a `# ReleaseNotes =` key), so the published
+  #     bytes are not provably the tested bytes. The model repository measured that rewrite. This
+  #     repository's source manifest already carries `ReleaseNotes =` uncommented, so here it is a
+  #     standing hazard, not an observed one. The workflow publishes the artefact untouched, after
+  #     verifying every file against the SHA-256 recorded when the tests passed.
+  #
+  # Guarding those tasks with config keys would not have worked either. Sampler's publish task
+  # reads its settings through InvokeBuild's `property` function, and `Get-BuildProperty`
+  # (InvokeBuild Invoke-Build.ps1:148-156) resolves only a PowerShell variable in scope, then an
+  # environment variable, then the literal default. It never consults build.yaml:
+  # release.module.build.ps1 contains no reference to $BuildInfo. So `SkipPublish:`,
+  # `PublishModuleWhatIf:` and `PSModuleFeed:` keys placed here would be inert: they would read as
+  # guards and enforce nothing.
+  #
+  # See "Publishing" in CLAUDE.md.
+  # ---------------------------------------------------------------------------------------------
 
 
 ####################################################
