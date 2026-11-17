@@ -16,6 +16,7 @@
         PS C:\> Set-SGBouncePurgeSetting -Enabled $true -SoftBounces 5 -HardBounces 10
         This command updates the bounce purge mail settings on SendGrid to enable the setting and set the purge days for soft and hard bounces.
     #>
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '', Justification = 'Adding SupportsShouldProcess would add the -WhatIf and -Confirm parameters to this public function and change behaviour; the repair is deferred so the public surface stays unchanged.')]
     [CmdletBinding()]
     param (
         # Specifies whether the bounce purge mail setting is enabled.

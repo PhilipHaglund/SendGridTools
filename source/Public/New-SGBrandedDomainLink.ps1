@@ -31,6 +31,8 @@
     .NOTES
         To use this function, you must be connected to a SendGrid instance. Use the Connect-SendGrid function to establish a connection.
     #>
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidShouldContinueWithoutForce', '', Justification = 'The ShouldContinue prompt only guards a deliberate request (Full Access key or -Default) and is not a -Force bypass; a boolean -Force parameter would add to the public surface and change behaviour, so the repair is deferred.')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseLiteralInitializerForHashtable', '', Justification = '[hashtable]::new() creates a case-sensitive table while @{} is case-insensitive; the two are not interchangeable in general, so changing the initializer could change behaviour and is deferred.')]
     [CmdletBinding(SupportsShouldProcess)]
     param (
 

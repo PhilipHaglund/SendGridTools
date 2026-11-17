@@ -37,6 +37,7 @@
     .NOTES
         To use this function, you must be connected to a SendGrid instance. Use the Connect-SendGrid function to establish a connection.
     #>
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '', Justification = 'SendGridSubDomain is declared but the body reads the undefined variable $Subdomain instead, so the value is not forwarded. Reading the parameter would change behaviour and removing it would change the public surface, so the repair is deferred and tracked as a separate finding.')]
     [CmdletBinding(
         SupportsShouldProcess
     )]

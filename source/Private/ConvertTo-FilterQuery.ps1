@@ -1,4 +1,5 @@
 ﻿function ConvertTo-FilterQuery {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '', Justification = 'The body reads the pipeline-bound parameter once instead of per piped object; moving it into a process block would change how piped input is handled, so the repair is deferred.')]
     [CmdletBinding()]
     param (
         [Parameter(

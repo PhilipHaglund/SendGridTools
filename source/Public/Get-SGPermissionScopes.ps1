@@ -16,6 +16,7 @@
     .NOTES
         To use this function, you must be connected to a SendGrid instance. Use the Connect-SendGrid function to establish a connection.
     #>
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', '', Justification = 'Renaming the function to a singular noun would remove an exported public name and add a new one, so the repair is deferred.')]
     [CmdletBinding()]
     param ()
     process {
