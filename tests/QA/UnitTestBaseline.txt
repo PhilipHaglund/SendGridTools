@@ -33,17 +33,14 @@ Invoke-SGCommand
 New-SGAlert
 New-SGApiKey
 New-SGSuppressionGroup
-Remove-SGAlert
 Remove-SGApiKey
 Remove-SGAuthenticatedDomain
 Remove-SGBlock
 Remove-SGBounce
 Remove-SGBrandedDomainLink
-Remove-SGGlobalSuppression
 Remove-SGInvalidEmail
 Remove-SGSpamReport
 Remove-SGSubuser
-Remove-SGSuppressionGroup
 Send-SGMailMessage
 Set-SGAddressWhitelistSetting
 Set-SGAlert
@@ -53,4 +50,3 @@ Set-SGBouncePurgeSetting
 Set-SGBrandedDomainLink
 Set-SGForwardBounceSetting
 Set-SGForwardSpamSetting
-Set-SGSuppressionGroup

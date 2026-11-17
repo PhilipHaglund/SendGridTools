@@ -13,7 +13,7 @@
         Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
 
     .PARAMETER InputObject
-        Hidden parameter that accepts objects from the pipeline. With the current code this parameter set fails with a conversion error, because the collected IDs are assigned to the integer UniqueId variable, so nothing is deleted. Use UniqueId instead.
+        Hidden parameter that accepts ids, or objects with an Id property, from the pipeline. One request is sent for each item.
 
     .EXAMPLE
         PS C:\> Remove-SGAlert -Id 123
@@ -55,17 +55,20 @@
     )
     process {
         if ($PSCmdlet.ParameterSetName -eq 'InputObject') {
-            $UniqueId = @()
+            $IdList = [System.Collections.Generic.List[int]]::new()
             foreach ($Object in $InputObject) {
-                switch ($Object) {
-                    { $_ -is [string] } { $UniqueId += $_; break }
-                    { $_ -is [int] } { $UniqueId += $_; break }
-                    { $_ -is [System.Management.Automation.PSCustomObject] } { $UniqueId += $_.Id; break }
-                    default { Write-Error ('Failed to convert InputObject to Id.') -ErrorAction Stop }
+                $Candidate = if ($null -ne $Object -and $Object.PSObject.Properties['Id']) { $Object.Id } else { $Object }
+                $Parsed = 0
+                if (-not [int]::TryParse("$Candidate", [ref]$Parsed)) {
+                    Write-Error ('Failed to convert InputObject to Id.') -ErrorAction Stop
                 }
+                $IdList.Add($Parsed)
             }
         }
-        foreach ($Id in $UniqueId) {
+        else {
+            $IdList = @($UniqueId)
+        }
+        foreach ($Id in $IdList) {
             if ($PSCmdlet.ShouldProcess($Id)) {
                 $InvokeSplat = @{
                     Method        = 'Delete'

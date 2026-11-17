@@ -13,7 +13,7 @@
         Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
 
     .PARAMETER InputObject
-        Hidden parameter that accepts objects from the pipeline. With the current code the IDs collected from these objects are not used, because the removal loop runs over EmailAddress, so piped objects are not removed from the global suppressions list. Use EmailAddress instead.
+        Hidden parameter that accepts email addresses, or objects with an Email property, from the pipeline. One request is sent for each item.
 
     .EXAMPLE
         PS C:\> Remove-SGGlobalSuppression -EmailAddress 'test@example.com'
@@ -55,17 +55,29 @@
     )
     process {
         if ($PSCmdlet.ParameterSetName -eq 'InputObject') {
-            $UniqueId = @()
+            $AddressList = [System.Collections.Generic.List[string]]::new()
             foreach ($Object in $InputObject) {
-                switch ($Object) {
-                    { $_ -is [string] } { $UniqueId += $_; break }
-                    { $_ -is [int] } { $UniqueId += $_; break }
-                    { $_ -is [System.Management.Automation.PSCustomObject] } { $UniqueId += $_.Id; break }
-                    default { Write-Error ('Failed to convert InputObject to Id.') -ErrorAction Stop }
+                $Candidate = if ($null -ne $Object -and $Object.PSObject.Properties['Email']) {
+                    $Object.Email
+                }
+                elseif ($Object -is [MailAddress]) {
+                    $Object.Address
+                }
+                else {
+                    $Object
+                }
+                try {
+                    $AddressList.Add(([MailAddress]::new("$Candidate")).Address)
+                }
+                catch {
+                    Write-Error ('Failed to convert InputObject to an email address.') -ErrorAction Stop
                 }
             }
         }
-        foreach ($Id in $EmailAddress) {
+        else {
+            $AddressList = @($EmailAddress | ForEach-Object { $_.Address })
+        }
+        foreach ($Id in $AddressList) {
             $InvokeSplat = @{
                 Method        = 'Delete'
                 Namespace     = "suppression/unsubscribes/$Id"
@@ -80,7 +92,7 @@
                     Invoke-SendGrid @InvokeSplat
                 }
                 catch {
-                    Write-Error ('Failed to remove email address "{0}" from global suppressions list. {0}' -f $Id, $_.Exception.Message) -ErrorAction Stop
+                    Write-Error ('Failed to remove email address "{0}" from global suppressions list. {1}' -f $Id, $_.Exception.Message) -ErrorAction Stop
                 }
             }
         }
