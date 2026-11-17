@@ -26,7 +26,6 @@ Get-SGSubuser
 Get-SGSuppression
 Get-SGSuppressionGroup
 Get-SGTeammate
-Invoke-SGCommand
 New-SGAlert
 New-SGApiKey
 New-SGSuppressionGroup
