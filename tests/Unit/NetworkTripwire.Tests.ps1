@@ -14,6 +14,7 @@ AfterAll {
 Describe 'Network tripwire helper' {
     BeforeEach {
         Enable-SgtNetworkTripwire
+        Assert-SgtNetworkTripwireActive
     }
     AfterEach {
         Disable-SgtNetworkTripwire
@@ -45,11 +46,13 @@ Describe 'Network tripwire helper' {
     It 'Lets a stub answer a class call, logs it and records nothing as unmocked' {
         $global:SgtNetworkStub = { 'stubbed' }
         InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
-            { [SendGridSession]::new().Connect($Cred) } | Should -Not -Throw
+            $Session = [SendGridSession]::new()
+            $Session._BaseURL = [uri]'http://127.0.0.1:9/v3'
+            { $Session.Connect($Cred) } | Should -Not -Throw
         }
         Get-SgtUnmockedNetworkCall | Should -BeNullOrEmpty
         @($global:SgtNetworkCall).Count | Should -Be 1
-        $global:SgtNetworkCall[0].Uri.AbsoluteUri | Should -Be 'https://api.sendgrid.com/v3/scopes'
+        $global:SgtNetworkCall[0].Uri.AbsoluteUri | Should -Be 'http://127.0.0.1:9/v3/scopes'
     }
 
     It 'Reports the tripwire as active while enabled' {
