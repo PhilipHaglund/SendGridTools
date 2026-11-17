@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The build now imports only the four Sampler task files that build and test use, so the publish and tag tasks are no longer defined and the `pack` workflow alias is gone.
 - A quality test now checks that the number of exported functions equals the number of files in `source/Public`.
 - `New-SGSubuser` now has unit tests with mocked HTTP in both shells, and the exposure tests check that request body values never appear in verbose, debug, errors or output.
-- `New-SGAuthenticatedDomain`, `New-SGBrandedDomainLink`, `New-SGCombinedDomain` and `Set-SGAuthenticatedDomain` now have unit tests with mocked HTTP, and the code coverage threshold is raised from 9 to 16.
+- `New-SGAuthenticatedDomain`, `New-SGBrandedDomainLink`, `New-SGCombinedDomain`, `Set-SGAuthenticatedDomain` and the alert, suppression and forward spam commands fixed below now have unit tests with mocked HTTP, and the code coverage threshold is raised from 9 to 21.
 
 ### Removed
 
@@ -31,11 +31,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `New-SGSubuser` returns only the created subuser; it also wrote its internal request to the output.
 - `New-SGAuthenticatedDomain`, `New-SGBrandedDomainLink` and `New-SGCombinedDomain` now send the subdomain given with `-SendGridSubdomain` and send none when none is given; the first two failed or sent an empty subdomain, and `New-SGCombinedDomain` dropped it.
 - `Set-SGAuthenticatedDomain` now updates each domain it is given with `-UniqueId` or from the pipeline; it made no change before.
+- `Remove-SGAlert`, `Remove-SGSuppressionGroup`, `Set-SGSuppressionGroup` and `Remove-SGGlobalSuppression` now act on each id or address given, also from the pipeline, and `Set-SGSuppressionGroup` sends only the values given.
+- An expired session now raises an error that names `Connect-SendGrid -Force`; it returned a text as if it were data.
+- `New-SGSubuser` now sends the values of each piped object.
 
 ### Security
 
 - Verbose output names the keys and value types of a request body but no longer its values, so a subuser password no longer shows with `-Verbose`.
 - `New-SGSubuser` no longer writes its internal request, with the password in plain text, to the output.
+- `Set-SGForwardSpamSetting` no longer writes its request, with the forwarding addresses, to the output.
 
 ## [0.4.7] - 2025-11-08
 
