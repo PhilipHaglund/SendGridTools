@@ -50,6 +50,32 @@ Describe 'New-SGSubuser request' {
             @($Sent.ips) | Should -Be @('192.0.2.10')
         }
     }
+
+    It 'Sends one Post per piped object with its own values' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ username = 'subuser-placeholder'; user_id = 1; email = 'subuser@example.invalid' })
+            $Items = @(
+                [pscustomobject]@{ Username = 'subuser-one'; Email = 'one@example.com'; Password = (ConvertTo-SecureString -String 'pw-one-not-real' -AsPlainText -Force); Ips = '192.0.2.10' }
+                [pscustomobject]@{ Username = 'subuser-two'; Email = 'two@example.com'; Password = (ConvertTo-SecureString -String 'pw-two-not-real' -AsPlainText -Force); Ips = '192.0.2.11' }
+            )
+
+            $null = $Items | New-SGSubuser -Confirm:$false
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 2
+            $One = $Calls[0].Body | ConvertFrom-Json
+            $One.username | Should -Be 'subuser-one'
+            $One.email | Should -Be 'one@example.com'
+            $One.password | Should -BeExactly 'pw-one-not-real'
+            @($One.ips) | Should -Be @('192.0.2.10')
+            $Two = $Calls[1].Body | ConvertFrom-Json
+            $Two.username | Should -Be 'subuser-two'
+            $Two.email | Should -Be 'two@example.com'
+            $Two.password | Should -BeExactly 'pw-two-not-real'
+            @($Two.ips) | Should -Be @('192.0.2.11')
+        }
+    }
 }
 
 Describe 'New-SGSubuser password exposure' {
