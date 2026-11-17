@@ -29,7 +29,7 @@
     .EXAMPLE
         PS C:\> New-SGBrandedDomainLink -Domain 'sub.example.com'
 
-        Adds a new branded domain link for the domain 'sub.example.com', which itself contains a subdomain, and lets SendGrid generate the link subdomain.
+        Adds a new branded domain link for the domain 'sub.example.com', which itself contains a subdomain, and lets SendGrid generate the link subdomain. Passing a domain that includes a subdomain is not recommended, as the Domain parameter help describes.
 
     .NOTES
         To use this function, you must be connected to a SendGrid instance. Use the Connect-SendGrid function to establish a connection.

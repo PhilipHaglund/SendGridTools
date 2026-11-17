@@ -21,6 +21,9 @@ LONG DESCRIPTION
       - Alerts: create, change and remove.
       - Settings: mail, bounce purge, forward bounce, forward spam and
         address allow list settings.
+      - Teammates (Get-SGTeammate), IP addresses (Get-SGIPAddress),
+        designs (Get-SGDesign) and permission scopes
+        (Get-SGPermissionScopes): read what the account holds.
       - Invoke-SGCommand: call an endpoint the module has no command
         for.
 
@@ -37,8 +40,9 @@ LONG DESCRIPTION
     SESSION LIFETIME
     A session lasts one hour. Each command that completes a request
     renews the hour. When the hour passes without use, the next command
-    reports that the session lifetime is exceeded; run Connect-SendGrid
-    again.
+    reports that the session lifetime is exceeded; run
+    Connect-SendGrid -Force. A plain Connect-SendGrid fails the first
+    time, because it tries to refresh the expired session.
 
 EXAMPLES
     Example 1: Sign in
@@ -68,7 +72,7 @@ NOTE:
 
 TROUBLESHOOTING NOTE:
     If a command reports that the session lifetime is exceeded, run
-    Connect-SendGrid again.
+    Connect-SendGrid -Force.
 
     Look out on the GitHub repository for issues and new releases.
 
