@@ -40,7 +40,7 @@ LONG DESCRIPTION
     SESSION LIFETIME
     A session lasts one hour. Each command that completes a request
     renews the hour. When the hour passes without use, the next command
-    reports that the session lifetime is exceeded; run
+    fails with an error that the session has expired; run
     Connect-SendGrid -Force. A plain Connect-SendGrid fails the first
     time, because it tries to refresh the expired session.
 
@@ -71,7 +71,7 @@ NOTE:
     code, sharing opinions, and provided feedback.
 
 TROUBLESHOOTING NOTE:
-    If a command reports that the session lifetime is exceeded, run
+    If a command fails with an error that the session has expired, run
     Connect-SendGrid -Force.
 
     Look out on the GitHub repository for issues and new releases.

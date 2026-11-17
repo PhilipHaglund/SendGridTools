@@ -53,7 +53,7 @@ class SendGridSession {
         $SessionLifeTime = (Get-Date).AddHours(-1)
         if ($null -eq $this._CreateDateTime -or $SessionLifeTime -gt $this._CreateDateTime) {
             $this.Disconnect()
-            throw 'Session lifetime exceeded, reconnect.'
+            throw 'The SendGrid session has expired. Run Connect-SendGrid -Force to reconnect.'
         }
         if ($this._Credential -is [PSCredential]) {
             $this.BuildEndpointURL([string]'scopes')
@@ -144,7 +144,7 @@ class SendGridSession {
         $SessionLifeTime = (Get-Date).AddHours(-1)
         if ($null -eq $this._CreateDateTime -or $SessionLifeTime -gt $this._CreateDateTime) {
             $this.Disconnect()
-            return 'Session lifetime exceeded, reconnect.'
+            throw 'The SendGrid session has expired. Run Connect-SendGrid -Force to reconnect.'
         }
         else {
             $this.BuildEndpointURL($Endpoint)
@@ -193,6 +193,9 @@ class SendGridSession {
         PSCustomObject[]
     #>
     [PSCustomObject[]] InvokeQuery ([string]$WebRequestMethod, [string]$Endpoint, [hashtable]$ContentBody) {
+        if ($this._Connected -eq $false) {
+            throw 'You must call the Connect-SendGrid cmdlet before calling any other cmdlets.'
+        }
         foreach ($Key in $ContentBody.Keys) {
             Write-Verbose -Message ('ContentBody: Key: {0}, Type: {1}' -f $Key, $ContentBody[$Key].GetType())
         }
@@ -200,7 +203,7 @@ class SendGridSession {
         $SessionLifeTime = (Get-Date).AddHours(-1)
         if ($null -eq $this._CreateDateTime -or $SessionLifeTime -gt $this._CreateDateTime) {
             $this.Disconnect()
-            return 'Session lifetime exceeded, reconnect.'
+            throw 'The SendGrid session has expired. Run Connect-SendGrid -Force to reconnect.'
         }
         else {
             $this.BuildEndpointURL($Endpoint)
@@ -255,7 +258,7 @@ class SendGridSession {
         $SessionLifeTime = (Get-Date).AddHours(-1)
         if ($null -eq $this._CreateDateTime -or $SessionLifeTime -gt $this._CreateDateTime) {
             $this.Disconnect()
-            return 'Session lifetime exceeded, reconnect.'
+            throw 'The SendGrid session has expired. Run Connect-SendGrid -Force to reconnect.'
         }
         else {
             $this.BuildEndpointURL($Endpoint)
@@ -308,11 +311,14 @@ class SendGridSession {
         PSCustomObject[]
     #>
     [PSCustomObject[]] InvokeQuery ([string]$WebRequestMethod, [string]$Endpoint, [hashtable]$ContentBody, [string]$OnBehalfOf) {
+        if ($this._Connected -eq $false) {
+            throw 'You must call the Connect-SendGrid cmdlet before calling any other cmdlets.'
+        }
         $Body = $ContentBody | ConvertTo-Json -Depth 5 -ErrorAction Stop
         $SessionLifeTime = (Get-Date).AddHours(-1)
         if ($null -eq $this._CreateDateTime -or $SessionLifeTime -gt $this._CreateDateTime) {
             $this.Disconnect()
-            return 'Session lifetime exceeded, reconnect.'
+            throw 'The SendGrid session has expired. Run Connect-SendGrid -Force to reconnect.'
         }
         else {
             $this.BuildEndpointURL($Endpoint)
