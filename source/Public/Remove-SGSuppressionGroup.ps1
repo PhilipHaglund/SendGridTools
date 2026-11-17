@@ -16,7 +16,7 @@
         Hidden parameter that accepts objects from the pipeline. With the current code this parameter set fails with a conversion error, because the collected IDs are assigned to the integer UniqueId variable, so nothing is deleted. Use UniqueId instead.
 
     .EXAMPLE
-        PS C:\> Remove-SGSuppressionGroup -GroupId 123
+        PS C:\> Remove-SGSuppressionGroup -Id 123
         This command deletes the suppression group with the ID 123.
     #>
     [CmdletBinding(

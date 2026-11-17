@@ -43,22 +43,22 @@
         Specifies if the domain should be the default one for the SendGrid instance.
 
     .EXAMPLE
-        PS C:\> New-SGAuthenticatedDomain -Domain 'example.com' -Subdomain 'email'
+        PS C:\> New-SGAuthenticatedDomain -Domain 'example.com' -SendGridSubdomain 'email'
 
         Adds a new authenticated domain 'example.com' with the subdomain 'email' using the specified API key.
 
     .EXAMPLE
-        PS C:\> New-SGAuthenticatedDomain -Domain 'example.com' -Subdomain 'email' -DisableAutomaticSecurity -CustomDkimSelector 'exm'
+        PS C:\> New-SGAuthenticatedDomain -Domain 'example.com' -SendGridSubdomain 'email' -DisableAutomaticSecurity -CustomDkimSelector 'exm'
 
         Adds a new authenticated domain 'example.com' with the subdomain 'email', disables automatic security, and uses a custom DKIM selector 'exm' with the specified API key.
 
     .EXAMPLE
-        PS C:\> New-SGAuthenticatedDomain -Domain 'sub.example.com' -Subdomain 'email' -Force
+        PS C:\> New-SGAuthenticatedDomain -Domain 'sub.example.com' -SendGridSubdomain 'email'
 
         Adds a new authenticated domain 'email.sub.example.com' with the subdomain 'email' and forces the creation despite the domain containing a subdomain.
 
     .EXAMPLE
-        PS C:\> New-SGAuthenticatedDomain -Domain 'example.com' -Subdomain 'email' -DisableAutomaticSecurity -CustomSPF
+        PS C:\> New-SGAuthenticatedDomain -Domain 'example.com' -SendGridSubdomain 'email' -DisableAutomaticSecurity -CustomSPF
 
         Adds a new authenticated domain 'example.com' with the subdomain 'email', disables automatic security, and uses a custom SPF record with the specified API key.
 

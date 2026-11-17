@@ -29,7 +29,7 @@
         This command removes the bounce with the email address 'bounce2@example.com' from SendGrid for the Subuser 'Subuser'.
 
     .EXAMPLE
-        PS C:\> Remove-SGBounce -DeleteAll $true
+        PS C:\> Remove-SGBounce -DeleteAll
 
         This command deletes all emails on the bounces list from SendGrid.
     #>

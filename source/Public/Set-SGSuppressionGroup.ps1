@@ -25,7 +25,7 @@
         Hidden parameter that accepts objects from the pipeline. With the current code this parameter set fails with a conversion error, because the collected IDs are assigned to the integer UniqueId variable, so nothing is updated. Use UniqueId instead.
 
     .EXAMPLE
-        PS C:\> Set-SGSuppressionGroup -GroupId 123 -Name 'My Group' -Description 'This is my group.' -IsDefault $false
+        PS C:\> Set-SGSuppressionGroup -Id 123 -Name 'My Group' -Description 'This is my group.' -IsDefault:$false
         This command updates the suppression group with the ID 123.
     #>
     [CmdletBinding(

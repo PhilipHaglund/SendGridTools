@@ -25,12 +25,12 @@
         Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
 
     .EXAMPLE
-        PS C:\> New-SGBrandedDomainLink -Domain 'example.com' -Subdomain 'link'
+        PS C:\> New-SGBrandedDomainLink -Domain 'example.com' -SendGridSubDomain 'link'
 
         Adds a new branded domain link 'sub.example.com' with the subdomain 'link' using the specified API key.
 
     .EXAMPLE
-        PS C:\> New-SGBrandedDomainLink -Domain 'sub.example.com' -Force
+        PS C:\> New-SGBrandedDomainLink -Domain 'sub.example.com'
 
         Adds a new branded domain link 'url123.sub.example.com' and forces the creation despite the domain containing a subdomain.
 

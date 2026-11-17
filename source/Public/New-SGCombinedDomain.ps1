@@ -30,12 +30,12 @@
     .PARAMETER OnBehalfOf
         Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
     .EXAMPLE
-        PS C:\> New-SGCombinedDomain -Domain 'example.com' -Subdomain 'email' -DisableAutomaticSecurity -CustomDkimSelector 'exm'
+        PS C:\> New-SGCombinedDomain -Domain 'example.com' -SendGridSubDomain 'email' -DisableAutomaticSecurity -CustomDkimSelector 'exm'
         Adds a new authenticated domain 'example.com' with the subdomain 'email', disables automatic security, and uses a custom DKIM selector 'exm'.
         Also adds a new branded domain link with the same domain and subdomain.
     .EXAMPLE
-        PS C:\> New-SGCombinedDomain -Domain 'example.com' -Subdomain 'link' -Force
-        Adds a new authenticated domain 'example.com' with the subdomain 'link' and forces the creation despite the domain containing a subdomain.
+        PS C:\> New-SGCombinedDomain -Domain 'example.com' -SendGridSubDomain 'link'
+        Adds a new authenticated domain 'example.com' with the subdomain 'link'.
         Also adds a new branded domain link with the same domain and subdomain.
     .NOTES
         To use this function, you must be connected to a SendGrid instance. Use the Connect-SendGrid function to establish a connection.

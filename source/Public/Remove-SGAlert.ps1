@@ -16,12 +16,12 @@
         Hidden parameter that accepts objects from the pipeline. With the current code this parameter set fails with a conversion error, because the collected IDs are assigned to the integer UniqueId variable, so nothing is deleted. Use UniqueId instead.
 
     .EXAMPLE
-        PS C:\> Remove-SGAlert -AlertId 123
+        PS C:\> Remove-SGAlert -Id 123
 
         This command deletes the alert with the ID 123 on SendGrid.
 
     .EXAMPLE
-        PS C:\> Remove-SGAlert -AlertId 123 -OnBehalfOf 'Subuser'
+        PS C:\> Remove-SGAlert -Id 123 -OnBehalfOf 'Subuser'
 
         This command deletes the alert with the ID 123 on SendGrid on behalf of the Subuser 'Subuser'.
     #>

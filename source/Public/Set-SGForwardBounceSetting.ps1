@@ -14,7 +14,8 @@
     .PARAMETER OnBehalfOf
         Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
     .EXAMPLE
-        PS C:\> Set-SGForwardBounceSetting -Email 'example@example.com' -Enabled $true This command updates the forward bounce mail settings on SendGrid.
+        PS C:\> Set-SGForwardBounceSetting -Email 'example@example.com' -Enabled
+        This command updates the forward bounce mail settings on SendGrid.
     .NOTES
         To use this function, you must be connected to a SendGrid instance. Use the Connect-SendGrid function to establish a connection.
     #>

@@ -16,7 +16,7 @@
         Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
 
     .EXAMPLE
-        PS C:\> Remove-SGApiKey -ApiKeyId 'R2l2W3kZSQukQv4lCkG3zW'
+        PS C:\> Remove-SGApiKey -Id '<api-key-id>'
 
         This command deletes the API Key with the specified ID within the current SendGrid instance.
     #>

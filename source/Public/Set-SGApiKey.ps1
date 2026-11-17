@@ -22,12 +22,12 @@
         Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
 
     .EXAMPLE
-        PS C:\> Set-SGApiKey -ApiKeyID 'R2l2W3kZSQukQv4lCkG3zW' -Scopes 'access_settings.activity.read', 'alerts.create', 'alerts.read'
+        PS C:\> Set-SGApiKey -Id '<api-key-id>' -Scopes 'access_settings.activity.read', 'alerts.create', 'alerts.read'
 
         This command updates the scopes of the API Key with the specified ID within the current SendGrid instance.
 
     .EXAMPLE
-        PS C:\> Set-SGApiKey -ApiKeyID 'R2l2W3kZSQukQv4lCkG3zW' -Scopes 'access_settings.activity.read', 'alerts.create', 'alerts.read' -NewName 'MyUpdatedKey'
+        PS C:\> Set-SGApiKey -Id '<api-key-id>' -Scopes 'access_settings.activity.read', 'alerts.create', 'alerts.read' -NewName 'MyUpdatedKey'
 
         This command updates both the name and scopes of the API Key with the specified ID within the current SendGrid instance.
     #>

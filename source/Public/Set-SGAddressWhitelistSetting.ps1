@@ -11,7 +11,7 @@
     .PARAMETER OnBehalfOf
         Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
     .EXAMPLE
-        PS C:\> Set-SGAddressWhitelistSetting -Enabled $true -List @('example.com')
+        PS C:\> Set-SGAddressWhitelistSetting -Enabled -List @('example.com')
         This command updates the address whitelist mail settings on SendGrid to enable the whitelist and add 'example.com' to the whitelist.
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '', Justification = 'Adding SupportsShouldProcess would add the -WhatIf and -Confirm parameters to this public function and change behaviour; the repair is deferred so the public surface stays unchanged.')]
