@@ -13,6 +13,15 @@ BeforeDiscovery {
             @{ Target = $Entry.Target; Label = $Entry.Label; Case = $Entry.Case; Scenario = $Scenario }
         }
     }
+    $script:BodyScenarios = foreach ($Entry in $Targets) {
+        if (-not $Entry.Case.HasBody) { continue }
+        if ($Entry.Target -notin 'InvokeQuery', 'Invoke-SendGrid') { continue }
+        $BodyCase = $Entry.Case.Clone()
+        $BodyCase.Body = @{ password = 'body-value-not-real'; name = 'body-value-not-real' }
+        foreach ($Scenario in 'success', 'failure with error details', 'failure without error details') {
+            @{ Target = $Entry.Target; Label = $Entry.Label; Case = $BodyCase; Scenario = $Scenario }
+        }
+    }
 }
 
 BeforeAll {
@@ -66,6 +75,45 @@ Describe 'API key exposure' {
             $Leak.Verbose | Should -BeLike '*ContentBody: Key:*'
             $Leak.Text | Should -BeLike '*ContentBody: Key:*'
             $Leak.Text | Should -Not -BeLike '*test-key-not-real*'
+        }
+    }
+}
+
+Describe 'Request body exposure' {
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Does not show a body value from <Label> (<Scenario>)' -ForEach $script:BodyScenarios {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Target = $Target; Case = $Case; Scenario = $Scenario } {
+            switch ($Scenario) {
+                'success' { Set-SgtNetworkStub -Response ([pscustomobject]@{ name = 'mock-response' }) }
+                'failure with error details' { Set-SgtNetworkStub -Throw (New-SgtErrorRecord -Message 'http failure' -Details '{"errors":[{"message":"bad request"}]}') }
+                default { Set-SgtNetworkStub -Throw (New-SgtErrorRecord -Message 'http failure') }
+            }
+
+            $Leak = Get-SgtLeakText -Action { Invoke-SgtTarget -Target $Target -Case $Case -Credential $Cred }
+
+            $Leak.Threw | Should -Be ($Scenario -ne 'success')
+            $Leak.Text | Should -Not -BeLike '*body-value-not-real*'
+            $Leak.Text | Should -Not -BeLike '*test-key-not-real*'
+            # the body still reaches the transport
+            (Get-SgtNetworkCall)[-1].Body | Should -BeLike '*body-value-not-real*'
+        }
+    }
+
+    It 'Names each body key and its type in verbose' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ name = 'mock-response' })
+            $Case = @{ Method = 'Post'; Endpoint = 'mail/send'; HasBody = $true; HasObo = $false; Body = @{ password = 'body-value-not-real'; name = 'body-value-not-real' }; Obo = $null }
+
+            $Leak = Get-SgtLeakText -Action { Invoke-SgtTarget -Target 'InvokeQuery' -Case $Case -Credential $Cred }
+
+            $Leak.Verbose | Should -BeLike '*ContentBody: Key: password, Type: System.String*'
+            $Leak.Verbose | Should -BeLike '*ContentBody: Key: name, Type: System.String*'
         }
     }
 }
