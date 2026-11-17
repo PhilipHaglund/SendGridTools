@@ -222,6 +222,27 @@ Describe 'General module control' -Tags 'FunctionalQuality' {
         $childOutput | Should -Match 'SGT-IMPORT-OK'
     }
 
+    It 'Should export one function per file in source/Public' {
+        # Count from the imported module, not from the manifest: the manifest lists names, the import proves they exist.
+        $manifestPath = (Get-Module -Name $script:moduleName -ListAvailable | Select-Object -First 1).Path
+        $manifestPath | Should -Not -BeNullOrEmpty -Because 'the built module must resolve from PSModulePath; run ./build.ps1 -Tasks build first'
+
+        $importedModule = Import-Module -Name $manifestPath -Force -PassThru -ErrorAction Stop
+        $exportedNames = @($importedModule.ExportedFunctions.Keys | Sort-Object)
+        $publicNames = @(
+            Get-ChildItem -Path (Join-Path -Path $sourcePath -ChildPath 'Public') -Filter '*.ps1' -File |
+                ForEach-Object -Process { $_.BaseName } |
+                Sort-Object
+        )
+
+        $notExported = @($publicNames | Where-Object -FilterScript { $_ -notin $exportedNames })
+        $noPublicFile = @($exportedNames | Where-Object -FilterScript { $_ -notin $publicNames })
+        $exportedNames.Count | Should -Be $publicNames.Count -Because (
+            "source/Public has $($publicNames.Count) files and the module exports $($exportedNames.Count) functions. " +
+            "In source/Public but not exported: [$($notExported -join ', ')]. Exported but with no file of that name: [$($noPublicFile -join ', ')]"
+        )
+    }
+
     It 'Should remove without error' {
         { Remove-Module -Name $script:moduleName -ErrorAction Stop } | Should -Not -Throw
         Get-Module -Name $script:moduleName | Should -BeNullOrEmpty
