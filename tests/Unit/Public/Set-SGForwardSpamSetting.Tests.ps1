@@ -1,0 +1,78 @@
+BeforeAll {
+    . (Join-Path -Path $PSScriptRoot -ChildPath '../Support/NetworkTripwire.ps1')
+    . (Join-Path -Path $PSScriptRoot -ChildPath '../Support/SessionHelpers.ps1')
+    # Import once per run: in Windows PowerShell 5.1 a class stays bound to the first loaded module instance.
+    if (-not (Get-Module -Name SendGridTools)) {
+        Get-Module -Name SendGridTools -ListAvailable | Select-Object -First 1 | Import-Module -ErrorAction Stop
+    }
+    Enable-SgtNetworkTripwire
+    Assert-SgtNetworkTripwireActive
+    Install-SgtSessionHelper
+    $script:Cred = [pscredential]::new('apikey', (ConvertTo-SecureString -String 'test-key-not-real' -AsPlainText -Force))
+}
+
+AfterAll {
+    Uninstall-SgtSessionHelper
+    Disable-SgtNetworkTripwire
+}
+
+Describe 'Set-SGForwardSpamSetting request' {
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Returns only the response and no dictionary' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ enabled = $true; email = 'spam@example.com' })
+
+            $Out = @(Set-SGForwardSpamSetting -Email 'spam@example.com' -Enabled)
+
+            @($Out | Where-Object { $_ -is [System.Collections.IDictionary] }).Count | Should -Be 0
+            $Out.Count | Should -Be 1
+        }
+    }
+
+    It 'Sends one Patch to mail_settings/forward_spam with enabled and email' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ enabled = $true })
+
+            $null = Set-SGForwardSpamSetting -Email 'one@example.com', 'two@example.com' -Enabled
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Calls[0].Method | Should -Be 'Patch'
+            "$($Calls[0].Uri)" | Should -BeLike '*/mail_settings/forward_spam'
+            $Sent = $Calls[0].Body | ConvertFrom-Json
+            @($Sent.PSObject.Properties.Name | Sort-Object) | Should -Be @('email', 'enabled')
+            $Sent.email | Should -Be 'one@example.com, two@example.com'
+            $Sent.enabled | Should -BeTrue
+        }
+    }
+
+    It 'Sends an empty email when -Email is $null' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ enabled = $false })
+
+            $null = Set-SGForwardSpamSetting -Email $null
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Sent = $Calls[0].Body | ConvertFrom-Json
+            @($Sent.PSObject.Properties.Name | Sort-Object) | Should -Be @('email')
+            $Sent.email | Should -Be ''
+        }
+    }
+}
+
+Describe 'Network tripwire' {
+    It 'Made no unmocked network call' {
+        Assert-SgtNetworkTripwireActive
+        Get-SgtUnmockedNetworkCall | Should -BeNullOrEmpty
+    }
+}

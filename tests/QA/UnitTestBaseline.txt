@@ -49,4 +49,3 @@ Set-SGAuthenticatedDomainToSubUser
 Set-SGBouncePurgeSetting
 Set-SGBrandedDomainLink
 Set-SGForwardBounceSetting
-Set-SGForwardSpamSetting
