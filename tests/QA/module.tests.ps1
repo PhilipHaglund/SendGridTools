@@ -44,6 +44,15 @@ BeforeDiscovery {
         }
     )
 
+    # Unit test ratchet (A13): public functions that still lack a <Name>.Tests.ps1. The list may only shrink.
+    $baselineLines = [System.IO.File]::ReadAllLines((Join-Path -Path $PSScriptRoot -ChildPath 'UnitTestBaseline.txt'))
+    $baselineTestCases = @(
+        foreach ($baselineName in $baselineLines)
+        {
+            @{ Name = $baselineName; IsExported = ($exportedTestCases.Name -contains $baselineName) }
+        }
+    )
+
     # Script Analyzer covers exported and private functions.
     $allModuleFunctions = & $mut { Get-Command -Module $args[0] -CommandType Function } $script:moduleName
     $allTestCases = @(
@@ -151,8 +160,42 @@ Describe 'General module control' -Tags 'FunctionalQuality' {
 }
 
 Describe 'Quality for module' -Tags 'TestQuality' {
-    It 'Should have a unit test for <Name>' -ForEach $exportedTestCases {
-        Get-ChildItem -Path 'tests\' -Recurse -Include "$Name.Tests.ps1" | Should -Not -BeNullOrEmpty
+    BeforeAll {
+        $unitTestRoot = Join-Path -Path $projectPath -ChildPath 'tests'
+        $baselineFile = Join-Path -Path $PSScriptRoot -ChildPath 'UnitTestBaseline.txt'
+    }
+
+    It 'Should have a unit test or a baseline entry for <Name>' -ForEach $exportedTestCases {
+        $unitTestFile = Get-ChildItem -Path $unitTestRoot -Recurse -Filter "$Name.Tests.ps1"
+        $baseline = [System.IO.File]::ReadAllLines($baselineFile)
+
+        ($unitTestFile -or ($baseline -contains $Name)) |
+            Should -BeTrue -Because "$Name has no $Name.Tests.ps1 under tests\. Write the unit test; do not add $Name to UnitTestBaseline.txt"
+    }
+
+    # An empty baseline gives no cases; Pester 5 fails on an empty -ForEach, so the It is only emitted when there are entries.
+    if ($baselineTestCases.Count -gt 0)
+    {
+        It 'Should still need the baseline entry <Name>' -ForEach $baselineTestCases {
+            $unitTestFile = Get-ChildItem -Path $unitTestRoot -Recurse -Filter "$Name.Tests.ps1"
+
+            $IsExported | Should -BeTrue -Because "$Name is not an exported function any more. Remove it from UnitTestBaseline.txt"
+            $unitTestFile | Should -BeNullOrEmpty -Because "$Name now has a unit test. Remove it from UnitTestBaseline.txt"
+        }
+    }
+
+    It 'Should keep the baseline sorted and unique' {
+        $baseline = [string[]][System.IO.File]::ReadAllLines($baselineFile)
+        $sorted = [string[]] $baseline.Clone()
+        [System.Array]::Sort($sorted, [System.StringComparer]::Ordinal)
+
+        $blank = @($baseline | Where-Object -FilterScript { [string]::IsNullOrWhiteSpace($_) })
+        $blank | Should -BeNullOrEmpty -Because 'the baseline must have one name per line and no blank lines'
+
+        $duplicate = @($baseline | Group-Object | Where-Object -FilterScript { $_.Count -gt 1 }).Name
+        $duplicate | Should -BeNullOrEmpty -Because 'each name may appear only once in UnitTestBaseline.txt'
+
+        ($baseline -join "`n") | Should -BeExactly ($sorted -join "`n") -Because 'UnitTestBaseline.txt must be sorted ordinal'
     }
 
     It 'Should pass Script Analyzer for <Name>' -ForEach $allTestCases -Skip:(-not $scriptAnalyzerRules) {
