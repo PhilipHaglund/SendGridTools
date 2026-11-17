@@ -31,14 +31,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `New-SGCombinedDomain` now passes `-OnBehalfOf` on when it creates the branded link.
 - `Send-SGMailMessage` reads attachment content from the attachment stream instead of a file path, so attachments built from streams are sent.
-- Module manifest: corrected the version and added the `PSEdition_Desktop` tag.
+- The module manifest carries the `PSEdition_Desktop` tag, so the module is found as Windows PowerShell compatible on the Gallery.
 
 ## [0.4.6] - 2024-08-15
 
 ### Changed
 
 - Made it Windows PowerShell 5.1 compatible by using ArgumentCompleter instead of using " : System.Management.Automation.IValidateSetValuesGenerator"
-- `New-SGApiKey`: the `-Scopes` parameter is now `-Scope`, with tab completion of valid scopes.
+- `New-SGApiKey`: the `-Scopes` parameter was renamed `-Scope` (no alias), with tab completion of valid scopes.
 - `Connect-SendGrid` no longer passes `-Title` to the credential prompt.
 
 ## [0.4.5] - 2024-08-15
@@ -59,10 +59,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.4.3] - 2024-08-12
 
+### Added
+
+- Eight commands now take piped objects through a new `-InputObject` parameter: `Confirm-SGBrandedDomainLink`, `Remove-SGApiKey`, `Remove-SGBounce`, `Remove-SGBrandedDomainLink`, `Remove-SGSuppressionGroup`, `Set-SGApiKey`, `Set-SGBrandedDomainLink` and `Set-SGSuppressionGroup`.
+
 ### Fixed
 
-- The `-InputObject` parameter was missing on eight commands and is restored: `Confirm-SGBrandedDomainLink`, `Remove-SGApiKey`, `Remove-SGBounce`, `Remove-SGBrandedDomainLink`, `Remove-SGSuppressionGroup`, `Set-SGApiKey`, `Set-SGBrandedDomainLink` and `Set-SGSuppressionGroup`.
-- `Confirm-SGBrandedDomainLink`, `Get-SGBrandedDomainLink` and `Remove-SGBrandedDomainLink` take several ids, and `Get-SGBrandedDomainLink` finds a link by `-DomainName`.
+- `Confirm-SGBrandedDomainLink` and `Remove-SGBrandedDomainLink` take several ids, and `Get-SGBrandedDomainLink` now finds a link by `-DomainName`.
 - `New-SGCombinedDomain` accepts a custom DKIM selector of one to three characters.
 
 ## [0.4.2] - 2024-08-12
