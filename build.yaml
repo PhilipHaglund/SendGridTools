@@ -76,9 +76,19 @@ BuildWorkflow:
   # main publishes a preview to the PowerShell Gallery, and a `v<X.Y.Z>` tag publishes the full
   # release. Both call Publish-PSResource against the built version folder.
   #
-  # `./build.ps1 -Tasks publish` therefore stays unresolvable on purpose. There is no local
-  # publishing path at all: a publish happens on a runner, from an artefact whose per-file SHA-256
-  # matches what the required checks tested, or it does not happen.
+  # No workflow alias in this file publishes, and `./build.ps1 -Tasks publish` is unresolvable on
+  # purpose. The only publish path this repository offers is the runner: from an artefact whose
+  # per-file SHA-256 matches what the required checks tested.
+  #
+  # The Sampler and Sampler.GitHubTasks tasks are still imported through ModuleBuildTasks below
+  # (dropping that import would break the build), so these remain callable by name, directly:
+  # publish_module_to_gallery, publish_module_to_psresource_gallery and publish_nupkg_to_gallery
+  # (each guarded by `-if ($GalleryApiToken ...)`), Publish_release_to_GitHub (guarded by
+  # `-if ($GitHubToken ...)`), and Create_Release_Git_Tag, Push_Chocolatey_Package and
+  # Deploy_with_PSDeploy (no token `-if` guard: they depend on git credentials, a Chocolatey push
+  # source and key, and PSDeploy configuration respectively). Checked against Sampler 0.120.1 and
+  # Sampler.GitHubTasks 0.5.0. NEVER call any of them by name. The token-guarded ones skip without
+  # a token, and no token is ever set locally.
   #
   # Restoring Publish_Release_To_GitHub and publish_module_to_gallery instead was considered and
   # rejected. The behaviour below was measured in the model repository for this setup, not read
