@@ -69,6 +69,40 @@ Describe 'API key exposure' {
     }
 }
 
+Describe 'Leak detector self-test' {
+    # Proves Get-SgtLeakText sees the placeholder on every channel, so a green security test is not vacuous.
+    # The planting code runs in module scope, the same path the real cases use.
+    It 'Detects the placeholder planted through <Channel>' -ForEach @(
+        @{ Channel = 'Write-Verbose' }
+        @{ Channel = 'Write-Debug' }
+        @{ Channel = 'output' }
+        @{ Channel = 'throw' }
+        @{ Channel = 'ErrorDetails message' }
+        @{ Channel = 'ErrorDetails message passed through SendGrid error formatting' }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ Channel = $Channel } {
+            $Leak = Get-SgtLeakText -Action {
+                switch ($Channel) {
+                    'Write-Verbose' { Write-Verbose -Message 'planted test-key-not-real' }
+                    'Write-Debug' { Write-Debug -Message 'planted test-key-not-real' }
+                    'output' { 'planted test-key-not-real' }
+                    'throw' { throw 'planted test-key-not-real' }
+                    'ErrorDetails message' { throw (New-SgtErrorRecord -Message 'http failure' -Details '{"errors":[{"message":"planted test-key-not-real"}]}') }
+                    default { throw ('SendGrid Error: "{0}"' -f 'planted test-key-not-real') }
+                }
+            }
+            $Leak.Text | Should -BeLike '*test-key-not-real*'
+        }
+    }
+
+    It 'Reports no hit for an action that plants nothing' {
+        InModuleScope SendGridTools {
+            $Leak = Get-SgtLeakText -Action { Write-Verbose -Message 'nothing here'; 'plain output' }
+            $Leak.Text | Should -Not -BeLike '*test-key-not-real*'
+        }
+    }
+}
+
 Describe 'Network tripwire' {
     It 'Made no unmocked network call' {
         Get-SgtUnmockedNetworkCall | Should -BeNullOrEmpty
