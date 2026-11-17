@@ -13,6 +13,13 @@ BeforeDiscovery {
 
     $script:moduleName = $ProjectName
 
+    # Shells for the fresh-process import test. Windows PowerShell 5.1 has no $IsWindows, so test $env:OS.
+    $script:shellTestCases = @(@{ Shell = 'pwsh' })
+    if ($env:OS -eq 'Windows_NT')
+    {
+        $script:shellTestCases += @{ Shell = 'powershell.exe' }
+    }
+
     $sourcePath = (
         Get-ChildItem -Path $projectPath\*\*.psd1 |
             Where-Object -FilterScript {
@@ -195,6 +202,47 @@ Describe 'General module control' -Tags 'FunctionalQuality' {
     It 'Should import without errors' {
         { Import-Module -Name $script:moduleName -Force -ErrorAction Stop } | Should -Not -Throw
         Get-Module -Name $script:moduleName | Should -Not -BeNullOrEmpty
+    }
+
+    It 'Should import in a new <Shell> process without running a command' -ForEach $script:shellTestCases {
+        $manifestPath = (Get-Module -Name $script:moduleName -ListAvailable | Select-Object -First 1).Path
+        $manifestPath | Should -Not -BeNullOrEmpty -Because 'the built module must resolve from PSModulePath; run ./build.ps1 -Tasks build first'
+
+        $shellCommand = Get-Command -Name $Shell -ErrorAction SilentlyContinue
+        $shellCommand | Should -Not -BeNullOrEmpty -Because "the shell '$Shell' must be installed to prove the built module imports in a fresh process (a missing shell is a failure, not a skip)"
+
+        $quotedPath = $manifestPath.Replace("'", "''")
+        $childCommand = "`$ErrorActionPreference = 'Stop'; Import-Module -Name '$quotedPath' -Force -ErrorAction Stop; 'SGT-IMPORT-OK'"
+        $encoded = [System.Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($childCommand))
+
+        # A stderr line from the child under 2>&1 must not become a terminating error under a parent with Stop.
+        $ErrorActionPreference = 'Continue'
+        $output = @(& $shellCommand.Source -NoProfile -NonInteractive -EncodedCommand $encoded 2>&1 | ForEach-Object -Process { "$_" })
+        $childOutput = $output -join "`n"
+
+        $LASTEXITCODE | Should -Be 0 -Because "the child $Shell process must import the module without error. Child output: $childOutput"
+        $childOutput | Should -Match 'SGT-IMPORT-OK'
+    }
+
+    It 'Should export one function per file in source/Public' {
+        # Count from the imported module, not from the manifest: the manifest lists names, the import proves they exist.
+        $manifestPath = (Get-Module -Name $script:moduleName -ListAvailable | Select-Object -First 1).Path
+        $manifestPath | Should -Not -BeNullOrEmpty -Because 'the built module must resolve from PSModulePath; run ./build.ps1 -Tasks build first'
+
+        $importedModule = Import-Module -Name $manifestPath -Force -PassThru -ErrorAction Stop
+        $exportedNames = @($importedModule.ExportedFunctions.Keys | Sort-Object)
+        $publicNames = @(
+            Get-ChildItem -Path (Join-Path -Path $sourcePath -ChildPath 'Public') -Filter '*.ps1' -File |
+                ForEach-Object -Process { $_.BaseName } |
+                Sort-Object
+        )
+
+        $notExported = @($publicNames | Where-Object -FilterScript { $_ -notin $exportedNames })
+        $noPublicFile = @($exportedNames | Where-Object -FilterScript { $_ -notin $publicNames })
+        $exportedNames.Count | Should -Be $publicNames.Count -Because (
+            "source/Public has $($publicNames.Count) files and the module exports $($exportedNames.Count) functions. " +
+            "In source/Public but not exported: [$($notExported -join ', ')]. Exported but with no file of that name: [$($noPublicFile -join ', ')]"
+        )
     }
 
     It 'Should remove without error' {

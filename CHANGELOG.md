@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The changelog now lists every released version.
 - The README states the real requirements (Windows PowerShell 5.1 or PowerShell 7) and the install and build steps.
 - `about_SendGridTools` now has real content.
+- The transport (the internal session class and `Invoke-SendGrid`) now has unit tests with mocked HTTP; the code coverage threshold is raised from 0 to 9, and the tests check that the API key never appears in errors, verbose, debug or output.
+- The build now imports only the four Sampler task files that build and test use, so the publish and tag tasks are no longer defined and the `pack` workflow alias is gone.
+- A quality test now checks that the number of exported functions equals the number of files in `source/Public`.
 
 ### Removed
 
@@ -19,7 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Help for `New-SGAuthenticatedDomain`, `New-SGBrandedDomainLink` and `New-SGCombinedDomain` no longer documents a `-Force` parameter they do not have, and help for `Get-SGBounce` and `Get-SGBlock` no longer states a 500-item limit for `-Limit`.
+- The module now imports in a new Windows PowerShell 5.1 session. The four `InvokeQuery` methods of the internal session class named a type that 5.1 has not loaded when the module is parsed; a quality test now imports the built module in a new PowerShell 7 process and, on Windows, a new Windows PowerShell process.
+- Help for `New-SGAuthenticatedDomain`, `New-SGBrandedDomainLink` and `New-SGCombinedDomain` no longer documents a `-Force` parameter they do not have, and help for `Get-SGBounce`, `Get-SGBlock`, `Get-SGGlobalSuppression`, `Get-SGInvalidEmail` and `Get-SGSpamReport` no longer states a 500-item limit.
+- Help for `Connect-SendGrid` now gives the real session lifetime of one hour (it said 12 hours), and the first `New-SGBrandedDomainLink` example names the link it asks for.
 
 ## [0.4.7] - 2025-11-08
 

@@ -16,7 +16,7 @@
         Refers to the end of the time range in Unix timestamp when a spam report was created (inclusive).
 
     .PARAMETER Limit
-        Sets the page size, i.e., the maximum number of items from the list to be returned for a single API request. If omitted, the default page size is used. The maximum page size for this endpoint is 500 items per page.
+        Sets the page size. The value is sent as the limit query parameter of each request the function sends; with -EmailAddress, one request is sent per address. If omitted, or if 0, no limit is sent and SendGrid's default page size applies. The module does not check an upper bound for the value.
 
     .PARAMETER Offset
         The number of items in the list to skip over before starting to retrieve the items for the requested page. The default offset of 0 represents the beginning of the list, i.e., the start of the first page. To request the second page of the list, set the offset to the page size as determined by Limit. Use multiples of the page size as your offset to request further consecutive pages.
@@ -93,7 +93,7 @@
         )]
         [UnixTime]$EndTime,
 
-        # Sets the page size, i.e., the maximum number of items from the list to be returned for a single API request. If omitted, the default page size is used. The maximum page size for this endpoint is 500 items per page.
+        # Sets the page size. The value is sent as the limit query parameter of each request the function sends; with -EmailAddress, one request is sent per address. If omitted, or if 0, no limit is sent and SendGrid's default page size applies. The module does not check an upper bound for the value.
         [Parameter(
             Position = 3
         )]
