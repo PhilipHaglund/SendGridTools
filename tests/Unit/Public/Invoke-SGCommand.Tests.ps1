@@ -111,6 +111,36 @@ Describe 'Invoke-SGCommand request' {
         }
     }
 
+    It 'Sends <Url> only to the session host' -ForEach @(
+        @{ Url = 'https://api.sendgrid.com//evil.example.net/x' }
+        @{ Url = 'https://api.sendgrid.com/v3/@evil.example.net/x' }
+        @{ Url = '//evil.example.net/x' }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Url = $Url } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            $script:Session._BaseURL = [uri]'https://api.sendgrid.com/v3'
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ ok = 1 })
+
+            $null = Invoke-SGCommand -Namespace $Url -Confirm:$false
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            ([uri]$Calls[0].Uri).Host | Should -Be 'api.sendgrid.com'
+        }
+    }
+
+    It 'Refuses a foreign full URL under -WhatIf and makes no request' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            $script:Session._BaseURL = [uri]'https://api.sendgrid.com/v3'
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ ok = 1 })
+
+            { Invoke-SGCommand -Namespace 'https://example.net/v3/scopes' -WhatIf } | Should -Throw 'Refusing to send the request to*'
+
+            Get-SgtNetworkCall | Should -BeNullOrEmpty
+        }
+    }
+
     It 'Refuses a full URL when there is no session' {
         InModuleScope SendGridTools {
             $script:Session = $null
