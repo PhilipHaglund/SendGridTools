@@ -39,6 +39,24 @@ Describe 'Invoke-SendGrid without a session' {
     }
 }
 
+Describe 'Invoke-SendGrid with an expired session' {
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Throws the expired-session error for an expired session' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Set-SgtNetworkStub -Response $null
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 2
+            { Invoke-SendGrid -Method Get -Namespace 'scopes' } | Should -Throw -ExpectedMessage 'The SendGrid session has expired. Run Connect-SendGrid -Force to reconnect.'
+            Get-SgtNetworkCall | Should -BeNullOrEmpty
+        }
+    }
+}
+
 Describe 'Invoke-SendGrid with a connected session' {
     AfterEach {
         InModuleScope SendGridTools {

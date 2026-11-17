@@ -66,15 +66,14 @@
 
     )
 
-    begin {
+    process {
         [hashtable]$ContentBody = [ordered]@{
             username = $Username
             email    = $Email.Address
             password = [System.Net.NetworkCredential]::new('', $Password).Password
-            ips      = @($IPs.IPAddressToString)
+            ips      = @($Ips.IPAddressToString)
         }
-    }
-    process {
+
         $InvokeSplat = @{
             Method        = 'Post'
             Namespace     = 'subusers'

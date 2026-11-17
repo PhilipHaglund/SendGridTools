@@ -1,7 +1,7 @@
 BeforeDiscovery {
     . (Join-Path -Path $PSScriptRoot -ChildPath '../Support/SessionHelpers.ps1')
     $script:Cases = @(Get-SgtOverloadCase)
-    $script:NeverConnectedCases = @(Get-SgtOverloadCase | Where-Object { -not $_.HasBody })
+    $script:NeverConnectedCases = @(Get-SgtOverloadCase)
 }
 
 BeforeAll {
@@ -119,7 +119,7 @@ Describe 'SendGridSession Connect with stored credential' {
         InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
             Set-SgtNetworkStub -Response $null
             $Session = New-SgtTestSession -Credential $Cred -AgeHours 2
-            { $Session.Connect() } | Should -Throw -ExpectedMessage 'Session lifetime exceeded, reconnect.'
+            { $Session.Connect() } | Should -Throw -ExpectedMessage 'The SendGrid session has expired. Run Connect-SendGrid -Force to reconnect.'
             Get-SgtNetworkCall | Should -BeNullOrEmpty
             $Session._Credential | Should -BeNullOrEmpty
             $Session._Connected | Should -BeFalse
@@ -207,12 +207,11 @@ Describe 'SendGridSession InvokeQuery <Name>' -ForEach $script:Cases {
         }
     }
 
-    It 'Returns the lifetime message, disconnects and makes no request when the session is expired' {
+    It 'Throws the expired-session error, disconnects and makes no request when the session is expired' {
         InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Case = $script:Case } {
             Set-SgtNetworkStub -Response $null
             $Session = New-SgtTestSession -Credential $Cred -AgeHours 2
-            $Result = Invoke-SgtOverload -Session $Session -Case $Case
-            @($Result)[0] | Should -Be 'Session lifetime exceeded, reconnect.'
+            { Invoke-SgtOverload -Session $Session -Case $Case } | Should -Throw -ExpectedMessage 'The SendGrid session has expired. Run Connect-SendGrid -Force to reconnect.'
             Get-SgtNetworkCall | Should -BeNullOrEmpty
             $Session._Connected | Should -BeFalse
             $Session._Credential | Should -BeNullOrEmpty
@@ -229,6 +228,22 @@ Describe 'SendGridSession InvokeQuery on a never-connected session <Name>' -ForE
         InModuleScope SendGridTools -Parameters @{ Case = @{ Name = $Name; Method = $Method; Endpoint = $Endpoint; HasBody = $HasBody; HasObo = $HasObo; Body = $Body; Obo = $Obo } } {
             Set-SgtNetworkStub -Response $null
             $Session = [SendGridSession]::new()
+            { Invoke-SgtOverload -Session $Session -Case $Case } | Should -Throw -ExpectedMessage 'You must call the Connect-SendGrid cmdlet before calling any other cmdlets.'
+            Get-SgtNetworkCall | Should -BeNullOrEmpty
+        }
+    }
+}
+
+Describe 'SendGridSession InvokeQuery after Disconnect <Name>' -ForEach $script:NeverConnectedCases {
+    AfterEach {
+        InModuleScope SendGridTools { Reset-SgtNetworkStub }
+    }
+
+    It 'Throws the connect-first error after Disconnect (<Name>)' {
+        InModuleScope SendGridTools -Parameters @{ Case = @{ Name = $Name; Method = $Method; Endpoint = $Endpoint; HasBody = $HasBody; HasObo = $HasObo; Body = $Body; Obo = $Obo } } {
+            Set-SgtNetworkStub -Response $null
+            $Session = [SendGridSession]::new()
+            $Session.Disconnect()
             { Invoke-SgtOverload -Session $Session -Case $Case } | Should -Throw -ExpectedMessage 'You must call the Connect-SendGrid cmdlet before calling any other cmdlets.'
             Get-SgtNetworkCall | Should -BeNullOrEmpty
         }
