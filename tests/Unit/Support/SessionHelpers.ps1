@@ -66,12 +66,19 @@ function Install-SgtSessionHelper {
             $Streams = try { & $Action *>&1 } catch { $Thrown = $_ } finally { $global:VerbosePreference = $SavedVerbose; $global:DebugPreference = $SavedDebug }
             $Text = [System.Collections.Generic.List[string]]::new()
             $Text.Add(($Streams | Out-String))
+            # Output objects (not records) are also serialised, so a nested dictionary shows in full and in key order.
+            $Output = [System.Collections.Generic.List[object]]::new()
+            foreach ($Object in @($Streams)) {
+                if ($null -eq $Object -or $Object -is [System.Management.Automation.InformationalRecord] -or $Object -is [System.Management.Automation.ErrorRecord] -or $Object -is [System.Management.Automation.InformationRecord]) { continue }
+                $Output.Add($Object)
+                try { $Text.Add((ConvertTo-Json -InputObject $Object -Depth 6 -Compress)) } catch { $Text.Add([string]$Object) }
+            }
             if ($Thrown) {
                 $Text.Add([string]$Thrown.Exception.Message)
                 $Text.Add([string]$Thrown.ToString())
                 $Text.Add(($Thrown | Out-String))
             }
-            [pscustomobject]@{ Text = ($Text -join "`n"); Threw = ($null -ne $Thrown); Verbose = (($Streams | Where-Object { $_ -is [System.Management.Automation.VerboseRecord] } | ForEach-Object { $_.Message }) -join "`n") }
+            [pscustomobject]@{ Text = ($Text -join "`n"); Output = $Output.ToArray(); Threw = ($null -ne $Thrown); Verbose = (($Streams | Where-Object { $_ -is [System.Management.Automation.VerboseRecord] } | ForEach-Object { $_.Message }) -join "`n") }
         }
         function Script:Invoke-SgtTarget {
             param([string]$Target, [hashtable]$Case, [pscredential]$Credential)

@@ -194,7 +194,7 @@ class SendGridSession {
     #>
     [PSCustomObject[]] InvokeQuery ([string]$WebRequestMethod, [string]$Endpoint, [hashtable]$ContentBody) {
         foreach ($Key in $ContentBody.Keys) {
-            Write-Verbose -Message ('ContentBody: Key: {0}, Value: {1}, Type:{2}' -f $Key, $ContentBody[$Key], $ContentBody[$Key].GetType())
+            Write-Verbose -Message ('ContentBody: Key: {0}, Type: {1}' -f $Key, $ContentBody[$Key].GetType())
         }
         $Body = $ContentBody | ConvertTo-Json -Depth 5 -ErrorAction Stop
         $SessionLifeTime = (Get-Date).AddHours(-1)

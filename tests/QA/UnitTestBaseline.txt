@@ -35,7 +35,6 @@ New-SGApiKey
 New-SGAuthenticatedDomain
 New-SGBrandedDomainLink
 New-SGCombinedDomain
-New-SGSubuser
 New-SGSuppressionGroup
 Remove-SGAlert
 Remove-SGApiKey
