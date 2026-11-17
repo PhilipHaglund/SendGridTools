@@ -31,7 +31,7 @@ Describe 'New-SGBrandedDomainLink request' {
 
             $null = New-SGBrandedDomainLink -Domain 'example.com' -SendGridSubDomain 'link' -Confirm:$false
 
-            $Calls = @(Get-SgtNetworkCall)
+            $Calls = Get-SgtNetworkCall
             $Calls.Count | Should -Be 1
             $Calls[0].Method | Should -Be 'Post'
             "$($Calls[0].Uri)" | Should -BeLike '*/whitelabel/links'
@@ -60,7 +60,7 @@ Describe 'New-SGBrandedDomainLink request' {
 
             $null = New-SGBrandedDomainLink -Domain 'example.com' -Confirm:$false
 
-            $Calls = @(Get-SgtNetworkCall)
+            $Calls = Get-SgtNetworkCall
             $Calls.Count | Should -Be 1
             $Calls[0].Method | Should -Be 'Post'
             $Sent = $Calls[0].Body | ConvertFrom-Json
@@ -77,6 +77,33 @@ Describe 'New-SGBrandedDomainLink request' {
 
             $Leak.Verbose | Should -BeLike '*"example.com"*'
             $Leak.Verbose | Should -Not -BeLike '*".example.com"*'
+        }
+    }
+
+    It 'Sets the on-behalf-of header and adds nothing to the body' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $null = New-SGBrandedDomainLink -Domain 'example.com' -OnBehalfOf 'subuser-placeholder' -Confirm:$false
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Calls[0].Headers['on-behalf-of'] | Should -Be 'subuser-placeholder'
+            $Sent = $Calls[0].Body | ConvertFrom-Json
+            @($Sent.PSObject.Properties.Name | Sort-Object) | Should -Be @('domain')
+        }
+    }
+
+    It 'Makes no call under WhatIf' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $null = New-SGBrandedDomainLink -Domain 'example.com' -SendGridSubDomain 'link' -WhatIf
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 0
         }
     }
 }

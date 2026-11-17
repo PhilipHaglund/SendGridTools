@@ -95,6 +95,47 @@ Describe 'Set-SGAuthenticatedDomain request' {
             }
         }
     }
+
+    It 'Sets the on-behalf-of header on every call for two ids' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $null = Set-SGAuthenticatedDomain -UniqueId '1001', '1002' -SetDefault -OnBehalfOf 'subuser-placeholder' -Confirm:$false
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 2
+            foreach ($Call in $Calls) {
+                $Call.Headers['on-behalf-of'] | Should -Be 'subuser-placeholder'
+            }
+        }
+    }
+
+    It 'Reaches the same Uri through the Id alias' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $null = Set-SGAuthenticatedDomain -Id '1001' -SetDefault -Confirm:$false
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Calls[0].Method | Should -Be 'Patch'
+            "$($Calls[0].Uri)" | Should -BeLike '*/whitelabel/domains/1001'
+        }
+    }
+
+    It 'Names each domain as the ShouldProcess target' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $Leak = Get-SgtLeakText -Action { Set-SGAuthenticatedDomain -UniqueId '1001', '1002' -SetDefault -Confirm:$false -Verbose }
+
+            $Leak.Verbose | Should -BeLike '*"Authenticated Domain 1001"*'
+            $Leak.Verbose | Should -BeLike '*"Authenticated Domain 1002"*'
+        }
+    }
 }
 
 Describe 'Network tripwire' {

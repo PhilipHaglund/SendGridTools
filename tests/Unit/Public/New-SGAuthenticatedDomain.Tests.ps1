@@ -33,7 +33,7 @@ Describe 'New-SGAuthenticatedDomain request' {
 
             $null = New-SGAuthenticatedDomain -Domain 'example.com' -SendGridSubdomain 'email' -Confirm:$false
 
-            $Calls = @(Get-SgtNetworkCall)
+            $Calls = Get-SgtNetworkCall
             $Calls.Count | Should -Be 1
             $Calls[0].Method | Should -Be 'Post'
             "$($Calls[0].Uri)" | Should -BeLike '*/whitelabel/domains'
@@ -63,7 +63,7 @@ Describe 'New-SGAuthenticatedDomain request' {
 
             $null = New-SGAuthenticatedDomain -Domain 'example.com' -Confirm:$false
 
-            $Calls = @(Get-SgtNetworkCall)
+            $Calls = Get-SgtNetworkCall
             $Calls.Count | Should -Be 1
             $Calls[0].Method | Should -Be 'Post'
             $Sent = $Calls[0].Body | ConvertFrom-Json
@@ -80,6 +80,94 @@ Describe 'New-SGAuthenticatedDomain request' {
 
             $Leak.Verbose | Should -BeLike '*"example.com"*'
             $Leak.Verbose | Should -Not -BeLike '*".example.com"*'
+        }
+    }
+
+    It 'Sends the username it is given' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $null = New-SGAuthenticatedDomain -Domain 'example.com' -Username 'subuser-placeholder' -Confirm:$false
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Sent = $Calls[0].Body | ConvertFrom-Json
+            @($Sent.PSObject.Properties.Name | Sort-Object) | Should -Be @('automatic_security', 'domain', 'username')
+            $Sent.username | Should -Be 'subuser-placeholder'
+        }
+    }
+
+    It 'Sends automatic security as false when it is disabled' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $null = New-SGAuthenticatedDomain -Domain 'example.com' -DisableAutomaticSecurity -Confirm:$false
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Sent = $Calls[0].Body | ConvertFrom-Json
+            @($Sent.PSObject.Properties.Name | Sort-Object) | Should -Be @('automatic_security', 'domain')
+            $Sent.automatic_security | Should -BeFalse
+        }
+    }
+
+    It 'Adds the custom SPF flag when automatic security is disabled and custom SPF is given' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $null = New-SGAuthenticatedDomain -Domain 'example.com' -DisableAutomaticSecurity -CustomSPF -Confirm:$false
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Sent = $Calls[0].Body | ConvertFrom-Json
+            @($Sent.PSObject.Properties.Name | Sort-Object) | Should -Be @('automatic_security', 'custom_spf', 'domain')
+            $Sent.automatic_security | Should -BeFalse
+            $Sent.custom_spf | Should -BeTrue
+        }
+    }
+
+    It 'Sends the custom DKIM selector it is given' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $null = New-SGAuthenticatedDomain -Domain 'example.com' -CustomDkimSelector 'abc' -Confirm:$false
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Sent = $Calls[0].Body | ConvertFrom-Json
+            @($Sent.PSObject.Properties.Name | Sort-Object) | Should -Be @('automatic_security', 'custom_dkim_selector', 'domain')
+            $Sent.custom_dkim_selector | Should -Be 'abc'
+        }
+    }
+
+    It 'Sets the on-behalf-of header and adds nothing to the body' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $null = New-SGAuthenticatedDomain -Domain 'example.com' -OnBehalfOf 'subuser-placeholder' -Confirm:$false
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Calls[0].Headers['on-behalf-of'] | Should -Be 'subuser-placeholder'
+            $Sent = $Calls[0].Body | ConvertFrom-Json
+            @($Sent.PSObject.Properties.Name | Sort-Object) | Should -Be @('automatic_security', 'domain')
+        }
+    }
+
+    It 'Makes no call under WhatIf' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $null = New-SGAuthenticatedDomain -Domain 'example.com' -SendGridSubdomain 'email' -WhatIf
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 0
         }
     }
 }

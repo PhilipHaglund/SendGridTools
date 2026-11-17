@@ -65,6 +65,52 @@ Describe 'New-SGCombinedDomain request' {
             @($SentLink.PSObject.Properties.Name | Sort-Object) | Should -Be @('domain')
         }
     }
+
+    It 'Sends the manual security flags and the subdomain to the authenticated domain and only the domain and subdomain to the link' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $null = New-SGCombinedDomain -Domain 'example.com' -SendGridSubDomain 'email' -DisableAutomaticSecurity -CustomSPF -Confirm:$false
+
+            $All = Get-SgtNetworkCall
+            $Calls = @($All | Where-Object { $_.Method -ne 'Get' })
+            $Calls.Count | Should -Be 2
+            $SentDomain = $Calls[0].Body | ConvertFrom-Json
+            @($SentDomain.PSObject.Properties.Name | Sort-Object) | Should -Be @('automatic_security', 'custom_spf', 'domain', 'subdomain')
+            $SentDomain.automatic_security | Should -BeFalse
+            $SentDomain.custom_spf | Should -BeTrue
+            $SentDomain.subdomain | Should -Be 'email'
+            $SentLink = $Calls[1].Body | ConvertFrom-Json
+            @($SentLink.PSObject.Properties.Name | Sort-Object) | Should -Be @('domain', 'subdomain')
+        }
+    }
+
+    It 'Throws and makes no call when custom SPF is given without disabling automatic security' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            { New-SGCombinedDomain -Domain 'example.com' -CustomSPF -Confirm:$false } | Should -Throw
+
+            $All = Get-SgtNetworkCall
+            $Calls = @($All | Where-Object { $_.Method -ne 'Get' })
+            $Calls.Count | Should -Be 0
+        }
+    }
+
+    It 'Makes no call under WhatIf' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $null = New-SGCombinedDomain -Domain 'example.com' -SendGridSubDomain 'email' -WhatIf
+
+            $All = Get-SgtNetworkCall
+            $Calls = @($All | Where-Object { $_.Method -ne 'Get' })
+            $Calls.Count | Should -Be 0
+        }
+    }
 }
 
 Describe 'Network tripwire' {
