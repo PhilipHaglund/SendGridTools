@@ -223,7 +223,8 @@ Describe 'New-SGAuthenticatedDomain request' {
             $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
             Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
 
-            { New-SGAuthenticatedDomain -Domain 'example.com' -CustomSPF -Confirm:$false } | Should -Throw -ErrorId 'AmbiguousPositionalParameterNoName*'
+            # -CustomSPF exists only with -DisableAutomaticSecurity, so binding fails. The error id is an ambiguity error today because Username and the dynamic IPAddress share position 2; assert the binding failure, not that id.
+            { New-SGAuthenticatedDomain -Domain 'example.com' -CustomSPF -Confirm:$false } | Should -Throw -ExceptionType ([System.Management.Automation.ParameterBindingException])
 
             $Calls = Get-SgtNetworkCall
             $Calls.Count | Should -Be 0
