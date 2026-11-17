@@ -27,7 +27,6 @@
         To use this function, you must be connected to a SendGrid instance. Use the Connect-SendGrid function to establish a connection.
 
     #>
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseOutputTypeCorrectly', '', Justification = 'Declaring the Hashtable output type would change the OutputType metadata exposed by Get-Command and help; the repair is deferred so the public surface stays unchanged.')]
     [CmdletBinding(
         SupportsShouldProcess
     )]
@@ -86,7 +85,6 @@
         $InvokeSplat.Add('ContentBody', $ContentBody)
         if ($PSCmdlet.ShouldProcess($Username)) {
             try {
-                $InvokeSplat
                 Invoke-SendGrid @InvokeSplat
             }
             catch {

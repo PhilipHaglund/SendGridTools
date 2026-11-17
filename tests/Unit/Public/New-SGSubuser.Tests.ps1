@@ -52,6 +52,67 @@ Describe 'New-SGSubuser request' {
     }
 }
 
+Describe 'New-SGSubuser password exposure' {
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Does not show the password (<Scenario>)' -ForEach @(
+        @{ Scenario = 'success' }
+        @{ Scenario = 'failure with error details' }
+        @{ Scenario = 'failure without error details' }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Scenario = $Scenario } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            switch ($Scenario) {
+                'success' { Set-SgtNetworkStub -Response ([pscustomobject]@{ username = 'subuser-placeholder'; user_id = 1; email = 'subuser@example.invalid' }) }
+                'failure with error details' { Set-SgtNetworkStub -Throw (New-SgtErrorRecord -Message 'http failure' -Details '{"errors":[{"message":"bad request"}]}') }
+                default { Set-SgtNetworkStub -Throw (New-SgtErrorRecord -Message 'http failure') }
+            }
+            $Password = ConvertTo-SecureString -String 'subuser-password-not-real' -AsPlainText -Force
+
+            $Leak = Get-SgtLeakText -Action { New-SGSubuser -Username 'subuser-placeholder' -Email 'subuser@example.invalid' -Password $Password -Ips '192.0.2.10' -Confirm:$false }
+
+            $Leak.Threw | Should -Be ($Scenario -ne 'success')
+            $Leak.Text | Should -Not -BeLike '*subuser-password-not-real*'
+
+            if ($Scenario -eq 'success') {
+                $Output = New-SGSubuser -Username 'subuser-placeholder' -Email 'subuser@example.invalid' -Password $Password -Ips '192.0.2.10' -Confirm:$false
+                @($Output | Where-Object { $_ -is [System.Collections.IDictionary] }).Count | Should -Be 0
+                ($Output | ConvertTo-Json -Depth 6 -Compress) | Should -Not -BeLike '*subuser-password-not-real*'
+            }
+        }
+    }
+
+    It 'Shows the body keys in verbose (positive control)' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ username = 'subuser-placeholder'; user_id = 1; email = 'subuser@example.invalid' })
+            $Password = ConvertTo-SecureString -String 'subuser-password-not-real' -AsPlainText -Force
+
+            $Leak = Get-SgtLeakText -Action { New-SGSubuser -Username 'subuser-placeholder' -Email 'subuser@example.invalid' -Password $Password -Ips '192.0.2.10' -Confirm:$false }
+
+            $Leak.Verbose | Should -BeLike '*ContentBody: Key: password, Type: System.String*'
+        }
+    }
+
+    It 'Sends nothing and shows no password with -WhatIf' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ username = 'subuser-placeholder' })
+            $Password = ConvertTo-SecureString -String 'subuser-password-not-real' -AsPlainText -Force
+
+            $Leak = Get-SgtLeakText -Action { New-SGSubuser -Username 'subuser-placeholder' -Email 'subuser@example.invalid' -Password $Password -Ips '192.0.2.10' -WhatIf }
+
+            Get-SgtNetworkCall | Should -BeNullOrEmpty
+            $Leak.Text | Should -Not -BeLike '*subuser-password-not-real*'
+        }
+    }
+}
+
 Describe 'Network tripwire' {
     It 'Made no unmocked network call' {
         Assert-SgtNetworkTripwireActive
