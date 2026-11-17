@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Help no longer documents a `-Force` parameter on the domain commands, nor a 500-item limit that the commands do not enforce.
+- Help for `New-SGAuthenticatedDomain`, `New-SGBrandedDomainLink` and `New-SGCombinedDomain` no longer documents a `-Force` parameter they do not have, and help for `Get-SGBounce` and `Get-SGBlock` no longer states a 500-item limit for `-Limit`.
 
 ## [0.4.7] - 2025-11-08
 
@@ -79,10 +79,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - 44 new commands, bringing the module to 61: alerts, blocks, bounces, invalid e-mails, spam reports, global suppressions, suppression groups, subusers, teammates, IP addresses, mail settings (address allow list, bounce purge, forward bounce, forward spam), designs, e-mail activity, `Set-SGAuthenticatedDomain`, `Set-SGBrandedDomainLink`, `New-SGCombinedDomain` and `Invoke-SGCommand`.
+- `-ShowDNS` on `Get-SGAuthenticatedDomain` and `Get-SGBrandedDomainLink`; `-Default` on `New-SGAuthenticatedDomain` and `New-SGBrandedDomainLink`; `-IPAddress` on `New-SGAuthenticatedDomain`; `-InputObject` on `Confirm-SGAuthenticatedDomain` and `Remove-SGAuthenticatedDomain`.
 
 ### Changed
 
-- `Remove-SMSGBrandedDomainLink` is renamed `Remove-SGBrandedDomainLink`.
+- `Remove-SGBrandedDomainLink` is now exported. 0.3.0 listed it as `Remove-SMSGBrandedDomainLink`, which could not be run.
+- Breaking for 0.3.0 scripts: `New-SGAuthenticatedDomain -Subdomain` is now `-SendGridSubdomain` and `New-SGBrandedDomainLink -Subdomain` is now `-SendGridSubDomain` (no alias on either). `New-SGAuthenticatedDomain -SubUser` is now `-Username`; the alias `SubUser` is kept.
+- Breaking for 0.3.0 scripts: `Remove-SGApiKey -ApiKeyId` and `Set-SGApiKey -ApiKeyID` are now `-UniqueId`, with the alias `Id` only, so the old name no longer works.
+- `Get-SGAuthenticatedDomain -UniqueId` is now `-Id`; the alias `UniqueId` is kept.
+
+### Removed
+
+- Breaking for 0.3.0 scripts: `-Force` is removed from `New-SGAuthenticatedDomain` and `New-SGBrandedDomainLink`.
 
 ## [0.3.0] - 2024-01-25
 
