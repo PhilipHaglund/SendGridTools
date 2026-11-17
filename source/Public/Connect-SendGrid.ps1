@@ -50,7 +50,7 @@
         Once the PowerShell session is closed, the variable storing the API key is discarded.
 
         In addition, the SendGridSession class has a built-in mechanism to limit session lifetime. It tracks the time when the session was last created
-        or refreshed, and if the last successful connection attempt was more than 12 hours ago, the class automatically disconnects the session.
+        or last used by a successful request, and if more than one hour has passed since then, the class automatically disconnects the session.
         This also removes the stored credential (API key) from memory. If you attempt to interact with the SendGrid API after the session has expired,
         you'll need to reconnect using your credentials. This is done to help ensure the security of your API key.
     #>

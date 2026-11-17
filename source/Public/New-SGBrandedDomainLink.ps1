@@ -24,7 +24,7 @@
     .EXAMPLE
         PS C:\> New-SGBrandedDomainLink -Domain 'example.com' -SendGridSubDomain 'link'
 
-        Adds a new branded domain link 'sub.example.com' with the subdomain 'link' using the specified API key.
+        Adds a new branded link 'link.example.com', which is the subdomain 'link' on the domain 'example.com'.
 
     .EXAMPLE
         PS C:\> New-SGBrandedDomainLink -Domain 'sub.example.com'
