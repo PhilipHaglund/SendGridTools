@@ -1,113 +1,221 @@
-$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+BeforeDiscovery {
+    $projectPath = "$($PSScriptRoot)\..\.." | Convert-Path
 
-# Convert-path required for PS7 or Join-Path fails
-$ProjectPath = "$here\..\.." | Convert-Path
-$ProjectName = (Get-ChildItem $ProjectPath\*\*.psd1 | Where-Object {
-    ($_.Directory.Name -match 'source|src' -or $_.Directory.Name -eq $_.BaseName) -and
-    $(try { Test-ModuleManifest $_.FullName -ErrorAction Stop }catch{$false}) }
-).BaseName
+    <#
+        If the QA tests are run outside of the build script (e.g with Invoke-Pester)
+        the parent scope has not set the variable $ProjectName.
+    #>
+    if (-not $ProjectName)
+    {
+        # Assuming project folder name is project name.
+        $ProjectName = Get-SamplerProjectName -BuildRoot $projectPath
+    }
 
-$SourcePath = (Get-ChildItem $ProjectPath\*\*.psd1 | Where-Object {
-        ($_.Directory.Name -match 'source|src' -or $_.Directory.Name -eq $_.BaseName) -and
-        $(try { Test-ModuleManifest $_.FullName -ErrorAction Stop }catch { $false }) }
+    $script:moduleName = $ProjectName
+
+    $sourcePath = (
+        Get-ChildItem -Path $projectPath\*\*.psd1 |
+            Where-Object -FilterScript {
+                ($_.Directory.Name -match 'source|src' -or $_.Directory.Name -eq $_.BaseName) `
+                    -and $(
+                    try
+                    {
+                        Test-ModuleManifest -Path $_.FullName -ErrorAction Stop
+                    }
+                    catch
+                    {
+                        $false
+                    }
+                )
+            }
     ).Directory.FullName
 
-$mut = Import-Module -Name $ProjectName -ErrorAction Stop -PassThru -Force
-$allModuleFunctions = &$mut {Get-Command -Module $args[0] -CommandType Function } $ProjectName
+    Remove-Module -Name $script:moduleName -Force -ErrorAction SilentlyContinue
 
-    Describe 'Changelog Management' -Tag 'Changelog' {
-        It 'Changelog has been updated' -skip:(
-            !([bool](Get-Command git -EA SilentlyContinue) -and
-              [bool](&(Get-Process -id $PID).Path -NoProfile -Command 'git rev-parse --is-inside-work-tree 2>$null'))
-            ) {
-            # Get the list of changed files compared with master
-            $HeadCommit = &git rev-parse HEAD
-            $MasterCommit = &git rev-parse origin/main
-            $filesChanged = &git @('diff', "$MasterCommit...$HeadCommit", '--name-only')
+    $mut = Get-Module -Name $script:moduleName -ListAvailable |
+        Select-Object -First 1 |
+            Import-Module -Force -ErrorAction Stop -PassThru
 
-            if ($HeadCommit -ne $MasterCommit) { # if we're not testing same commit (i.e. master..master)
-                $filesChanged.Where{ (Split-Path $_ -Leaf) -match '^changelog' } | Should -Not -BeNullOrEmpty
+    # Exported functions only: unit test and help requirements apply to the public surface.
+    $exportedTestCases = @(
+        foreach ($functionName in ($mut.ExportedFunctions.Keys | Sort-Object))
+        {
+            @{ Name = $functionName }
+        }
+    )
+
+    # Script Analyzer covers exported and private functions.
+    $allModuleFunctions = & $mut { Get-Command -Module $args[0] -CommandType Function } $script:moduleName
+    $allTestCases = @(
+        foreach ($function in ($allModuleFunctions | Sort-Object -Property Name))
+        {
+            @{ Name = $function.Name }
+        }
+    )
+
+    # One flat list of parameter cases, so a function without parameters never yields an empty -ForEach.
+    $parameterTestCases = @(
+        foreach ($testCase in $exportedTestCases)
+        {
+            $functionFile = Get-ChildItem -Path $sourcePath -Recurse -Include "$($testCase.Name).ps1"
+            $abstractSyntaxTree = [System.Management.Automation.Language.Parser]::ParseInput(
+                (Get-Content -Raw -Path $functionFile.FullName), [ref] $null, [ref] $null)
+            $parsedFunction = $abstractSyntaxTree.FindAll({ $args[0] -is [System.Management.Automation.Language.FunctionDefinitionAst] }, $true) |
+                Where-Object -FilterScript { $_.Name -eq $testCase.Name }
+
+            foreach ($parameter in $parsedFunction.Body.ParamBlock.Parameters.Name.VariablePath.ForEach({ $_.ToString() }))
+            {
+                @{ Name = $testCase.Name; Parameter = $parameter }
             }
         }
+    )
 
-        It 'Changelog format compliant with keepachangelog format' -skip:(![bool](Get-Command git -EA SilentlyContinue)) {
-            { Get-ChangelogData (Join-Path $ProjectPath 'CHANGELOG.md') -ErrorAction Stop } | Should -Not -Throw
-        }
-    }
-
-    Describe 'General module control' -Tags 'FunctionalQuality' {
-
-        It 'imports without errors' {
-            { Import-Module -Name $ProjectName -Force -ErrorAction Stop } | Should -Not -Throw
-            Get-Module $ProjectName | Should -Not -BeNullOrEmpty
-        }
-
-        It 'Removes without error' {
-            { Remove-Module -Name $ProjectName -ErrorAction Stop } | Should -not -Throw
-            Get-Module $ProjectName | Should -beNullOrEmpty
-        }
-    }
-
-    if (Get-Command Invoke-ScriptAnalyzer -ErrorAction SilentlyContinue) {
+    if (Get-Command -Name Invoke-ScriptAnalyzer -ErrorAction SilentlyContinue)
+    {
         $scriptAnalyzerRules = Get-ScriptAnalyzerRule
     }
-    else {
-        if ($ErrorActionPreference -ne 'Stop') {
-            Write-Warning "ScriptAnalyzer not found!"
+    else
+    {
+        if ($ErrorActionPreference -ne 'Stop')
+        {
+            Write-Warning -Message 'ScriptAnalyzer not found!'
         }
-        else {
-            Throw "ScriptAnalyzer not found!"
+        else
+        {
+            throw 'ScriptAnalyzer not found!'
+        }
+    }
+}
+
+BeforeAll {
+    # Convert-Path required for PS7 or Join-Path fails
+    $projectPath = "$($PSScriptRoot)\..\.." | Convert-Path
+
+    if (-not $ProjectName)
+    {
+        $ProjectName = Get-SamplerProjectName -BuildRoot $projectPath
+    }
+
+    $script:moduleName = $ProjectName
+
+    $sourcePath = (
+        Get-ChildItem -Path $projectPath\*\*.psd1 |
+            Where-Object -FilterScript {
+                ($_.Directory.Name -match 'source|src' -or $_.Directory.Name -eq $_.BaseName) `
+                    -and $(
+                    try
+                    {
+                        Test-ModuleManifest -Path $_.FullName -ErrorAction Stop
+                    }
+                    catch
+                    {
+                        $false
+                    }
+                )
+            }
+    ).Directory.FullName
+}
+
+Describe 'Changelog Management' -Tag 'Changelog' {
+    It 'Changelog has been updated' -Skip:(
+        !([bool](Get-Command git -EA SilentlyContinue) -and
+            [bool](&(Get-Process -Id $PID).Path -NoProfile -Command 'git rev-parse --is-inside-work-tree 2>$null'))
+    ) {
+        # Get the list of changed files compared with master
+        $HeadCommit = &git rev-parse HEAD
+        $MasterCommit = &git rev-parse origin/main
+        $filesChanged = &git @('diff', "$MasterCommit...$HeadCommit", '--name-only')
+
+        if ($HeadCommit -ne $MasterCommit)
+        {
+            # if we're not testing same commit (i.e. master..master)
+            $filesChanged.Where{ (Split-Path $_ -Leaf) -match '^changelog' } | Should -Not -BeNullOrEmpty
         }
     }
 
-    foreach ($function in $allModuleFunctions) {
-        $functionFile = Get-ChildItem -path $SourcePath -Recurse -Include "$($function.Name).ps1"
-        Describe "Quality for $($function.Name)" -Tags 'TestQuality' {
-            It "$($function.Name) has a unit test" {
-                Get-ChildItem "tests\" -recurse -include "$($function.Name).Tests.ps1" | Should Not BeNullOrEmpty
-            }
+    It 'Changelog format compliant with keepachangelog format' -Skip:(![bool](Get-Command git -EA SilentlyContinue)) {
+        { Get-ChangelogData (Join-Path $projectPath 'CHANGELOG.md') -ErrorAction Stop } | Should -Not -Throw
+    }
+}
 
-            if ($scriptAnalyzerRules) {
-                It "Script Analyzer for $($functionFile.FullName)" {
-                    $PSSAResult = (Invoke-ScriptAnalyzer -Path $functionFile.FullName)
-                    $Report = $PSSAResult | Format-Table -AutoSize | Out-String -Width 110
-                    $PSSAResult  | Should -BeNullOrEmpty -Because `
-                        "some rule triggered.`r`n`r`n $Report"
-                }
+Describe 'General module control' -Tags 'FunctionalQuality' {
+    It 'Should import without errors' {
+        { Import-Module -Name $script:moduleName -Force -ErrorAction Stop } | Should -Not -Throw
+        Get-Module -Name $script:moduleName | Should -Not -BeNullOrEmpty
+    }
 
-            }
-        }
+    It 'Should remove without error' {
+        { Remove-Module -Name $script:moduleName -ErrorAction Stop } | Should -Not -Throw
+        Get-Module -Name $script:moduleName | Should -BeNullOrEmpty
+    }
+}
 
-        Describe "Help for $($function.Name)" -Tags 'helpQuality' {
-            $AbstractSyntaxTree = [System.Management.Automation.Language.Parser]::
-            ParseInput((Get-Content -raw $functionFile.FullName), [ref]$null, [ref]$null)
-            $AstSearchDelegate = { $args[0] -is [System.Management.Automation.Language.FunctionDefinitionAst] }
-            $ParsedFunction = $AbstractSyntaxTree.FindAll( $AstSearchDelegate, $true ) |
-                ? Name -eq $function.Name
+Describe 'Quality for module' -Tags 'TestQuality' {
+    It 'Should have a unit test for <Name>' -ForEach $exportedTestCases {
+        Get-ChildItem -Path 'tests\' -Recurse -Include "$Name.Tests.ps1" | Should -Not -BeNullOrEmpty
+    }
 
-            $FunctionHelp = $ParsedFunction.GetHelpContent()
+    It 'Should pass Script Analyzer for <Name>' -ForEach $allTestCases -Skip:(-not $scriptAnalyzerRules) {
+        $functionFile = Get-ChildItem -Path $sourcePath -Recurse -Include "$Name.ps1"
 
-            It 'Has a SYNOPSIS' {
-                $FunctionHelp.Synopsis | should not BeNullOrEmpty
-            }
+        $pssaResult = (Invoke-ScriptAnalyzer -Path $functionFile.FullName)
+        $report = $pssaResult | Format-Table -AutoSize | Out-String -Width 110
+        $pssaResult | Should -BeNullOrEmpty -Because "some rule triggered.`r`n`r`n $report"
+    }
+}
 
-            It 'Has a Description, with length > 40' {
-                $FunctionHelp.Description.Length | Should beGreaterThan 40
-            }
+Describe 'Help for module' -Tags 'helpQuality' {
+    BeforeAll {
+        # Parse a function file and return its help content; used by the checks below.
+        function Get-FunctionHelpContent
+        {
+            param
+            (
+                [Parameter(Mandatory = $true)]
+                [string]
+                $FunctionName,
 
-            It 'Has at least 1 example' {
-                $FunctionHelp.Examples.Count | Should beGreaterThan 0
-                $FunctionHelp.Examples[0] | Should match ([regex]::Escape($function.Name))
-                $FunctionHelp.Examples[0].Length | Should BeGreaterThan ($function.Name.Length + 10)
-            }
+                [Parameter(Mandatory = $true)]
+                [string]
+                $SourcePath
+            )
 
-            $parameters = $ParsedFunction.Body.ParamBlock.Parameters.name.VariablePath.Foreach{ $_.ToString() }
-            foreach ($parameter in $parameters) {
-                It "Has help for Parameter: $parameter" {
-                    $FunctionHelp.Parameters.($parameter.ToUpper()) | Should Not BeNullOrEmpty
-                    $FunctionHelp.Parameters.($parameter.ToUpper()).Length | Should BeGreaterThan 25
-                }
-            }
+            $functionFile = Get-ChildItem -Path $SourcePath -Recurse -Include "$FunctionName.ps1"
+
+            $abstractSyntaxTree = [System.Management.Automation.Language.Parser]::ParseInput(
+                (Get-Content -Raw -Path $functionFile.FullName), [ref] $null, [ref] $null)
+
+            $parsedFunction = $abstractSyntaxTree.FindAll({ $args[0] -is [System.Management.Automation.Language.FunctionDefinitionAst] }, $true) |
+                Where-Object -FilterScript { $_.Name -eq $FunctionName }
+
+            $parsedFunction.GetHelpContent()
         }
     }
 
+    It 'Should have .SYNOPSIS for <Name>' -ForEach $exportedTestCases {
+        $functionHelp = Get-FunctionHelpContent -FunctionName $Name -SourcePath $sourcePath
+
+        $functionHelp.Synopsis | Should -Not -BeNullOrEmpty
+    }
+
+    It 'Should have a .DESCRIPTION with length greater than 40 characters for <Name>' -ForEach $exportedTestCases {
+        $functionHelp = Get-FunctionHelpContent -FunctionName $Name -SourcePath $sourcePath
+
+        $functionHelp.Description.Length | Should -BeGreaterThan 40
+    }
+
+    It 'Should have at least one (1) example for <Name>' -ForEach $exportedTestCases {
+        $functionHelp = Get-FunctionHelpContent -FunctionName $Name -SourcePath $sourcePath
+
+        $functionHelp.Examples.Count | Should -BeGreaterThan 0
+        $functionHelp.Examples[0] | Should -Match ([regex]::Escape($Name))
+        $functionHelp.Examples[0].Length | Should -BeGreaterThan ($Name.Length + 10)
+    }
+
+    It 'Should have help for parameter <Parameter> of <Name>' -ForEach $parameterTestCases {
+        $functionHelp = Get-FunctionHelpContent -FunctionName $Name -SourcePath $sourcePath
+
+        $functionHelp.Parameters.($Parameter.ToUpper()) | Should -Not -BeNullOrEmpty -Because ('the parameter {0} must have a description' -f $Parameter)
+        $functionHelp.Parameters.($Parameter.ToUpper()).Length | Should -BeGreaterThan 25 -Because ('the parameter {0} must have descriptive description' -f $Parameter)
+    }
+}
