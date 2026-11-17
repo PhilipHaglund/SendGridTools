@@ -165,6 +165,32 @@ Describe 'Changelog Management' -Tag 'Changelog' {
     }
 }
 
+Describe 'Release version cap' -Tags 'ReleaseVersion' {
+    It 'Should build a version at or above 0.4.8 and below 1.0.0' {
+        # Read the version stamped into the built module, whatever produced it.
+        $builtModule = Get-Module -Name $script:moduleName -ListAvailable | Select-Object -First 1
+        $builtVersion = $builtModule.Version
+
+        # Guard the guard: a null version satisfies -lt, so it would pass the upper bound unnoticed.
+        $builtVersion | Should -Not -BeNullOrEmpty -Because (
+            "the module '$($script:moduleName)' must resolve from PSModulePath for this gate to have a version " +
+            'to measure; run ./build.ps1 -Tasks build first. A null version would also pass the -BeLessThan check below'
+        )
+        $builtVersion | Should -BeOfType [System.Version] -Because 'the comparisons below must be version comparisons, not string ones: as strings "10.0.0" sorts before "2.0.0"'
+
+        $builtVersion | Should -BeGreaterOrEqual ([System.Version]'0.4.8') -Because (
+            "the module built $builtVersion. 0.4.8 is the base GitVersion.yml gives (A12). A lower version means " +
+            "the version step did not run: a build without GitVersion falls back to the source manifest's ModuleVersion. " +
+            'Fix the version step; never lower this bound to make a build pass'
+        )
+
+        $builtVersion | Should -BeLessThan ([System.Version]'1.0.0') -Because (
+            "the module built $builtVersion. Moving to 1.0.0 is a release decision, not something a commit text may " +
+            'make on its own. When 1.0.0 is decided, raise this bound in the same change; never raise it only to make a build pass'
+        )
+    }
+}
+
 Describe 'General module control' -Tags 'FunctionalQuality' {
     It 'Should import without errors' {
         { Import-Module -Name $script:moduleName -Force -ErrorAction Stop } | Should -Not -Throw
