@@ -1,11 +1,12 @@
 @{
-    PSDependOptions             = @{
-        AddToPath  = $true
-        Target     = 'output\RequiredModules'
-        Parameters = @{
-            Repository = 'PSGallery'
-        }
-    }
+    # PSDependOptions is ignored by PSResourceGet.
+    #PSDependOptions             = @{
+    #    AddToPath  = $true
+    #    Target     = 'output\RequiredModules'
+    #    Parameters = @{
+    #        Repository = 'PSGallery'
+    #    }
+    #}
 
     InvokeBuild                 = 'latest'
     PSScriptAnalyzer            = 'latest'
