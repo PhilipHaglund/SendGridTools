@@ -12,7 +12,7 @@ Works in PowerShell 7 and Windows PowerShell 5.1.
 ./build.ps1 -Tasks test
 ```
 
-- Dependencies resolve with PSResourceGet into `output/RequiredModules` at exact versions pinned in `RequiredModules.psd1`. Nothing is installed globally and PSGallery trust is left untouched.
+- Dependencies resolve with PSResourceGet into `output/RequiredModules` at exact versions pinned in `RequiredModules.psd1`. Nothing is installed globally and PSGallery trust is left untouched when the PSResourceGet bootstrap succeeds; on a failed download Resolve-Dependency.ps1 falls back to the legacy PowerShellGet path, which can install the NuGet provider for the current user and trust PSGallery.
 - Use the Pester in `output/RequiredModules` (Pester 5), never a globally installed Pester.
 - Tests live in `tests/QA/module.tests.ps1`: changelog guard, module import, unit-test ratchet, PSScriptAnalyzer per function, comment-based help per exported function.
 - Changelog guard: on a branch, the root `CHANGELOG.md` must change since the merge base with `origin/main`. It is skipped with a reason on main.
@@ -29,7 +29,7 @@ Works in PowerShell 7 and Windows PowerShell 5.1.
 
 ## Version tokens
 
-The patterns in `GitVersion.yml` as they stand on main bump the version from commit texts. They match words such as "breaking", "major", "minor", "feature", "fix" and "patch", and the last one has no word boundary, so words that contain it match too. No such word may appear in commit texts, PR titles or PR texts until step 2 has replaced the patterns. Also keep "!" out of PR titles.
+The patterns in `GitVersion.yml` as they stand on main bump the version from commit texts. They match "breaking", "major", "add", "adds", "feature", "features", "minor", "fix" and "patch". "fix" and "patch" have no word boundary at all, so words that contain them ("prefix", "suffix") match; the other patterns have no leading boundary, so words that end in them match too. No such word may appear in commit texts, PR titles or PR texts until step 2 has replaced the patterns. Also keep "!" out of PR titles.
 
 ## Release gate (verbatim, Swedish)
 
