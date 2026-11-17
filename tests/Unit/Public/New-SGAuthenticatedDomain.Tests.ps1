@@ -223,7 +223,7 @@ Describe 'New-SGAuthenticatedDomain request' {
             $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
             Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
 
-            { New-SGAuthenticatedDomain -Domain 'example.com' -CustomSPF -Confirm:$false } | Should -Throw -ErrorId 'NamedParameterNotFound*'
+            { New-SGAuthenticatedDomain -Domain 'example.com' -CustomSPF -Confirm:$false } | Should -Throw -ErrorId 'AmbiguousPositionalParameterNoName*'
 
             @(Get-SgtNetworkCall).Count | Should -Be 0
         }
