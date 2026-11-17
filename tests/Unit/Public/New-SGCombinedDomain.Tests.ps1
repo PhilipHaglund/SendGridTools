@@ -91,7 +91,7 @@ Describe 'New-SGCombinedDomain request' {
             $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
             Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
 
-            { New-SGCombinedDomain -Domain 'example.com' -CustomSPF -Confirm:$false } | Should -Throw
+            { New-SGCombinedDomain -Domain 'example.com' -CustomSPF -Confirm:$false } | Should -Throw -ExpectedMessage '*CustomSPF parameter can only be used with the DisableAutomaticSecurity parameter*'
 
             $All = Get-SgtNetworkCall
             $Calls = @($All | Where-Object { $_.Method -ne 'Get' })
