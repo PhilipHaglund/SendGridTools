@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `New-SGAuthenticatedDomain`, `New-SGBrandedDomainLink` and `New-SGCombinedDomain` send the subdomain given with `-SendGridSubdomain` and none when none is given; before, they failed, sent an empty subdomain or dropped it.
 - `Set-SGAuthenticatedDomain`, `Remove-SGAlert`, `Remove-SGSuppressionGroup`, `Set-SGSuppressionGroup`, `Remove-SGGlobalSuppression` and `New-SGSubuser` act on each id, address or object given, also from the pipeline. `Set-SGAuthenticatedDomain` made no change before, and `Set-SGSuppressionGroup` sends only the values given.
 - An expired session raises an error that names `Connect-SendGrid -Force`; it returned a text as if it were data.
-- Help: `Connect-SendGrid` gives the real session lifetime of one hour (it said 12 hours); the three domain commands above no longer document a `-Force` parameter they do not have; `Get-SGBounce`, `Get-SGBlock`, `Get-SGGlobalSuppression`, `Get-SGInvalidEmail` and `Get-SGSpamReport` no longer state a 500-item limit; the first `New-SGBrandedDomainLink` example names the link it asks for.
+- Help: `Connect-SendGrid` gives the real session lifetime of one hour (it said 12 hours); `New-SGAuthenticatedDomain`, `New-SGBrandedDomainLink` and `New-SGCombinedDomain` no longer document a `-Force` parameter they do not have; `Get-SGBounce`, `Get-SGBlock`, `Get-SGGlobalSuppression`, `Get-SGInvalidEmail` and `Get-SGSpamReport` no longer state a 500-item limit; the first `New-SGBrandedDomainLink` example names the link it asks for.
 
 ### Security
 
@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The module is built and tested on Linux, Windows and macOS in PowerShell 7 and in Windows PowerShell 5.1, and published to the PowerShell Gallery from GitHub Actions: every merge to main publishes a preview, and a full release comes only from a version tag.
 - The build resolves its dependencies locally into `output/RequiredModules` at pinned versions, runs the tests on Pester 5, and imports only the four Sampler task files that build and test use, so the publish and tag tasks and the `pack` workflow alias are gone.
-- Unit tests with mocked HTTP cover the transport and the commands fixed above, in both shells, and check that the API key and request body values never appear in output, errors, verbose or debug. Quality tests import the built module in a new PowerShell 7 process and, on Windows, a new Windows PowerShell process, and check that the exported functions match the files in `source/Public`. The code coverage threshold is raised from 0 to 21.
+- Unit tests with mocked HTTP cover the transport and the commands whose requests or output are fixed above, in both shells, and check that the API key and request body values never appear in output, errors, verbose or debug. Quality tests import the built module in a new PowerShell 7 process and, on Windows, a new Windows PowerShell process, and check that the exported functions match the files in `source/Public`. The code coverage threshold is raised from 0 to 21.
 - The README states the real requirements (Windows PowerShell 5.1 or PowerShell 7) and the install and build steps, `about_SendGridTools` has real content, and the changelog lists every released version.
 
 ### Removed

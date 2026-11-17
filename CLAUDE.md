@@ -19,7 +19,7 @@ Works in PowerShell 7 and Windows PowerShell 5.1.
 - `tests/Workflow` tests the workflow scripts in `.github/scripts` and the steps of the workflow's publish path. They need PowerShell 7 and are skipped in Windows PowerShell 5.1.
 - Changelog guard: on a branch, the root `CHANGELOG.md` must change since the merge base with `origin/main`. It is skipped with a reason on main.
 - Unit-test ratchet: `tests/QA/UnitTestBaseline.txt` lists exported functions that have no `<Name>.Tests.ps1`. The list may only shrink. A new public function needs a test.
-- Coverage: `CodeCoverageThreshold` in `build.yaml` equals the measured coverage, floored to a whole number (21 today: 21.5% in both pwsh and Windows PowerShell 5.1). It may only be raised, as tests arrive.
+- Coverage: `CodeCoverageThreshold` in `build.yaml` equals the measured coverage, floored to a whole number (21 today: 21.50% in both pwsh and Windows PowerShell 5.1). It may only be raised, as tests arrive.
 - PSScriptAnalyzer: fix findings in the code. Suppress only with `SuppressMessageAttribute` and a justification, and only when the repair would change the public surface or behaviour.
 - Help: every exported function needs SYNOPSIS, a DESCRIPTION over 40 characters, an example, and every parameter described in more than 25 characters.
 

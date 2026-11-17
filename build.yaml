@@ -115,7 +115,7 @@ Pester:
   #  - FunctionalQuality
   #  - TestQuality
   Tag:
-  CodeCoverageThreshold: 21 # Measured 21.5% in pwsh 7.6.9 and 21.5% in Windows PowerShell 5.1, floored to 21. Not a bypass. SGT-11: raise it only as unit tests arrive.
+  CodeCoverageThreshold: 21 # Measured 21.50% in pwsh 7.6.9 and 21.50% in Windows PowerShell 5.1, floored to 21. Not a bypass. SGT-11: raise it only as unit tests arrive.
   #CodeCoverageOutputFile: JaCoCo_.xml
   #CodeCoverageOutputFileEncoding: ascii
   # Use this if code coverage should be merged from several pipeline test jobs.
