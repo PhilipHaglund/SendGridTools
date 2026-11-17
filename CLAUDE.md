@@ -31,7 +31,7 @@ Works in PowerShell 7 and Windows PowerShell 5.1.
 
 ## Version tokens
 
-Only these move the version, read from commit messages by GitVersion: `+semver: breaking|major`, `+semver: feature|minor`, `+semver: fix|patch`, `+semver: none|skip`, and a conventional-commit subject with `!` before the colon (a major step). Ordinary words ("add", "prefix", "fix" and so on) no longer do.
+Only these commit-text tokens move the version, as GitVersion reads them from commit messages: `+semver: breaking|major`, `+semver: feature|minor`, `+semver: fix|patch`, `+semver: none|skip`, and a conventional-commit subject with `!` before the colon (a major step). Ordinary words ("add", "prefix", "fix" and so on) no longer do. Version tags and the branch configuration (`feature/` and `hotfix/` increments) still set the base and the default increment.
 
 - GitVersion reads every reachable commit message, and a squash merge copies the PR title and text into main. So never quote a token or write a breaking-form subject in commit texts, PR titles or PR texts. Name it in words. File content is never read.
 - `next-version: 0.4.8` in `GitVersion.yml` lifts the first preview above the already released 0.4.7. The version cap `[0.4.8, 1.0.0)` in `tests/QA/module.tests.ps1` fails the build if the version leaves that range.
@@ -39,7 +39,7 @@ Only these move the version, read from commit messages by GitVersion: `+semver: 
 
 ## Publishing
 
-All publishing is in `.github/workflows/build-and-test.yml`, in the `publish` job. Nothing else in the repository publishes.
+The workflow `.github/workflows/build-and-test.yml`, in its `publish` job, is the only supported publish path.
 
 - A pull request must pass `ubuntu-latest`, `windows-latest`, `macos-latest`, `windows-powershell-5.1` and `package` (the repository owner makes them required). `publish` is skipped on a pull request.
 - A merge to main publishes a preview `0.4.8-previewNNNN` to the PowerShell Gallery (the first is `0.4.8-preview0001`). The publish job then creates the tag `v<version>` (hyphenated preview) and a GitHub prerelease. That tag is what moves the preview counter (GitVersion ContinuousDelivery).
@@ -48,9 +48,10 @@ All publishing is in `.github/workflows/build-and-test.yml`, in the `publish` jo
 - The `publish` job runs only for a push to main or a `v` tag in `PhilipHaglund/SendGridTools`, in the environment `PSGallery`, with the secret `GALLERYAPITOKEN`. The repository owner sets the environment and the secret. Nothing in this repository reads or sets them.
 - The step "Refuse a version the triggering ref does not call for" runs before the secret is used. It refuses a main build without a prerelease label, a tag build whose version is not exactly the tag's, a tag whose commit is not on main, and any other ref. Its tests are in `tests/Workflow/BuildAndTestWorkflow.Tests.ps1`.
 - What is published is what was tested: `PublishArtefact.ps1 -Record` runs on the ubuntu leg, and `-Verify` runs in `package` and in `publish`. `package` rehearses into a temporary local repository and never publishes.
-- There is no local publishing path. `./build.ps1 -Tasks publish` is deliberately undefined, see the comment in `build.yaml`.
-- If the tag step fails, repair it by hand. The refusal message from `.github/scripts/ReleaseTag.ps1` names the repair. A published version is permanent: the Gallery can unlist a version, not delete it.
+- `./build.ps1 -Tasks publish` is deliberately undefined. The Sampler and Sampler.GitHubTasks publish and tag tasks are still imported and stay callable by name. The token-guarded ones are inert only without a token, and `Create_Release_Git_Tag`, `Push_Chocolatey_Package` and `Deploy_with_PSDeploy` have no token guard (the first can push a tag with ambient git credentials). The comment in `build.yaml` names them all. Never call any of them by name.
+- If the tag step fails, repair it by hand. The refusal message from `.github/scripts/ReleaseTag.ps1` names the repair. A repair that touches a stable tag or a non-prerelease release needs Philip's explicit permission (release gate). A published version is permanent: the Gallery can unlist a version, not delete it.
 - Never add `paths-ignore` to the workflow's triggers. A skipped run leaves the required checks pending.
+
 ## Release gate (verbatim, Swedish)
 
 This block is binding and must stay verbatim. Do not translate, shorten or weaken it.
