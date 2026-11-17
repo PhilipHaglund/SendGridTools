@@ -126,6 +126,8 @@ Describe 'Leak detector self-test' {
         @{ Channel = 'Write-Debug' }
         @{ Channel = 'output' }
         @{ Channel = 'throw' }
+        @{ Channel = 'nested dictionary in output' }
+        @{ Channel = 'nested dictionary in output, then throw' }
         @{ Channel = 'Write-Verbose, then throw' }
         @{ Channel = 'ErrorDetails message' }
         @{ Channel = 'ErrorDetails message passed through SendGrid error formatting' }
@@ -137,6 +139,8 @@ Describe 'Leak detector self-test' {
                     'Write-Debug' { Write-Debug -Message 'planted test-key-not-real' }
                     'output' { 'planted test-key-not-real' }
                     'throw' { throw 'planted test-key-not-real' }
+                    'nested dictionary in output' { @{ Outer = @{ a = 1; b = 2; c = 3; d = 4; Secret = 'planted test-key-not-real' } } }
+                    'nested dictionary in output, then throw' { @{ Outer = @{ a = 1; b = 2; c = 3; d = 4; Secret = 'planted test-key-not-real' } }; throw 'unrelated failure' }
                     'Write-Verbose, then throw' { Write-Verbose -Message 'planted test-key-not-real'; throw 'unrelated failure' }
                     'ErrorDetails message' { throw (New-SgtErrorRecord -Message 'http failure' -Details '{"errors":[{"message":"planted test-key-not-real"}]}') }
                     default { throw ('SendGrid Error: "{0}"' -f 'planted test-key-not-real') }

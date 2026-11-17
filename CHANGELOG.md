@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Help for `New-SGAuthenticatedDomain`, `New-SGBrandedDomainLink` and `New-SGCombinedDomain` no longer documents a `-Force` parameter they do not have, and help for `Get-SGBounce`, `Get-SGBlock`, `Get-SGGlobalSuppression`, `Get-SGInvalidEmail` and `Get-SGSpamReport` no longer states a 500-item limit.
 - Help for `Connect-SendGrid` now gives the real session lifetime of one hour (it said 12 hours), and the first `New-SGBrandedDomainLink` example names the link it asks for.
 - `New-SGSubuser` now works in Windows PowerShell 5.1; it turned the password into plain text with a parameter that 5.1 does not have.
+- `New-SGSubuser` returns only the created subuser; it also wrote its internal request to the output.
 
 ### Security
 

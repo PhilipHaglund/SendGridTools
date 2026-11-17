@@ -79,10 +79,11 @@ Describe 'New-SGSubuser password exposure' {
             $Leak.Threw | Should -Be ($Scenario -ne 'success')
             $Leak.Text | Should -Not -BeLike '*subuser-password-not-real*'
 
+            @($Leak.Output | Where-Object { $_ -is [System.Collections.IDictionary] }).Count | Should -Be 0
+
             if ($Scenario -eq 'success') {
-                $Output = New-SGSubuser -Username 'subuser-placeholder' -Email 'subuser@example.invalid' -Password $Password -Ips '192.0.2.10' -Confirm:$false
-                @($Output | Where-Object { $_ -is [System.Collections.IDictionary] }).Count | Should -Be 0
-                ($Output | ConvertTo-Json -Depth 6 -Compress) | Should -Not -BeLike '*subuser-password-not-real*'
+                @($Leak.Output).Count | Should -Be 1
+                $Leak.Output[0].Username | Should -Be 'subuser-placeholder'
             }
         }
     }
