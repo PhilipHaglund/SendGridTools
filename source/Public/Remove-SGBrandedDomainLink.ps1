@@ -4,8 +4,8 @@
         Removes a Branded Domain Link from the current SendGrid instance.
 
     .DESCRIPTION
-        Remove-SGBrandedDomainLink removes a branded domain link from the current SendGrid instance. Branded Domain Links allows all of the click-tracked links, 
-        opens, and images in your emails to be served from your domain rather than sendgrid.net. It improves the trustworthiness of your emails. You must provide 
+        Remove-SGBrandedDomainLink removes a branded domain link from the current SendGrid instance. Branded Domain Links allows all of the click-tracked links,
+        opens, and images in your emails to be served from your domain rather than sendgrid.net. It improves the trustworthiness of your emails. You must provide
         the unique identifier of the branded link to be removed. Please note that you might need to remove the DNS records manually after removing the branded link.
 
     .PARAMETER UniqueId
@@ -37,7 +37,7 @@
             ParameterSetName = 'InputObject'
         )]
         [Object[]]$InputObject,
-        
+
         # Specifies a the UniqueId for the branded link to remove.
         [Parameter(
             Mandatory,
@@ -61,9 +61,9 @@
                     { $_ -is [System.Management.Automation.PSCustomObject] } { $UniqueId += $_.Id; break }
                     default { Write-Error ('Failed to convert InputObject to Id.') -ErrorAction Stop }
                 }
-            }            
+            }
         }
-        foreach ($Id in $UniqueId) { 
+        foreach ($Id in $UniqueId) {
             $InvokeSplat = @{
                 Method        = 'Delete'
                 Namespace     = "whitelabel/links/$Id"

@@ -4,7 +4,7 @@
         Update the name and scopes of a given API key.
 
     .DESCRIPTION
-        Set-SGApiKey updates the name and scopes of a given API key. 
+        Set-SGApiKey updates the name and scopes of a given API key.
 
     .PARAMETER ApiKeyID
         Specifies the ID of the API Key to be updated.
@@ -38,7 +38,7 @@
             ParameterSetName = 'InputObject'
         )]
         [Object[]]$InputObject,
-        
+
         # Specifies the UniqueId of the API Key to be updated.
         [Parameter(
             Mandatory,
@@ -73,7 +73,7 @@
                     { $_ -is [System.Management.Automation.PSCustomObject] } { $UniqueId += $_.Id; break }
                     default { Write-Error ('Failed to convert InputObject to Id.') -ErrorAction Stop }
                 }
-            }            
+            }
         }
         if ($UniqueId.Count -gt 1 -and $PSBoundParameters.ContainsKey('NewName')) {
             Write-Warning ('Only one API Key can renamed per Set-SGApiKey. Scopes will be updated for {0} API Keys.' -f ($UniqueId.Count - 1))
@@ -109,10 +109,10 @@
                         scopes = $CurrentKey.Scopes
                     }
                 }
-                
+
                 if ($PSBoundParameters.ContainsKey('NewName')) {
                     $ContentBody.Add('name', $NewName)
-                    
+
                 }
                 else {
                     $ContentBody.Add('name', $CurrentKey.Name)

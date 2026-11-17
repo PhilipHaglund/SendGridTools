@@ -113,7 +113,7 @@ function Invoke-SendGrid {
 
             # Get unique properties.
             $Properties = Get-UniqueProperties -InputObject $Query
-            
+
             # Handle PSObject array with a single or more than 'Result' property.
             if ($Query -is [System.Management.Automation.PSObject[]] -and $Properties.Count -eq 1) {
                 switch ($Properties) {

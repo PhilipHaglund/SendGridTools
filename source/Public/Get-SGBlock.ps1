@@ -116,5 +116,5 @@
                 Write-Error ('Failed to retrieve all SendGrid blocks. {0}' -f $_.Exception.Message) -ErrorAction Stop
             }
         }
-    }   
+    }
 }

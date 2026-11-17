@@ -5,7 +5,7 @@
 
     .DESCRIPTION
         The Set-SGSuppressionGroup function updates a suppression group in SendGrid.
-        
+
     .PARAMETER GroupId
         Specifies the ID of the suppression group.
 
@@ -38,7 +38,7 @@
             ParameterSetName = 'InputObject'
         )]
         [Object[]]$InputObject,
-        
+
         # Specifies the ID of the suppression group.
         [Parameter(
             Mandatory,
@@ -78,7 +78,7 @@
                     { $_ -is [System.Management.Automation.PSCustomObject] } { $UniqueId += $_.Id; break }
                     default { Write-Error ('Failed to convert InputObject to Id.') -ErrorAction Stop }
                 }
-            }            
+            }
         }
         $InvokeSplat = @{
             Method        = 'Patch'

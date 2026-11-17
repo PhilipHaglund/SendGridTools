@@ -3,7 +3,7 @@
     .SYNOPSIS
         Retrieves email activity from SendGrid based on the provided query.
     .DESCRIPTION
-        Get-SGEmailActivity uses the SendGrid Email Activity API to filter and retrieve email activity. 
+        Get-SGEmailActivity uses the SendGrid Email Activity API to filter and retrieve email activity.
         For example, you can retrieve all bounced messages or all messages with the same subject line.
     .PARAMETER Query
         Specifies the query to filter email activity. The query must be URL encoded and use the following format: query={query_type}="{query_content}".
@@ -42,7 +42,7 @@
             Mandatory
         )]
         [string]$SendGridFilter,
-        
+
         [Parameter(ParameterSetName = 'PropertySet')]
         [Parameter(ParameterSetName = 'FilterSet')]
         [Parameter(ParameterSetName = 'SendGridFilterSet')]
@@ -560,7 +560,7 @@
                     $null = $FilterQuery.Append(')')
                 }
                 else {
-                    $null = $FilterQuery.Append([uri]::EscapeDataString("""$($PSBoundParameters['Value'])"""))                
+                    $null = $FilterQuery.Append([uri]::EscapeDataString("""$($PSBoundParameters['Value'])"""))
                 }
             }
             elseif ($PSBoundParameters.ContainsKey('GT') -or $PSBoundParameters.ContainsKey('LT')) {
@@ -580,7 +580,7 @@
             elseif ($PSBoundParameters.ContainsKey('Contains') -or $PSBoundParameters.ContainsKey('NotContains')) {
                 $null = $FilterQuery.Append('(')
                 foreach ($Var in ($PSBoundParameters['Value'])) {
-                
+
                     $null = $FilterQuery.Append([uri]::EscapeDataString($UsedOperator))
                     $null = $FilterQuery.Append('(')
                     $null = $FilterQuery.Append($Properties[$Property])
@@ -605,7 +605,7 @@
                 $null = $FilterQuery.Append([uri]::EscapeDataString("""$($PSBoundParameters['Value'])"""))
             }
 
-            $null = $FilterQuery.Append(')')        
+            $null = $FilterQuery.Append(')')
             Write-Verbose -Message ("Filter Query: $($FilterQuery.ToString())")
             $EncodedFilter = $FilterQuery.ToString()
         }

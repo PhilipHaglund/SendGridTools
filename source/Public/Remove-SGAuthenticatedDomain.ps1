@@ -4,9 +4,9 @@
         Removes an Authenticated Domain within the current Sendgrid instance.
 
     .DESCRIPTION
-        Remove-SGAuthenticatedDomain removes an authenticated domain from the current SendGrid instance. An authenticated domain allows you 
-        to remove the "via" or "sent on behalf of" message that your recipients see when they read your emails. Authenticating a domain allows 
-        you to replace sendgrid.net with your personal sending domain. You must provide the unique identifier of the domain to be removed. 
+        Remove-SGAuthenticatedDomain removes an authenticated domain from the current SendGrid instance. An authenticated domain allows you
+        to remove the "via" or "sent on behalf of" message that your recipients see when they read your emails. Authenticating a domain allows
+        you to replace sendgrid.net with your personal sending domain. You must provide the unique identifier of the domain to be removed.
         Please note that you might need to remove the DNS records manually after removing the domain.
 
     .PARAMETER UniqueId
@@ -38,7 +38,7 @@
             ParameterSetName = 'InputObject'
         )]
         [Object[]]$InputObject,
-        
+
         # Specifies the UniqueId for the authenticated domain to remove.
         [Parameter(
             Mandatory,
@@ -62,9 +62,9 @@
                     { $_ -is [System.Management.Automation.PSCustomObject] } { $UniqueId += $_.Id; break }
                     default { Write-Error ('Failed to convert InputObject to Id.') -ErrorAction Stop }
                 }
-            }            
+            }
         }
-        foreach ($Id in $UniqueId) { 
+        foreach ($Id in $UniqueId) {
             $InvokeSplat = @{
                 Method        = 'Delete'
                 Namespace     = "whitelabel/domains/$Id"
@@ -80,7 +80,7 @@
                 $GetSplat.Add('OnBehalfOf', $OnBehalfOf)
             }
             $SGAuthenticatedDomain = Get-SGAuthenticatedDomain @GetSplat -ShowDNS
-            
+
             Write-Verbose -Message ("Don't forget to remove DNS records.") -Verbose
             $SGAuthenticatedDomain
 

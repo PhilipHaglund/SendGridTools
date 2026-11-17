@@ -4,16 +4,16 @@
         Adds a new Authenticated Domain and a new Branded Domain Link within the current SendGrid instance.
 
     .DESCRIPTION
-        New-SGCombinedDomain adds both an authenticated domain and a branded domain link within the current SendGrid instance. 
-        This allows for the setup of domain authentication and email link branding in a single step, enhancing the trustworthiness 
+        New-SGCombinedDomain adds both an authenticated domain and a branded domain link within the current SendGrid instance.
+        This allows for the setup of domain authentication and email link branding in a single step, enhancing the trustworthiness
         and deliverability of your emails.
 
     .PARAMETER Domain
-        Specifies the domain for both the authenticated domain and the branded domain link. 
+        Specifies the domain for both the authenticated domain and the branded domain link.
         For the authenticated domain, do not provide a full domain including a subdomain here, for instance, email.example.com.
 
     .PARAMETER Subdomain
-        Specifies a subdomain to be used for both the authenticated domain and the branded domain link. 
+        Specifies a subdomain to be used for both the authenticated domain and the branded domain link.
         In most cases, it's "email" for authenticated domains and "link" for branded domain links.
 
     .PARAMETER DisableAutomaticSecurity
@@ -28,11 +28,11 @@
         Specifies if the current domain should be created despite it contains a subdomain (email.example.com) for the branded domain link.
     .EXAMPLE
         PS C:\> New-SGCombinedDomain -Domain 'example.com' -Subdomain 'email' -DisableAutomaticSecurity -CustomDkimSelector 'exm'
-        Adds a new authenticated domain 'example.com' with the subdomain 'email', disables automatic security, and uses a custom DKIM selector 'exm'. 
+        Adds a new authenticated domain 'example.com' with the subdomain 'email', disables automatic security, and uses a custom DKIM selector 'exm'.
         Also adds a new branded domain link with the same domain and subdomain.
     .EXAMPLE
         PS C:\> New-SGCombinedDomain -Domain 'example.com' -Subdomain 'link' -Force
-        Adds a new authenticated domain 'example.com' with the subdomain 'link' and forces the creation despite the domain containing a subdomain. 
+        Adds a new authenticated domain 'example.com' with the subdomain 'link' and forces the creation despite the domain containing a subdomain.
         Also adds a new branded domain link with the same domain and subdomain.
     .NOTES
         To use this function, you must be connected to a SendGrid instance. Use the Connect-SendGrid function to establish a connection.
@@ -103,7 +103,7 @@
         if ($PSCmdlet.ShouldProcess($Domain)) {
             # Add the new authenticated domain
             New-SGAuthenticatedDomain @AuthDomainSplat
-            
+
             # Add the new branded domain link
             New-SGBrandedDomainLink @BrandedDomainSplat
         }

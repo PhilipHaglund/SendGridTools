@@ -14,7 +14,7 @@
 
     .EXAMPLE
         PS C:\> Remove-SGSpamReport -EmailAddress spam1@example.com
-        This command removes the spam report with the email address spam1@example.com from SendGrid. 
+        This command removes the spam report with the email address spam1@example.com from SendGrid.
 
     .EXAMPLE
         PS C:\> Remove-SGSpamReport -EmailAddress spam2@example.com -OnBehalfOf 'Subuser'
@@ -64,7 +64,7 @@
                     { $_ -is [System.Management.Automation.PSCustomObject] } { $EmailAddress += $_.Email; break }
                     default { Write-Error ('Failed to convert InputObject to Id.') -ErrorAction Stop }
                 }
-            }            
+            }
         }
         if ($PSCmdlet.ParameterSetName -eq 'DeleteAll') {
             $InvokeSplat = @{

@@ -22,7 +22,7 @@
 
     .EXAMPLE
         PS C:\> Get-SGAuthenticatedDomain | Where-Object { $_.Domain -eq 'example.com' } | Set-SGAuthenticatedDomainToSubUser -UserName 'subuser'
-        
+
         This command assigns the authenticated domain 'example.com' to the subuser 'subuser' using its unique ID obtained from the Get-SGAuthenticatedDomain cmdlet.
     #>
     [CmdletBinding(

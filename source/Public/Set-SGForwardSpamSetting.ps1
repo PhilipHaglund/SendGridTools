@@ -37,7 +37,7 @@
         if ($PSBoundParameters.OnBehalfOf) {
             $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
         }
-        
+
         if ($PSBoundParameters.ContainsKey('Enabled')) {
             $ContentBody.Add('enabled', $Enabled.IsPresent)
         }

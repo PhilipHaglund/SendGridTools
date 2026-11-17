@@ -2,14 +2,14 @@
     <#
     .SYNOPSIS
         Disconnects from the current established SendGrid instance.
-        
+
     .DESCRIPTION
-        Disconnect-SendGrid, or its alias Disconnect-SG, disconnects the current session with a SendGrid instance. 
+        Disconnect-SendGrid, or its alias Disconnect-SG, disconnects the current session with a SendGrid instance.
         The function checks if a session exists and, if so, disconnects it.
 
     .EXAMPLE
         PS C:\> Disconnect-SendGrid
-        
+
         This command attempts to disconnect an active connection to SendGrid.
 
     .NOTES
@@ -20,7 +20,7 @@
     )]
     [Alias('Disconnect-SG')]
     param ()
-    
+
     process {
         if ($script:Session -is [SendGridSession]) {
             if ($PSCmdlet.ShouldProcess('SendGrid Session', 'Disconnect')) {

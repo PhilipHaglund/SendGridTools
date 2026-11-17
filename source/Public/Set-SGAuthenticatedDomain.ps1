@@ -32,7 +32,7 @@
             ParameterSetName = 'InputObject'
         )]
         [Object[]]$InputObject,
-        
+
         # Specifies the unique identifier for the authenticated domain to modify.
         [Parameter(
             Mandatory,
@@ -41,7 +41,7 @@
         )]
         [Alias('Id')]
         [string[]]$UniqueId,
-        
+
         # Specifies whether to set the authenticated domain as the default sending domain.
         [Parameter()]
         [switch]$SetDefault,
@@ -53,7 +53,7 @@
         # Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
         [Parameter()]
         [string]$OnBehalfOf
-    )   
+    )
     process {
         if ($PSCmdlet.ParameterSetName -eq 'InputObject') {
             $UniqueId = @()
@@ -64,9 +64,9 @@
                     { $_ -is [System.Management.Automation.PSCustomObject] } { $UniqueId += $_.Id; break }
                     default { Write-Error ('Failed to convert InputObject to Id.') -ErrorAction Stop }
                 }
-            }            
+            }
         }
-        foreach ($UniqueId in $Id) { 
+        foreach ($UniqueId in $Id) {
             $InvokeSplat = @{
                 Method        = 'Patch'
                 Namespace     = "whitelabel/domains/$UniqueId"

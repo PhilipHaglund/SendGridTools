@@ -2,19 +2,19 @@
     <#
     .SYNOPSIS
         Retrieves all or specific Branded Domain Links within the current SendGrid instance.
-        
+
     .DESCRIPTION
-        Get-SGBrandedDomainLink retrieves all Branded Domain Links or a specific Branded Domain Link based on its unique ID 
-        within the current SendGrid instance. Branded Domain Links allow all of the click-tracked links, opens, and images in your 
-        emails to be served from your domain rather than sendgrid.net, which aids in spam filter and recipient server assessments 
-        of email trustworthiness. 
+        Get-SGBrandedDomainLink retrieves all Branded Domain Links or a specific Branded Domain Link based on its unique ID
+        within the current SendGrid instance. Branded Domain Links allow all of the click-tracked links, opens, and images in your
+        emails to be served from your domain rather than sendgrid.net, which aids in spam filter and recipient server assessments
+        of email trustworthiness.
 
     .PARAMETER UniqueId
         Specifies the UniqueId of a specific Branded Domain Link to retrieve. If this parameter is not provided, all Branded Domain Links are retrieved.
 
     .EXAMPLE
         PS C:\> Get-SGBrandedDomainLink
-        
+
         Domain            : sending.example.com
         Subdomain         : sg
         User              : Top Account

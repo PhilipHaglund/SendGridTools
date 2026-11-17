@@ -27,7 +27,7 @@
         if ($PSBoundParameters.OnBehalfOf) {
             $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
         }
-        
+
         try {
             Invoke-SendGrid @InvokeSplat
         }

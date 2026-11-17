@@ -21,12 +21,12 @@
             Namespace     = 'mail_settings/address_whitelist'
             ErrorAction   = 'Stop'
             CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
-        } 
+        }
 
         if ($PSBoundParameters.OnBehalfOf) {
             $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
         }
-        
+
         try {
             Invoke-SendGrid @InvokeSplat
         }

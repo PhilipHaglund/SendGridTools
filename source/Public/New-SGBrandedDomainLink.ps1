@@ -4,9 +4,9 @@
         Adds a new Branded Domain Link within the current SendGrid instance.
 
     .DESCRIPTION
-        New-SGBrandedDomainLink adds a new Branded Domain Link within the current SendGrid instance. Email link branding (formerly "Link Whitelabel") 
-        allows all of the click-tracked links, opens, and images in your emails to be served from your domain rather than sendgrid.net. Spam filters 
-        and recipient servers look at the links within emails to determine whether the email looks trustworthy. They use the reputation of the root 
+        New-SGBrandedDomainLink adds a new Branded Domain Link within the current SendGrid instance. Email link branding (formerly "Link Whitelabel")
+        allows all of the click-tracked links, opens, and images in your emails to be served from your domain rather than sendgrid.net. Spam filters
+        and recipient servers look at the links within emails to determine whether the email looks trustworthy. They use the reputation of the root
         domain to determine whether the links can be trusted.
 
     .PARAMETER Domain
@@ -56,7 +56,7 @@
         [Parameter()]
         [string]$OnBehalfOf
     )
-    
+
     begin {
         [hashtable]$ContentBody = [hashtable]::new()
 
@@ -65,7 +65,7 @@
             Write-Verbose -Message ("SendGrid will not generate a custom subdomain. Domain to be used: $Domain") -Verbose
             $ContentBody.Add('subdomain', $Subdomain)
             $ProcessMessage = "$Subdomain.$Domain"
-            
+
         }
         else {
             Write-Verbose -Message ("SendGrid will automatically generate a custom branded subdomain for you. Example:url1234.$Domain") -Verbose
@@ -80,8 +80,8 @@
         if ($PSBoundParameters.OnBehalfOf) {
             $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
         }
-    }    
-    process { 
+    }
+    process {
         if ($PSCmdlet.ShouldProcess($ProcessMessage)) {
             if ($PSBoundParameters.ContainsKey('Default') -and $PSCmdlet.ShouldContinue($Domain, 'Setting this domain as the default domain will remove the current default domain. Do you want to continue?')) {
                 $ContentBody.Add('default', $true)

@@ -21,7 +21,7 @@
         # Specifies whether the bounce purge mail setting is enabled.
         [Parameter()]
         [switch]$Enabled,
-        
+
         # The number of days after which SendGrid will purge all contacts from your soft bounces suppression lists.
         [Parameter()]
         [int]$SoftBounces,
@@ -45,7 +45,7 @@
         if ($PSBoundParameters.OnBehalfOf) {
             $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
         }
-        
+
         if ($PSBoundParameters.ContainsKey('Enabled')) {
             $ContentBody.Add('enabled', $Enabled.IsPresent)
         }
@@ -55,9 +55,9 @@
         if ($PSBoundParameters.ContainsKey('HardBounces')) {
             $ContentBody.Add('hard_bounces', $HardBounces)
         }
-        
+
         $InvokeSplat.Add('ContentBody', $ContentBody)
-        
+
         try {
             Invoke-SendGrid @InvokeSplat
         }

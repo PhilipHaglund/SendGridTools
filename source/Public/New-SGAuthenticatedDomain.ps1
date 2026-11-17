@@ -4,13 +4,13 @@
         Adds a new Authenticated Domain to the current SendGrid instance.
 
     .DESCRIPTION
-        New-SGAuthenticatedDomain allows you to add a new Authenticated Domain to the current SendGrid instance. An authenticated domain allows 
-        you to remove the "via" or "sent on behalf of" message that your recipients see when they read your emails. Authenticating a domain allows 
-        you to replace sendgrid.net with your personal sending domain. You will be required to create a subdomain so that SendGrid can generate 
+        New-SGAuthenticatedDomain allows you to add a new Authenticated Domain to the current SendGrid instance. An authenticated domain allows
+        you to remove the "via" or "sent on behalf of" message that your recipients see when they read your emails. Authenticating a domain allows
+        you to replace sendgrid.net with your personal sending domain. You will be required to create a subdomain so that SendGrid can generate
         the DNS records which you must give to your host provider.
 
         This function uses a dynamic parameter, `CustomSPF`, which is available only when `DisableAutomaticSecurity` switch is set. The "CustomSPF"
-        parameter allows to specify whether to use a custom SPF or allow SendGrid to manage your SPF. This option is only available to authenticated 
+        parameter allows to specify whether to use a custom SPF or allow SendGrid to manage your SPF. This option is only available to authenticated
         domains set up for manual security.
 
     .PARAMETER Domain
@@ -21,9 +21,9 @@
 
     .PARAMETER SubUser
         Specifies a subuser to be used, this is optional.
-    
+
     .PARAMETER DisableAutomaticSecurity
-        Specify whether to not allow SendGrid to manage your SPF records, DKIM keys, and DKIM key rotation. Default is that SendGrid manages 
+        Specify whether to not allow SendGrid to manage your SPF records, DKIM keys, and DKIM key rotation. Default is that SendGrid manages
         those records.
 
     .PARAMETER CustomDkimSelector
@@ -132,7 +132,7 @@
 
         # Push the parameter(s) into a parameter dictionary
         $ParamDictionary.Add('IPAddress', $IPAddressParam)
-        
+
         if ($DisableAutomaticSecurity) {
             # Specify whether to use a custom SPF or allow SendGrid to manage your SPF. This option is only available to authenticated domains set up for manual security.
             $CustomSPFParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
@@ -145,7 +145,7 @@
             # Create the actual CustomSPF parameter
             $CustomSPFParam = [System.Management.Automation.RuntimeDefinedParameter]::new('CustomSPF', [switch], $AttributeCollection)
 
-            # Push the parameter(s) into a parameter dictionary            
+            # Push the parameter(s) into a parameter dictionary
             $ParamDictionary.Add('CustomSPF', $CustomSPFParam)
         }
 
@@ -161,7 +161,7 @@
             Write-Verbose -Message ("SendGrid will not generate a custom subdomain. Domain to be used: $Domain") -Verbose
             $ContentBody.Add('subdomain', $Subdomain)
             $ProcessMessage = "$Subdomain.$Domain"
-            
+
         }
         else {
             Write-Verbose -Message ("SendGrid will automatically generate a custom subdomain for you. Example:em1234.$Domain") -Verbose
@@ -198,7 +198,7 @@
         if ($PSBoundParameters.OnBehalfOf) {
             $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
         }
-    }    
+    }
     process {
         if ($PSCmdlet.ShouldProcess($ProcessMessage)) {
             if ($PSBoundParameters.ContainsKey('Default') -and $PSCmdlet.ShouldContinue($Domain,'Setting this domain as the default domain will remove the current default domain. Do you want to continue?')) {

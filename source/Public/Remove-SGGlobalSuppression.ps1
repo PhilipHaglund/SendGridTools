@@ -35,7 +35,7 @@
             ParameterSetName = 'InputObject'
         )]
         [Object[]]$InputObject,
-        
+
         # Specifies the email address to remove from the global suppressions list.
         [Parameter(
             Mandatory,
@@ -60,7 +60,7 @@
                     { $_ -is [System.Management.Automation.PSCustomObject] } { $UniqueId += $_.Id; break }
                     default { Write-Error ('Failed to convert InputObject to Id.') -ErrorAction Stop }
                 }
-            }            
+            }
         }
         foreach ($Id in $EmailAddress) {
             $InvokeSplat = @{

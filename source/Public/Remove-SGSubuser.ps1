@@ -11,7 +11,7 @@
 
     .EXAMPLE
         PS C:\> Remove-SGSubuser -Username <username>
-        
+
         This command removes the Subuser with the specified username within the current SendGrid instance.
     #>
     [CmdletBinding(

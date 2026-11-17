@@ -62,11 +62,11 @@
         Specifies the email priority. Valid values are 'Low', 'Normal', and 'High'.
 
     .PARAMETER SeparateTo
-        Specifies if Separate To should be used. 
+        Specifies if Separate To should be used.
 
     .PARAMETER ReplyTo
         Specifies if a separate ReplyTo address should be used. If not specified, the sender's email address (From) will be used.
-    
+
     .PARAMETER SendAt
         Specifies the date and time to send the email. If not specified, the email will be sent immediately. Both datetime and unix timestamp formats are accepted.
         A unix timestamp allowing you to specify when your email should be delivered. Scheduling delivery more than 72 hours in advance is forbidden.
@@ -76,13 +76,13 @@
 
     .PARAMETER Categories
         Specifies an array of category names for this message. Each category name may not exceed 255 characters.
-    
+
     .PARAMETER BatchId
         Specifies an ID representing a batch of emails to be sent at the same time. Including a batch_id in your request allows you include this email in that batch. It also enables you to cancel or pause the delivery of that batch. For more information, see the Cancel Scheduled Sends API.
 
     .EXAMPLE
         PS C:\> Send-SGMailMessage -From 'sender@example.com' -To 'recipient@example.com' -Subject 'Test Email' -Body 'Hello, this is a test email.'
-        
+
         This command sends an email with the specified parameters via the SendGrid API.
     #>
     [CmdletBinding(
@@ -146,7 +146,7 @@
         [ValidateLength(1, 998)]
         [string]$Subject,
 
-        # Specifies the email body. 
+        # Specifies the email body.
         [Parameter(
             Position = 5,
             Mandatory = $true,
@@ -176,7 +176,7 @@
             ParameterSetName = 'Default'
         )]
         [Parameter(
-            Position = 7, 
+            Position = 7,
             ParameterSetName = 'SeparateTo'
         )]
         [Alias('Attachments')]
@@ -260,7 +260,7 @@
     }
     process {
         if ($PSCmdlet.ShouldProcess(('{0} to "{1}" recipients with subject: "{2}"' -f $From.Address, $RecipientCount, $Subject))) {
-        
+
             # Convert the MailAddress objects to SendGrid API compatible objects.
             $FromList = ConvertTo-SendGridAddress -Address $From
             $ToList = ConvertTo-SendGridAddress -Address $To

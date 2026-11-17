@@ -155,5 +155,5 @@
                 Write-Error ('Failed to retrieve all SendGrid bounces. {0}' -f $_.Exception.Message) -ErrorAction Stop
             }
         }
-    }   
+    }
 }

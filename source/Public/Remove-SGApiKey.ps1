@@ -4,7 +4,7 @@
         Deletes a given API key.
 
     .DESCRIPTION
-        Remove-SGApiKey deletes the API key with the given ID. 
+        Remove-SGApiKey deletes the API key with the given ID.
 
     .PARAMETER ApiKeyID
         Specifies the ID of the API Key to be deleted.
@@ -28,7 +28,7 @@
             ParameterSetName = 'InputObject'
         )]
         [Object[]]$InputObject,
-        
+
         # Specifies the UniqueId of the API Key to be updated.
         [Parameter(
             Mandatory,
@@ -37,12 +37,12 @@
         )]
         [Alias('Id')]
         [string[]]$UniqueId,
-        
+
         # Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
         [Parameter()]
         [string]$OnBehalfOf
     )
-    
+
     process {
         if ($PSCmdlet.ParameterSetName -eq 'InputObject') {
             $UniqueId = @()
@@ -53,7 +53,7 @@
                     { $_ -is [System.Management.Automation.PSCustomObject] } { $UniqueId += $_.Id; break }
                     default { Write-Error ('Failed to convert InputObject to Id.') -ErrorAction Stop }
                 }
-            }            
+            }
         }
         foreach ($Id in $UniqueId) {
             $InvokeSplat = @{

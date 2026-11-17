@@ -5,7 +5,7 @@
 
     .DESCRIPTION
         The Get-SGSuppressionGroup function retrieves all suppression groups or a specific suppression group in SendGrid.
-        
+
     .PARAMETER GroupId
         Specifies the ID of the suppression group.
 

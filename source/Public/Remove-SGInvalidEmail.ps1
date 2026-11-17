@@ -28,7 +28,7 @@
         ConfirmImpact = 'High'
     )]
     param (
-        # Specifies the invalid email address to remove.    
+        # Specifies the invalid email address to remove.
         [Parameter(
             Mandatory,
             ValueFromPipeline,
@@ -37,7 +37,7 @@
             ParameterSetName = 'InputObject'
         )]
         [Object[]]$InputObject,
-        
+
         # Specifies the invalid email address to remove.
         [Parameter(
             Mandatory,
@@ -66,7 +66,7 @@
                     { $_ -is [System.Management.Automation.PSCustomObject] } { $EmailAddress += $_.Email; break }
                     default { Write-Error ('Failed to convert InputObject to Id.') -ErrorAction Stop }
                 }
-            }            
+            }
         }
         if ($PSCmdlet.ParameterSetName -eq 'DeleteAll') {
             $InvokeSplat = @{

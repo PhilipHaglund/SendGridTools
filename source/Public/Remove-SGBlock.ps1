@@ -37,7 +37,7 @@
             ParameterSetName = 'InputObject'
         )]
         [Object[]]$InputObject,
-        
+
         # Specifies the email address of the block to remove.
         [Parameter(
             Mandatory,
@@ -70,7 +70,7 @@
                     { $_ -is [System.Management.Automation.PSCustomObject] } { $EmailAddress += $_.Email; break }
                     default { Write-Error ('Failed to convert InputObject to Id.') -ErrorAction Stop }
                 }
-            }            
+            }
         }
         if ($PSCmdlet.ParameterSetName -eq 'DeleteAll') {
             $InvokeSplat = @{

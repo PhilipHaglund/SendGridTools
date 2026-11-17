@@ -5,7 +5,7 @@
         Retrieves a list of designs stored in the Twilio SendGrid Design Library.
 
     .DESCRIPTION
-        Get-SGDesign retrieves a list of designs stored in the Twilio SendGrid Design Library. 
+        Get-SGDesign retrieves a list of designs stored in the Twilio SendGrid Design Library.
         This function does not return the pre-built Twilio SendGrid designs.
 
     .PARAMETER PageSize

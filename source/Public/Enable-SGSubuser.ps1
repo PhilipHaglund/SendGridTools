@@ -4,7 +4,7 @@
         Enables a Subuser within the current SendGrid instance.
 
     .DESCRIPTION
-        Enable-SGSubuser enables a Subuser within the current SendGrid instance. 
+        Enable-SGSubuser enables a Subuser within the current SendGrid instance.
         The Subuser is enabled with the provided username.
 
     .PARAMETER Username
@@ -12,7 +12,7 @@
 
     .EXAMPLE
         PS C:\> Enable-SGSubuser -Username <username>
-        
+
         This command enables a Subuser with the specified username within the current SendGrid instance.
 
     .NOTES
@@ -41,7 +41,7 @@
                 disabled = $false
             }
             CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
-        } 
+        }
 
         if ($PSCmdlet.ShouldProcess($Username)) {
             try {
