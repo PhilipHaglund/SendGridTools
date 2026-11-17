@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The build now imports only the four Sampler task files that build and test use, so the publish and tag tasks are no longer defined and the `pack` workflow alias is gone.
 - A quality test now checks that the number of exported functions equals the number of files in `source/Public`.
 - `New-SGSubuser` now has unit tests with mocked HTTP in both shells, and the exposure tests check that request body values never appear in verbose, debug, errors or output.
+- `New-SGAuthenticatedDomain`, `New-SGBrandedDomainLink`, `New-SGCombinedDomain` and `Set-SGAuthenticatedDomain` now have unit tests with mocked HTTP, and the code coverage threshold is raised from 9 to 16.
 
 ### Removed
 
@@ -28,6 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Help for `Connect-SendGrid` now gives the real session lifetime of one hour (it said 12 hours), and the first `New-SGBrandedDomainLink` example names the link it asks for.
 - `New-SGSubuser` now works in Windows PowerShell 5.1; it turned the password into plain text with a parameter that 5.1 does not have.
 - `New-SGSubuser` returns only the created subuser; it also wrote its internal request to the output.
+- `New-SGAuthenticatedDomain`, `New-SGBrandedDomainLink` and `New-SGCombinedDomain` now send the subdomain given with `-SendGridSubdomain` (they sent none), and send no subdomain when none is given.
+- `Set-SGAuthenticatedDomain` now updates each domain it is given with `-UniqueId` or from the pipeline; it made no change before.
 
 ### Security
 
