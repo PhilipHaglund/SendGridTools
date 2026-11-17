@@ -13,15 +13,16 @@
     .PARAMETER OnBehalfOf
         Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
     .EXAMPLE
-        PS C:\> Set-SGBouncePurgeSetting -Enabled $true -SoftBounces 5 -HardBounces 10
+        PS C:\> Set-SGBouncePurgeSetting -Enabled -SoftBounces 5 -HardBounces 10
         This command updates the bounce purge mail settings on SendGrid to enable the setting and set the purge days for soft and hard bounces.
     #>
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '', Justification = 'Adding SupportsShouldProcess would add the -WhatIf and -Confirm parameters to this public function and change behaviour; the repair is deferred so the public surface stays unchanged.')]
     [CmdletBinding()]
     param (
         # Specifies whether the bounce purge mail setting is enabled.
         [Parameter()]
         [switch]$Enabled,
-        
+
         # The number of days after which SendGrid will purge all contacts from your soft bounces suppression lists.
         [Parameter()]
         [int]$SoftBounces,
@@ -45,7 +46,7 @@
         if ($PSBoundParameters.OnBehalfOf) {
             $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
         }
-        
+
         if ($PSBoundParameters.ContainsKey('Enabled')) {
             $ContentBody.Add('enabled', $Enabled.IsPresent)
         }
@@ -55,9 +56,9 @@
         if ($PSBoundParameters.ContainsKey('HardBounces')) {
             $ContentBody.Add('hard_bounces', $HardBounces)
         }
-        
+
         $InvokeSplat.Add('ContentBody', $ContentBody)
-        
+
         try {
             Invoke-SendGrid @InvokeSplat
         }

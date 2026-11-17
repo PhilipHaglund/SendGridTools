@@ -15,6 +15,9 @@
     .PARAMETER DeleteAll
         Specifies whether to delete all emails on the bounces list.
 
+    .PARAMETER InputObject
+        Specifies one or more objects to remove, typically received from the pipeline. Each object can be an email address given as a string, or an object with an Email property, such as the output of Get-SGBounce. Use EmailAddress to specify the addresses directly.
+
     .EXAMPLE
         PS C:\> Remove-SGBounce -EmailAddress "bounce1@example.com"
 
@@ -26,7 +29,7 @@
         This command removes the bounce with the email address 'bounce2@example.com' from SendGrid for the Subuser 'Subuser'.
 
     .EXAMPLE
-        PS C:\> Remove-SGBounce -DeleteAll $true
+        PS C:\> Remove-SGBounce -DeleteAll
 
         This command deletes all emails on the bounces list from SendGrid.
     #>
@@ -45,7 +48,7 @@
             ParameterSetName = 'InputObject'
         )]
         [Object[]]$InputObject,
-        
+
         # Specifies the email address of the bounce to remove.
         [Parameter(
             Mandatory,
@@ -74,7 +77,7 @@
                     { $_ -is [System.Management.Automation.PSCustomObject] } { $EmailAddress += $_.Email; break }
                     default { Write-Error ('Failed to convert InputObject to Id.') -ErrorAction Stop }
                 }
-            }            
+            }
         }
         if ($PSCmdlet.ParameterSetName -eq 'DeleteAll') {
             $InvokeSplat = @{

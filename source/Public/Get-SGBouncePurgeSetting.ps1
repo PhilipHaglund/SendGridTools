@@ -4,6 +4,9 @@
         Retrieves the bounce purge mail settings on SendGrid.
     .DESCRIPTION
         Get-SGBouncePurgeSetting retrieves the bounce purge mail settings on SendGrid.
+
+    .PARAMETER OnBehalfOf
+        Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
     .EXAMPLE
         PS C:\> Get-SGBouncePurgeSetting
         This command retrieves the bounce purge mail settings on SendGrid.
@@ -27,7 +30,7 @@
         if ($PSBoundParameters.OnBehalfOf) {
             $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
         }
-        
+
         try {
             Invoke-SendGrid @InvokeSplat
         }

@@ -5,7 +5,7 @@
 
     .DESCRIPTION
         The Get-SGSuppression function retrieves all suppressions or suppressions for a specific email address from SendGrid.
-        
+
     .PARAMETER EmailAddress
         Specifies the email address to search suppression groups for.
 

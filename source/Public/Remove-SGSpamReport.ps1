@@ -6,15 +6,21 @@
     .DESCRIPTION
         Remove-SGSpamReport removes a specific spam report from SendGrid based on its ID.
 
-    .PARAMETER ReportId
-        Specifies the ID of the spam report to remove.
+    .PARAMETER EmailAddress
+        Specifies one or more email addresses whose spam reports are removed.
 
     .PARAMETER OnBehalfOf
         Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
 
+    .PARAMETER InputObject
+        Specifies one or more objects to remove, typically received from the pipeline. Each object can be an email address given as a string, or an object with an Email property, such as the output of Get-SGSpamReport. Use EmailAddress to specify the addresses directly.
+
+    .PARAMETER DeleteAll
+        Specifies that all entries on the spam reports list are deleted instead of single email addresses. This parameter cannot be combined with EmailAddress.
+
     .EXAMPLE
         PS C:\> Remove-SGSpamReport -EmailAddress spam1@example.com
-        This command removes the spam report with the email address spam1@example.com from SendGrid. 
+        This command removes the spam report with the email address spam1@example.com from SendGrid.
 
     .EXAMPLE
         PS C:\> Remove-SGSpamReport -EmailAddress spam2@example.com -OnBehalfOf 'Subuser'
@@ -64,7 +70,7 @@
                     { $_ -is [System.Management.Automation.PSCustomObject] } { $EmailAddress += $_.Email; break }
                     default { Write-Error ('Failed to convert InputObject to Id.') -ErrorAction Stop }
                 }
-            }            
+            }
         }
         if ($PSCmdlet.ParameterSetName -eq 'DeleteAll') {
             $InvokeSplat = @{

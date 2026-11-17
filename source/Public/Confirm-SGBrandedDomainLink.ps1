@@ -2,7 +2,7 @@
     <#
     .SYNOPSIS
         Validates the branded domain links within the current SendGrid instance.
-        
+
     .DESCRIPTION
         Confirm-SGBrandedDomainLink is used to validate the branded domain links within the current SendGrid instance.
         An authenticated domain allows you to remove the "via”" or "sent on behalf of" message that your recipients see when they read your emails.
@@ -14,11 +14,17 @@
     .PARAMETER UniqueId
         Specifies the unique ID of the branded link to validate. This parameter is mandatory.
 
+    .PARAMETER InputObject
+        Specifies one or more objects to validate, typically received from the pipeline. Each object can be an ID given as a string or integer, or an object with an Id property, such as the output of Get-SGBrandedDomainLink. Use UniqueId to specify the IDs directly.
+
+    .PARAMETER OnBehalfOf
+        Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
+
     .EXAMPLE
         PS C:\> Confirm-SGBrandedDomainLink -UniqueId '1234567'
-        
+
         This command validates the branded domain link with the unique ID '1234567' in the current SendGrid instance.
-    
+
     .NOTES
         This function requires an active SendGrid instance to work properly. Make sure to check the validity of the UniqueId parameter.
     #>
@@ -35,7 +41,7 @@
             ParameterSetName = 'InputObject'
         )]
         [Object[]]$InputObject,
-        
+
         # Specifies the unique ID of the branded link to validate. This parameter is mandatory.
         [Parameter(
             Mandatory,
@@ -48,7 +54,7 @@
         # Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
         [Parameter()]
         [string]$OnBehalfOf
-    )   
+    )
     process {
         if ($PSCmdlet.ParameterSetName -eq 'InputObject') {
             $UniqueId = @()
@@ -59,7 +65,7 @@
                     { $_ -is [System.Management.Automation.PSCustomObject] } { $UniqueId += $_.Id; break }
                     default { Write-Error ('Failed to convert InputObject to Id.') -ErrorAction Stop }
                 }
-            }            
+            }
         }
         foreach ($Id in $UniqueId) {
             $InvokeSplat = @{

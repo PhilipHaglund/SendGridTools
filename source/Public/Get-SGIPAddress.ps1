@@ -24,8 +24,8 @@
             Namespace     = 'ips'
             ErrorAction   = 'Stop'
             CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
-        } 
-        
+        }
+
         try {
             Invoke-SendGrid @InvokeSplat
         }

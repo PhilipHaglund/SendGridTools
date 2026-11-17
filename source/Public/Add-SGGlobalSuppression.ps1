@@ -13,11 +13,11 @@
         Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's sub users or customer accounts.
 
     .EXAMPLE
-        PS C:\> Add-SGSGlobalSuppression -EmailAddress 'test@example.com'
+        PS C:\> Add-SGGlobalSuppression -EmailAddress 'test@example.com'
         This command add the email address 'test@example.com' to the global suppressions list in SendGrid.
 
     .EXAMPLE
-        PS C:\> Add-SGSGlobalSuppression -EmailAddress 'test@example.com' -OnBehalfOf 'Subuser'
+        PS C:\> Add-SGGlobalSuppression -EmailAddress 'test@example.com' -OnBehalfOf 'Subuser'
         This command add the email address 'test@example.com' to the global suppressions list in SendGrid for the Subuser 'Subuser'.
     #>
     [CmdletBinding(
@@ -45,7 +45,7 @@
             Namespace     = "suppression/unsubscribes"
             ErrorAction   = 'Stop'
             CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
-            
+
         }
         if ($PSBoundParameters.OnBehalfOf) {
             $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)

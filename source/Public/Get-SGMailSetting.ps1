@@ -63,7 +63,7 @@
         if ($QueryParameters.Count -gt 0) {
             $InvokeSplat['Namespace'] += '?' + ($QueryParameters -join '&')
         }
-        
+
         try {
             Invoke-SendGrid @InvokeSplat
         }

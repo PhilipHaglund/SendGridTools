@@ -2,10 +2,10 @@
     <#
     .SYNOPSIS
         Retrieves all permission scopes that the current SendGrid session (apikey) has permission to.
-        
+
     .DESCRIPTION
-        Get-SGPermissionScopes queries SendGrid for all permission scopes that the current session, identified by the API key, has access to. 
-        Permission scopes define the specific actions that are permitted in a session. This information can be useful for diagnosing 
+        Get-SGPermissionScopes queries SendGrid for all permission scopes that the current session, identified by the API key, has access to.
+        Permission scopes define the specific actions that are permitted in a session. This information can be useful for diagnosing
         authorization issues or for configuring new sessions with the appropriate permissions.
 
     .EXAMPLE
@@ -16,6 +16,7 @@
     .NOTES
         To use this function, you must be connected to a SendGrid instance. Use the Connect-SendGrid function to establish a connection.
     #>
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', '', Justification = 'Renaming the function to a singular noun would remove an exported public name and add a new one, so the repair is deferred.')]
     [CmdletBinding()]
     param ()
     process {
@@ -31,6 +32,6 @@
         catch {
             Write-Error ('Failed to retrieve permission scopes in SendGrid. {0}' -f $_.Exception.Message) -ErrorAction Stop
         }
-        
+
     }
 }

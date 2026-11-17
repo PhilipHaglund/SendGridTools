@@ -16,6 +16,9 @@
         Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
 
 
+    .PARAMETER Classification
+        Specifies the classification of the bounces to retrieve, for example Content or Reputation. If omitted, the totals for all classifications are retrieved.
+
     .EXAMPLE
         PS C:\> Get-SGBounceByClassification
 
@@ -47,7 +50,7 @@
         )]
         [ValidateSet('Content', 'Frequency or Volume Too High', 'Invalid Address', 'Mailbox Unavailable', 'Reputation', 'Technical Failure', 'Unclassified')]
         [string]$Classification,
-        
+
         # Specifies the start date of the time range when a bounce was created (inclusive). Both datetime and unix timestamp formats are accepted.
         [Parameter(
             Position = 1

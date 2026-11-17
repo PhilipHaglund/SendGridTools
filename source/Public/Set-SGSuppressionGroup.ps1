@@ -5,8 +5,8 @@
 
     .DESCRIPTION
         The Set-SGSuppressionGroup function updates a suppression group in SendGrid.
-        
-    .PARAMETER GroupId
+
+    .PARAMETER UniqueId
         Specifies the ID of the suppression group.
 
     .PARAMETER Name
@@ -21,8 +21,11 @@
     .PARAMETER OnBehalfOf
         Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
 
+    .PARAMETER InputObject
+        Hidden parameter that accepts objects from the pipeline. With the current code this parameter set fails with a conversion error, because the collected IDs are assigned to the integer UniqueId variable, so nothing is updated. Use UniqueId instead.
+
     .EXAMPLE
-        PS C:\> Set-SGSuppressionGroup -GroupId 123 -Name 'My Group' -Description 'This is my group.' -IsDefault $false
+        PS C:\> Set-SGSuppressionGroup -Id 123 -Name 'My Group' -Description 'This is my group.' -IsDefault:$false
         This command updates the suppression group with the ID 123.
     #>
     [CmdletBinding(
@@ -38,7 +41,7 @@
             ParameterSetName = 'InputObject'
         )]
         [Object[]]$InputObject,
-        
+
         # Specifies the ID of the suppression group.
         [Parameter(
             Mandatory,
@@ -78,7 +81,7 @@
                     { $_ -is [System.Management.Automation.PSCustomObject] } { $UniqueId += $_.Id; break }
                     default { Write-Error ('Failed to convert InputObject to Id.') -ErrorAction Stop }
                 }
-            }            
+            }
         }
         $InvokeSplat = @{
             Method        = 'Patch'

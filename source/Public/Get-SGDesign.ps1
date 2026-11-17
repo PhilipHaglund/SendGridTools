@@ -5,7 +5,7 @@
         Retrieves a list of designs stored in the Twilio SendGrid Design Library.
 
     .DESCRIPTION
-        Get-SGDesign retrieves a list of designs stored in the Twilio SendGrid Design Library. 
+        Get-SGDesign retrieves a list of designs stored in the Twilio SendGrid Design Library.
         This function does not return the pre-built Twilio SendGrid designs.
 
     .PARAMETER PageSize
@@ -21,8 +21,8 @@
         PS C:\> Get-SGDesign -PageSize 50 -PageToken 'token'
         This command retrieves a specific page of designs with a page size of 50.
     .EXAMPLE
-        PS C:\> Get-SGDesign -PageSize 100 -Summary $false -OnBehalfOf 'Subuser'
-        This command retrieves all fields of the first page of designs with a page size of 100 on behalf of the Subuser 'Subuser'.
+        PS C:\> Get-SGDesign -PageSize 100 -Summary:$false
+        This command retrieves all fields of the first page of designs with a page size of 100.
     #>
     [CmdletBinding()]
     param (

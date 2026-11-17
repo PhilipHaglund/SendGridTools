@@ -69,6 +69,8 @@ function Invoke-SendGrid {
     begin {
         # Function to get unique properties of an object.
         function Get-UniqueProperties {
+            [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', '', Justification = 'Private inner helper; renaming it is kept out of this change that must not alter behaviour, so the repair is deferred.')]
+            [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '', Justification = 'The body reads the pipeline-bound parameter once instead of per piped object; moving it into a process block would change how piped input is handled, so the repair is deferred.')]
             param (
                 [Parameter(
                     ValueFromPipeline
@@ -113,7 +115,7 @@ function Invoke-SendGrid {
 
             # Get unique properties.
             $Properties = Get-UniqueProperties -InputObject $Query
-            
+
             # Handle PSObject array with a single or more than 'Result' property.
             if ($Query -is [System.Management.Automation.PSObject[]] -and $Properties.Count -eq 1) {
                 switch ($Properties) {

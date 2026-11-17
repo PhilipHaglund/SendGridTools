@@ -8,6 +8,12 @@
         Specifies the unique identifier for the branded domain link to modify.
     .PARAMETER SetDefault
         Specifies whether to set the branded domain link as the default.
+
+    .PARAMETER InputObject
+        Specifies one or more objects to modify, typically received from the pipeline. Each object can be an ID given as a string or integer, or an object with an Id property, such as the output of Get-SGBrandedDomainLink. Use UniqueId to specify the IDs directly.
+
+    .PARAMETER OnBehalfOf
+        Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
     .EXAMPLE
         PS C:\> Set-SGBrandedDomainLink -UniqueId '1234567' -SetDefault
         Sets the branded domain link with the unique identifier '1234567' as the default branded domain link.
@@ -18,7 +24,7 @@
         SupportsShouldProcess
     )]
     param (
-        # Specifies the unique identifier for the branded domain link to modify.    
+        # Specifies the unique identifier for the branded domain link to modify.
         [Parameter(
             Mandatory,
             ValueFromPipeline,
@@ -27,7 +33,7 @@
             ParameterSetName = 'InputObject'
         )]
         [Object[]]$InputObject,
-        
+
         # Specifies the unique identifier for the branded domain link to modify.
         [Parameter(
             Mandatory,
@@ -36,15 +42,15 @@
         )]
         [Alias('Id')]
         [string[]]$UniqueId,
-        
+
         # Specifies whether to set the branded domain link as the default.
         [Parameter()]
         [switch]$SetDefault,
-        
+
         # Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
         [Parameter()]
         [string]$OnBehalfOf
-    )   
+    )
     process {
         if ($PSCmdlet.ParameterSetName -eq 'InputObject') {
             $UniqueId = @()
@@ -55,9 +61,9 @@
                     { $_ -is [System.Management.Automation.PSCustomObject] } { $UniqueId += $_.Id; break }
                     default { Write-Error ('Failed to convert InputObject to Id.') -ErrorAction Stop }
                 }
-            }            
+            }
         }
-        foreach ($Id in $UniqueId) { 
+        foreach ($Id in $UniqueId) {
             $InvokeSplat = @{
                 Method        = 'Patch'
                 Namespace     = "whitelabel/links/$Id"

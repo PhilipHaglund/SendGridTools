@@ -20,17 +20,17 @@
 
     .EXAMPLE
         PS C:\> Get-SGSubuser
-        
+
         This command retrieves all users within the current SendGrid instance.
 
     .EXAMPLE
         PS C:\> Get-SGSubuser -Username <username>
-        
+
         This command retrieves the user with the specified username within the current SendGrid instance.
-    
+
     .EXAMPLE
         PS C:\> Get-SGSubuser -Limit 2
-        
+
         This command retrieves the first two Subusers within the current SendGrid instance.
     #>
     [CmdletBinding(
@@ -62,8 +62,8 @@
             Namespace     = 'subusers'
             ErrorAction   = 'Stop'
             CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
-        } 
-        
+        }
+
         #Generic List
         [System.Collections.Generic.List[string]]$QueryParameters = [System.Collections.Generic.List[string]]::new()
 

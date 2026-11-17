@@ -2,21 +2,24 @@
     <#
     .SYNOPSIS
         Retrieves all or specific Authenticated Domains within the current SendGrid instance.
-        
-    .DESCRIPTION
-        Get-SGAuthenticatedDomain retrieves all Authenticated Domains or a specific Authenticated Domain based on its unique ID 
-        within the current SendGrid instance. An authenticated domain allows you to replace sendgrid.net with your personal sending domain, 
-        thereby removing the "via" or "sent on behalf of" message that recipients see when they read your emails. 
 
-    .PARAMETER UniqueId
+    .DESCRIPTION
+        Get-SGAuthenticatedDomain retrieves all Authenticated Domains or a specific Authenticated Domain based on its unique ID
+        within the current SendGrid instance. An authenticated domain allows you to replace sendgrid.net with your personal sending domain,
+        thereby removing the "via" or "sent on behalf of" message that recipients see when they read your emails.
+
+    .PARAMETER Id
         Specifies the UniqueId of a specific Authenticated Domain to retrieve. If this parameter is not provided, all Authenticated Domains are retrieved.
 
     .PARAMETER OnBehalfOf
         Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
 
+    .PARAMETER ShowDNS
+        Specifies that the DNS records that must be created for the authenticated domain are included in the output.
+
     .EXAMPLE
         PS C:\> Get-SGAuthenticatedDomain
-        
+
         Domain            : sending.example.com
         Subdomain         : em4963
         User              : Top Account
@@ -46,7 +49,7 @@
 
     .EXAMPLE
         PS C:\> Get-SGAuthenticatedDomain -UniqueId 12589712
-        
+
         Domain            : email.example.com
         Subdomain         : em200
         User              : Top Account
@@ -172,5 +175,5 @@
                 }
             }
         }
-    }   
+    }
 }

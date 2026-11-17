@@ -15,6 +15,12 @@
     .PARAMETER ContentBody
         Specifies the content body for the API call. It should be a hashtable.
 
+    .PARAMETER QueryParameters
+        Specifies the query parameters to append to the request, for example limit or offset. Each item must contain the query parameter name followed by = and the value, for example limit=10.
+
+    .PARAMETER OnBehalfOf
+        Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
+
     .EXAMPLE
         PS C:\> Invoke-SGCommand -WebMethod 'Get' -Namespace 'v3/mail_settings' -ContentBody @{ 'limit' = 10; 'offset' = 0 }
 

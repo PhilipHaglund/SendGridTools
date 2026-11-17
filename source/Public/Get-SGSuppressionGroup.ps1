@@ -5,9 +5,12 @@
 
     .DESCRIPTION
         The Get-SGSuppressionGroup function retrieves all suppression groups or a specific suppression group in SendGrid.
-        
+
     .PARAMETER GroupId
         Specifies the ID of the suppression group.
+
+    .PARAMETER OnBehalfOf
+        Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
 
     .EXAMPLE
         PS C:\> Get-SGSuppressionGroup

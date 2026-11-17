@@ -4,9 +4,9 @@
         Adds a new Branded Domain Link within the current SendGrid instance.
 
     .DESCRIPTION
-        New-SGBrandedDomainLink adds a new Branded Domain Link within the current SendGrid instance. Email link branding (formerly "Link Whitelabel") 
-        allows all of the click-tracked links, opens, and images in your emails to be served from your domain rather than sendgrid.net. Spam filters 
-        and recipient servers look at the links within emails to determine whether the email looks trustworthy. They use the reputation of the root 
+        New-SGBrandedDomainLink adds a new Branded Domain Link within the current SendGrid instance. Email link branding (formerly "Link Whitelabel")
+        allows all of the click-tracked links, opens, and images in your emails to be served from your domain rather than sendgrid.net. Spam filters
+        and recipient servers look at the links within emails to determine whether the email looks trustworthy. They use the reputation of the root
         domain to determine whether the links can be trusted.
 
     .PARAMETER Domain
@@ -18,19 +18,27 @@
     .PARAMETER Force
         Specifies if the current domain (parameter Domain) should be created despite it contains a subdomain (email.example.com).
 
+    .PARAMETER Default
+        Specifies that the new branded domain link becomes the default one for the SendGrid instance. The current default is replaced, so a confirmation prompt is shown.
+
+    .PARAMETER OnBehalfOf
+        Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
+
     .EXAMPLE
-        PS C:\> New-SGBrandedDomainLink -Domain 'example.com' -Subdomain 'link'
+        PS C:\> New-SGBrandedDomainLink -Domain 'example.com' -SendGridSubDomain 'link'
 
         Adds a new branded domain link 'sub.example.com' with the subdomain 'link' using the specified API key.
 
     .EXAMPLE
-        PS C:\> New-SGBrandedDomainLink -Domain 'sub.example.com' -Force
+        PS C:\> New-SGBrandedDomainLink -Domain 'sub.example.com'
 
         Adds a new branded domain link 'url123.sub.example.com' and forces the creation despite the domain containing a subdomain.
 
     .NOTES
         To use this function, you must be connected to a SendGrid instance. Use the Connect-SendGrid function to establish a connection.
     #>
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidShouldContinueWithoutForce', '', Justification = 'The ShouldContinue prompt only guards a deliberate request (Full Access key or -Default) and is not a -Force bypass; a boolean -Force parameter would add to the public surface and change behaviour, so the repair is deferred.')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseLiteralInitializerForHashtable', '', Justification = '[hashtable]::new() creates a case-sensitive table while @{} is case-insensitive; the two are not interchangeable in general, so changing the initializer could change behaviour and is deferred.')]
     [CmdletBinding(SupportsShouldProcess)]
     param (
 
@@ -56,7 +64,7 @@
         [Parameter()]
         [string]$OnBehalfOf
     )
-    
+
     begin {
         [hashtable]$ContentBody = [hashtable]::new()
 
@@ -65,7 +73,7 @@
             Write-Verbose -Message ("SendGrid will not generate a custom subdomain. Domain to be used: $Domain") -Verbose
             $ContentBody.Add('subdomain', $Subdomain)
             $ProcessMessage = "$Subdomain.$Domain"
-            
+
         }
         else {
             Write-Verbose -Message ("SendGrid will automatically generate a custom branded subdomain for you. Example:url1234.$Domain") -Verbose
@@ -80,8 +88,8 @@
         if ($PSBoundParameters.OnBehalfOf) {
             $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
         }
-    }    
-    process { 
+    }
+    process {
         if ($PSCmdlet.ShouldProcess($ProcessMessage)) {
             if ($PSBoundParameters.ContainsKey('Default') -and $PSCmdlet.ShouldContinue($Domain, 'Setting this domain as the default domain will remove the current default domain. Do you want to continue?')) {
                 $ContentBody.Add('default', $true)

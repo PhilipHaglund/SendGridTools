@@ -130,7 +130,7 @@
             }
 
             $InvokeSplat['ContentBody'] = $ContentBody
-        
+
             try {
                 Invoke-SendGrid @InvokeSplat
             }

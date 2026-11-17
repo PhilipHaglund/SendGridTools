@@ -4,12 +4,18 @@
         Removes a Branded Domain Link from the current SendGrid instance.
 
     .DESCRIPTION
-        Remove-SGBrandedDomainLink removes a branded domain link from the current SendGrid instance. Branded Domain Links allows all of the click-tracked links, 
-        opens, and images in your emails to be served from your domain rather than sendgrid.net. It improves the trustworthiness of your emails. You must provide 
+        Remove-SGBrandedDomainLink removes a branded domain link from the current SendGrid instance. Branded Domain Links allows all of the click-tracked links,
+        opens, and images in your emails to be served from your domain rather than sendgrid.net. It improves the trustworthiness of your emails. You must provide
         the unique identifier of the branded link to be removed. Please note that you might need to remove the DNS records manually after removing the branded link.
 
     .PARAMETER UniqueId
         Specifies the unique identifier for the branded link to remove.
+
+    .PARAMETER InputObject
+        Specifies one or more objects to remove, typically received from the pipeline. Each object can be an ID given as a string or integer, or an object with an Id property, such as the output of Get-SGBrandedDomainLink. Use UniqueId to specify the IDs directly.
+
+    .PARAMETER OnBehalfOf
+        Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
 
     .EXAMPLE
         PS C:\> Remove-SGBrandedDomainLink -UniqueId '1234567'
@@ -37,7 +43,7 @@
             ParameterSetName = 'InputObject'
         )]
         [Object[]]$InputObject,
-        
+
         # Specifies a the UniqueId for the branded link to remove.
         [Parameter(
             Mandatory,
@@ -61,9 +67,9 @@
                     { $_ -is [System.Management.Automation.PSCustomObject] } { $UniqueId += $_.Id; break }
                     default { Write-Error ('Failed to convert InputObject to Id.') -ErrorAction Stop }
                 }
-            }            
+            }
         }
-        foreach ($Id in $UniqueId) { 
+        foreach ($Id in $UniqueId) {
             $InvokeSplat = @{
                 Method        = 'Delete'
                 Namespace     = "whitelabel/links/$Id"

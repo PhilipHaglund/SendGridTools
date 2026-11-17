@@ -67,5 +67,5 @@
                 Write-Error ('Failed to retrieve all SendGrid teammates. {0}' -f $_.Exception.Message) -ErrorAction Stop
             }
         }
-    }   
+    }
 }

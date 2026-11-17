@@ -21,6 +21,9 @@
     .PARAMETER OnBehalfOf
         Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
 
+    .PARAMETER EmailAddress
+        Specifies one or more email addresses to look up on the global suppressions list. If this parameter is not provided, all global suppressions are retrieved.
+
     .EXAMPLE
         PS C:\> Get-SGGlobalSuppression
 

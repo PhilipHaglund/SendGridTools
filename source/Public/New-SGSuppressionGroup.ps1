@@ -5,7 +5,7 @@
 
     .DESCRIPTION
         The New-SGSuppressionGroup function creates a new suppression group in SendGrid.
-        
+
     .PARAMETER Name
         Specifies the name of the suppression group.
 
@@ -15,8 +15,11 @@
     .PARAMETER IsDefault
         Specifies whether the suppression group is the default group.
 
+    .PARAMETER OnBehalfOf
+        Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
+
     .EXAMPLE
-        PS C:\> New-SGSuppressionGroup -Name 'My Group' -Description 'This is my group.' -IsDefault $false
+        PS C:\> New-SGSuppressionGroup -Name 'My Group' -Description 'This is my group.' -IsDefault:$false
         This command creates a new suppression group named 'My Group' with the specified description and is not set as the default group.
     #>
     [CmdletBinding(
@@ -41,7 +44,7 @@
 
         # Specifies whether the suppression group is the default group.
         [Parameter()]
-        [switch]$IsDefault, 
+        [switch]$IsDefault,
 
         # Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
         [Parameter()]

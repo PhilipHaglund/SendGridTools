@@ -4,7 +4,7 @@
         Creates a new Subuser within the current SendGrid instance.
 
     .DESCRIPTION
-        New-SGSubuser creates a new Subuser within the current SendGrid instance. 
+        New-SGSubuser creates a new Subuser within the current SendGrid instance.
         The Subuser is created with the provided username and email address to contact this subuser.
 
     .PARAMETER Username
@@ -20,13 +20,14 @@
 
     .EXAMPLE
         PS C:\> New-SGSubuser -Username <username> -Email <email> -Password <securestring> -Ips <ipaddress>
-        
+
         This command creates a new Subuser with the specified username, email address, password, and IP address within the current SendGrid instance.
 
     .NOTES
         To use this function, you must be connected to a SendGrid instance. Use the Connect-SendGrid function to establish a connection.
 
     #>
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseOutputTypeCorrectly', '', Justification = 'Declaring the Hashtable output type would change the OutputType metadata exposed by Get-Command and help; the repair is deferred so the public surface stays unchanged.')]
     [CmdletBinding(
         SupportsShouldProcess
     )]
@@ -80,7 +81,7 @@
             Namespace     = 'subusers'
             ErrorAction   = 'Stop'
             CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
-        } 
+        }
 
         $InvokeSplat.Add('ContentBody', $ContentBody)
         if ($PSCmdlet.ShouldProcess($Username)) {

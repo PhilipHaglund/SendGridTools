@@ -4,13 +4,19 @@
         Removes an Authenticated Domain within the current Sendgrid instance.
 
     .DESCRIPTION
-        Remove-SGAuthenticatedDomain removes an authenticated domain from the current SendGrid instance. An authenticated domain allows you 
-        to remove the "via" or "sent on behalf of" message that your recipients see when they read your emails. Authenticating a domain allows 
-        you to replace sendgrid.net with your personal sending domain. You must provide the unique identifier of the domain to be removed. 
+        Remove-SGAuthenticatedDomain removes an authenticated domain from the current SendGrid instance. An authenticated domain allows you
+        to remove the "via" or "sent on behalf of" message that your recipients see when they read your emails. Authenticating a domain allows
+        you to replace sendgrid.net with your personal sending domain. You must provide the unique identifier of the domain to be removed.
         Please note that you might need to remove the DNS records manually after removing the domain.
 
     .PARAMETER UniqueId
         Specifies the unique identifier for the authenticated domain to remove.
+
+    .PARAMETER InputObject
+        Specifies one or more objects to remove, typically received from the pipeline. Each object can be an ID given as a string or integer, or an object with an Id property, such as the output of Get-SGAuthenticatedDomain. Use UniqueId to specify the IDs directly.
+
+    .PARAMETER OnBehalfOf
+        Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
 
     .EXAMPLE
         PS C:\> Remove-SGAuthenticatedDomain -UniqueId '1234567'
@@ -38,7 +44,7 @@
             ParameterSetName = 'InputObject'
         )]
         [Object[]]$InputObject,
-        
+
         # Specifies the UniqueId for the authenticated domain to remove.
         [Parameter(
             Mandatory,
@@ -62,9 +68,9 @@
                     { $_ -is [System.Management.Automation.PSCustomObject] } { $UniqueId += $_.Id; break }
                     default { Write-Error ('Failed to convert InputObject to Id.') -ErrorAction Stop }
                 }
-            }            
+            }
         }
-        foreach ($Id in $UniqueId) { 
+        foreach ($Id in $UniqueId) {
             $InvokeSplat = @{
                 Method        = 'Delete'
                 Namespace     = "whitelabel/domains/$Id"
@@ -80,7 +86,7 @@
                 $GetSplat.Add('OnBehalfOf', $OnBehalfOf)
             }
             $SGAuthenticatedDomain = Get-SGAuthenticatedDomain @GetSplat -ShowDNS
-            
+
             Write-Verbose -Message ("Don't forget to remove DNS records.") -Verbose
             $SGAuthenticatedDomain
 
