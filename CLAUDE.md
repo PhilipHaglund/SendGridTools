@@ -15,6 +15,8 @@ Works in PowerShell 7 and Windows PowerShell 5.1.
 - Dependencies resolve with PSResourceGet into `output/RequiredModules` at exact versions pinned in `RequiredModules.psd1`. Nothing is installed globally and PSGallery trust is left untouched when the PSResourceGet bootstrap succeeds; on a failed download Resolve-Dependency.ps1 falls back to the legacy PowerShellGet path, which can install the NuGet provider for the current user and trust PSGallery.
 - Use the Pester in `output/RequiredModules` (Pester 5), never a globally installed Pester.
 - Tests live in `tests/QA/module.tests.ps1`: changelog guard, module import, unit-test ratchet, PSScriptAnalyzer per function, comment-based help per exported function.
+- `tests/QA/module.tests.ps1` also holds the version cap: the built version must be at least 0.4.8 and below 1.0.0.
+- `tests/Workflow` tests the workflow scripts in `.github/scripts` and the steps of the workflow's publish path. They need PowerShell 7 and are skipped in Windows PowerShell 5.1.
 - Changelog guard: on a branch, the root `CHANGELOG.md` must change since the merge base with `origin/main`. It is skipped with a reason on main.
 - Unit-test ratchet: `tests/QA/UnitTestBaseline.txt` lists exported functions that have no `<Name>.Tests.ps1`. The list may only shrink. A new public function needs a test.
 - Coverage: `CodeCoverageThreshold` in `build.yaml` equals the measured coverage (0 today, no unit tests yet). It may only be raised, as tests arrive.
@@ -29,8 +31,26 @@ Works in PowerShell 7 and Windows PowerShell 5.1.
 
 ## Version tokens
 
-The patterns in `GitVersion.yml` as they stand on main bump the version from commit texts. They match "breaking", "major", "add", "adds", "feature", "features", "minor", "fix" and "patch". "fix" and "patch" have no word boundary at all, so words that contain them ("prefix", "suffix") match; the other patterns have no leading boundary, so words that end in them match too. No such word may appear in commit texts, PR titles or PR texts until step 2 has replaced the patterns. Also keep "!" out of PR titles.
+Only these move the version, read from commit messages by GitVersion: `+semver: breaking|major`, `+semver: feature|minor`, `+semver: fix|patch`, `+semver: none|skip`, and a conventional-commit subject with `!` before the colon (a major step). Ordinary words ("add", "prefix", "fix" and so on) no longer do.
 
+- GitVersion reads every reachable commit message, and a squash merge copies the PR title and text into main. So never quote a token or write a breaking-form subject in commit texts, PR titles or PR texts. Name it in words. File content is never read.
+- `next-version: 0.4.8` in `GitVersion.yml` lifts the first preview above the already released 0.4.7. The version cap `[0.4.8, 1.0.0)` in `tests/QA/module.tests.ps1` fails the build if the version leaves that range.
+- A minor bump has no cap, so the rule above is the control: a token that slips into a commit text bumps the version.
+
+## Publishing
+
+All publishing is in `.github/workflows/build-and-test.yml`, in the `publish` job. Nothing else in the repository publishes.
+
+- A pull request must pass `ubuntu-latest`, `windows-latest`, `macos-latest`, `windows-powershell-5.1` and `package` (the repository owner makes them required). `publish` is skipped on a pull request.
+- A merge to main publishes a preview `0.4.8-previewNNNN` to the PowerShell Gallery (the first is `0.4.8-preview0001`). The publish job then creates the tag `v<version>` (hyphenated preview) and a GitHub prerelease. That tag is what moves the preview counter (GitVersion ContinuousDelivery).
+- A stable version comes only from a `v<X.Y.Z>` tag on a green main commit. Only Philip approves it, with his explicit `RELEASE OK`. Only the bypass list of the `Stable Version` tag ruleset (repository admin role) can create, move or delete such a tag. The ruleset covers `refs/tags/v[0-9]*` and `refs/tags/[0-9]*`, except hyphenated tags. The workflow never creates, moves or deletes a stable tag. On a stable tag run the tag step creates that version's GitHub release (not a prerelease), which follows from Philip's tag.
+- Never create a tag without `v` (`X.Y.Z`). It triggers nothing in the workflow, but GitVersion counts it as a base, and the release gate covers it like a `v` tag.
+- The `publish` job runs only for a push to main or a `v` tag in `PhilipHaglund/SendGridTools`, in the environment `PSGallery`, with the secret `GALLERYAPITOKEN`. The repository owner sets the environment and the secret. Nothing in this repository reads or sets them.
+- The step "Refuse a version the triggering ref does not call for" runs before the secret is used. It refuses a main build without a prerelease label, a tag build whose version is not exactly the tag's, a tag whose commit is not on main, and any other ref. Its tests are in `tests/Workflow/BuildAndTestWorkflow.Tests.ps1`.
+- What is published is what was tested: `PublishArtefact.ps1 -Record` runs on the ubuntu leg, and `-Verify` runs in `package` and in `publish`. `package` rehearses into a temporary local repository and never publishes.
+- There is no local publishing path. `./build.ps1 -Tasks publish` is deliberately undefined, see the comment in `build.yaml`.
+- If the tag step fails, repair it by hand. The refusal message from `.github/scripts/ReleaseTag.ps1` names the repair. A published version is permanent: the Gallery can unlist a version, not delete it.
+- Never add `paths-ignore` to the workflow's triggers. A skipped run leaves the required checks pending.
 ## Release gate (verbatim, Swedish)
 
 This block is binding and must stay verbatim. Do not translate, shorten or weaken it.
