@@ -198,7 +198,13 @@ Describe 'Quality for module' -Tags 'TestQuality' {
         ($baseline -join "`n") | Should -BeExactly ($sorted -join "`n") -Because 'UnitTestBaseline.txt must be sorted ordinal'
     }
 
-    It 'Should pass Script Analyzer for <Name>' -ForEach $allTestCases -Skip:(-not $scriptAnalyzerRules) {
+    # A missing PSScriptAnalyzer must be a named red failure, never a silent skip of every case below.
+    It 'Should have PSScriptAnalyzer available' {
+        Get-Command -Name Invoke-ScriptAnalyzer -ErrorAction SilentlyContinue |
+            Should -Not -BeNullOrEmpty -Because 'the Script Analyzer cases cannot run without PSScriptAnalyzer. Install it; do not skip the cases'
+    }
+
+    It 'Should pass Script Analyzer for <Name>' -ForEach $allTestCases {
         $functionFile = Get-ChildItem -Path $sourcePath -Recurse -Include "$Name.ps1"
 
         $pssaResult = (Invoke-ScriptAnalyzer -Path $functionFile.FullName)
