@@ -124,17 +124,45 @@ Describe 'Get-SGSubuser region' {
         }
     }
 
-    It 'Appends the region query to a single Subuser request' {
+    It 'Sends no region query and no warning for a single Subuser alone' {
         InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Fixture = $script:RegionFixture } {
             $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
             Set-SgtNetworkStub -Response (Get-Content -LiteralPath $Fixture -Raw | ConvertFrom-Json)
 
-            $null = Get-SGSubuser -Username sgt-test-subuser-1 -Confirm:$false
-            "$((@(Get-SgtNetworkCall)[0])[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/subusers/sgt-test-subuser-1'
+            $null = Get-SGSubuser -Username sgt-test-subuser-1 -Confirm:$false -WarningVariable Warned -WarningAction SilentlyContinue
 
+            "$((@(Get-SgtNetworkCall)[0])[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/subusers/sgt-test-subuser-1'
+            @($Warned).Count | Should -Be 0
+        }
+    }
+
+    It 'Sends no warning for -IncludeRegion alone' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Fixture = $script:RegionFixture } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
             Set-SgtNetworkStub -Response (Get-Content -LiteralPath $Fixture -Raw | ConvertFrom-Json)
-            $null = Get-SGSubuser -Username sgt-test-subuser-1 -IncludeRegion -Confirm:$false
-            "$((@(Get-SgtNetworkCall)[0])[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/subusers/sgt-test-subuser-1?include_region=true'
+
+            $null = Get-SGSubuser -IncludeRegion -Confirm:$false -WarningVariable Warned -WarningAction SilentlyContinue
+
+            @($Warned).Count | Should -Be 0
+        }
+    }
+
+    It 'Sends no region query and warns once for a single Subuser with <Name>' -TestCases @(
+        @{ Name = '-IncludeRegion'; Splat = @{ IncludeRegion = $true } }
+        @{ Name = '-Region EU'; Splat = @{ Region = 'EU' } }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Fixture = $script:RegionFixture; Splat = $Splat } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response (Get-Content -LiteralPath $Fixture -Raw | ConvertFrom-Json)
+
+            $null = Get-SGSubuser -Username sgt-test-subuser-1 @Splat -Confirm:$false -WarningVariable Warned -WarningAction SilentlyContinue
+
+            $Calls = @(Get-SgtNetworkCall)[0]
+            $Calls.Count | Should -Be 1
+            "$($Calls[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/subusers/sgt-test-subuser-1'
+            @($Warned).Count | Should -Be 1
+            "$($Warned[0])" | Should -Match 'single subuser'
+            "$($Warned[0])" | Should -Not -Match 'sgt-test-subuser'
         }
     }
 
