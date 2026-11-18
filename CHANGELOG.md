@@ -5,6 +5,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- Every request to SendGrid refuses an HTTP redirect, so the API key is never sent to the host a redirect points at. A redirect raises an error that names only that host (`SendGrid answered with a redirect to <host>; the request was refused so that the API key is not sent there.`). Without a redirect, requests, responses and error messages are as before.
+
 ## [0.5.0] - 2026-11-18
 
 ### Added
