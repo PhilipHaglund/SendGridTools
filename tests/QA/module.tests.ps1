@@ -142,16 +142,14 @@ Describe 'Changelog Management' -Tag 'Changelog' {
         }
         else
         {
-            $branchName = (& git -C $projectPath rev-parse --abbrev-ref HEAD 2>$null)
-            $headCommit = (& git -C $projectPath rev-parse HEAD 2>$null)
-            $mainCommit = (& git -C $projectPath rev-parse 'refs/remotes/origin/main' 2>$null)
-            if ($branchName -eq 'main')
+            # Decide on the commit, never on the branch name. GitVersion 5 on GitHub Actions checks out
+            # a local branch named after GITHUB_REF, so a tag run sits on a branch such as tags/v1.2.3.
+            # Exit code 0 means HEAD is on origin/main; 1 (a branch with its own commits) or an error
+            # falls through to the comparison below.
+            $null = & git -C $projectPath merge-base --is-ancestor HEAD 'refs/remotes/origin/main' 2>$null
+            if ($LASTEXITCODE -eq 0)
             {
-                $skipReason = 'on main: the changelog is compared only on branches that merge into main'
-            }
-            elseif ($branchName -eq 'HEAD' -and $headCommit -eq $mainCommit)
-            {
-                $skipReason = 'on main: detached HEAD equals origin/main, so there is nothing to compare'
+                $skipReason = 'HEAD is already on origin/main (main, a detached HEAD or a version tag), so this commit brings no change to compare'
             }
         }
 
