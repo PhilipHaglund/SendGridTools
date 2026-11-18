@@ -13,10 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `New-SGCombinedDomain -CustomDkimSelector` accepts exactly three letters or digits, as `New-SGAuthenticatedDomain` does. A shorter selector fails before any request; before, the authenticated domain failed while the branded link was still created.
 - `Set-SGAddressWhitelistSetting`, `Set-SGBouncePurgeSetting`, `Set-SGForwardBounceSetting` and `Set-SGForwardSpamSetting` accept `-WhatIf` and `-Confirm`. They do not ask by default, and without the switches the request and output are as before.
 - `Set-SGApiKey -Scopes` accepts a scope again (it failed at binding in both PowerShell 7 and Windows PowerShell 5.1), and `Get-Command -Syntax Set-SGApiKey` no longer fails in PowerShell 7. The scope names complete with Tab, as in `New-SGApiKey`, and SendGrid decides whether a scope is valid.
+- The build's dependency resolution (`Resolve-Dependency.ps1`) now saves each build module through a function that tries `Save-PSResource` up to three times. Between attempts it writes a warning with the module name, the error type and the attempt number, and waits 5 seconds. After the third failure it fails with the last error, unchanged. A save that succeeds on the first attempt behaves as before. Before, one sporadic error from PSResourceGet during the save failed the whole job, and a re-run passed.
 
 ### Security
 
 - Every request to SendGrid no longer follows an HTTP redirect, so the API key is never sent to the host a redirect points at. In PowerShell 7 every 3xx answer, and in Windows PowerShell 5.1 a 301 or 302 answer, raises an error that names only that host (`SendGrid answered with a redirect to <host>; the request was refused so that the API key is not sent there.`). In Windows PowerShell 5.1 another 3xx answer (300, 303, 304, 305, 307 or 308) is not followed either, but comes back as an empty answer instead of an error, because that version reports no status code. Without a redirect, requests, responses and error messages are as before.
+- The publish job's step "Refuse a version the triggering ref does not call for" now refuses a stable tag on an older main commit (GitHub compares the commit to main as `behind`). A tag run publishes only when the tag points at main's tip. The run fails with `REFUSING TO PUBLISH.` before the Gallery key is used, and the tag is left where it is. Before, the step let such a tag through, and only the changelog guard stopped the run.
 
 ## [0.5.0] - 2026-11-18
 
