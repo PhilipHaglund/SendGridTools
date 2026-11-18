@@ -140,6 +140,35 @@ Describe 'Save-PSResourceWithRetry' {
         $Out[0] | Should -BeOfType [System.Management.Automation.ErrorRecord]
     }
 
+    It 'tries a non-terminating error three times when ErrorActionPreference is Stop' {
+        Mock Save-PSResource {
+            $Copy = @{}; foreach ($Key in $PesterBoundParameters.Keys) { $Copy[$Key] = $PesterBoundParameters[$Key] }; $script:Calls.Add($Copy)
+            Write-Error 'placeholder non-terminating'
+        }
+
+        $Caught = $null
+        $ErrorActionPreference = 'Stop'
+        try
+        {
+            Save-PSResourceWithRetry -Parameter $script:Parameter -WarningVariable w -WarningAction SilentlyContinue
+        }
+        catch
+        {
+            $Caught = $_
+        }
+
+        $script:Calls.Count | Should -Be 3
+        $Caught | Should -Not -BeNullOrEmpty
+        $Caught.Exception | Should -BeOfType [Microsoft.PowerShell.Commands.WriteErrorException]
+        $Caught.Exception.Message | Should -Be 'placeholder non-terminating'
+        @($w).Count | Should -Be 2
+        $w[0].Message | Should -BeLike '*Placeholder.Module*'
+        $w[0].Message | Should -BeLike '*attempt 1 of 3*'
+        $w[1].Message | Should -BeLike '*Placeholder.Module*'
+        $w[1].Message | Should -BeLike '*attempt 2 of 3*'
+        Should -Invoke Start-Sleep -Times 2 -Exactly
+    }
+
     It 'calls Save-PSResource only inside the function, with today''s parameters' {
         $SaveCalls = @($script:ScriptAst.FindAll({
                     param($Node)
