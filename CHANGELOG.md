@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.8] - 2026-11-18
+
 ### Fixed
 
 - The module imports in a new Windows PowerShell 5.1 session; the internal session class named a type that 5.1 had not loaded when the module is parsed. `New-SGSubuser` now also works in 5.1; it used a parameter that 5.1 does not have.
@@ -108,7 +110,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - First release: connect to SendGrid, manage API keys, authenticated domains and branded links, and send mail with `Send-SGMailMessage`.
 
-[Unreleased]: https://github.com/PhilipHaglund/SendGridTools/compare/33c9a1ff5221e3612aa8357f7ecedfccfd5cc59f...HEAD
+[Unreleased]: https://github.com/PhilipHaglund/SendGridTools/compare/v0.4.8...HEAD
+[0.4.8]: https://github.com/PhilipHaglund/SendGridTools/compare/33c9a1ff5221e3612aa8357f7ecedfccfd5cc59f...v0.4.8
 [0.4.7]: https://github.com/PhilipHaglund/SendGridTools/commit/33c9a1ff5221e3612aa8357f7ecedfccfd5cc59f
 [0.4.6]: https://github.com/PhilipHaglund/SendGridTools/compare/0.4.5...0.4.6
 [0.4.5]: https://github.com/PhilipHaglund/SendGridTools/compare/0.4.4...0.4.5
