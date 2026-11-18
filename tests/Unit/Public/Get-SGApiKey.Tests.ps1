@@ -129,6 +129,37 @@ Describe 'Get-SGApiKey list paging' {
         }
     }
 
+    It 'Gets each key id with one call and no paging' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Fixture = $script:Fixture } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtPagedNetworkStub -Items @(New-SgtFixtureItem -Kind Key -Count 51 -Path $Fixture) -Shape Result
+
+            $Out = @(Get-SGApiKey -ApiKeyId 'key-id-1', 'key-id-2' -Confirm:$false)
+
+            $Out.Count | Should -Be 2
+            $Calls = @(Get-SgtNetworkCall)[0]
+            $Calls.Count | Should -Be 2
+            "$($Calls[0].Uri)" | Should -BeLike '*/api_keys/key-id-1'
+            "$($Calls[1].Uri)" | Should -BeLike '*/api_keys/key-id-2'
+            foreach ($Call in $Calls) { "$($Call.Uri)" | Should -Not -Match 'limit=|offset=' }
+        }
+    }
+
+    It 'Gets a key id from the pipeline with one call' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Fixture = $script:Fixture } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtPagedNetworkStub -Items @(New-SgtFixtureItem -Kind Key -Count 51 -Path $Fixture) -Shape Result
+
+            $Out = @('key-id-1' | Get-SGApiKey -Confirm:$false)
+
+            $Out.Count | Should -Be 1
+            $Calls = @(Get-SgtNetworkCall)[0]
+            $Calls.Count | Should -Be 1
+            "$($Calls[0].Uri)" | Should -BeLike '*/api_keys/key-id-1'
+            "$($Calls[0].Uri)" | Should -Not -Match 'limit=|offset='
+        }
+    }
+
     It 'Keeps the output shape' {
         InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Fixture = $script:Fixture } {
             $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0

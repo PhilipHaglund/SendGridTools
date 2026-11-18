@@ -163,6 +163,54 @@ Describe 'Get-SGAuthenticatedDomain list paging' {
         }
     }
 
+    It 'Gets each id with one call and no paging' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Fixture = $script:Fixture } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtPagedNetworkStub -Items @(New-SgtFixtureItem -Kind Domain -Count 51 -Path $Fixture) -Shape List
+
+            $Out = @(Get-SGAuthenticatedDomain -Id '1001', '1002' -Confirm:$false)
+
+            $Out.Count | Should -Be 2
+            $Calls = @(Get-SgtNetworkCall)[0]
+            $Calls.Count | Should -Be 2
+            "$($Calls[0].Uri)" | Should -BeLike '*/whitelabel/domains/1001'
+            "$($Calls[1].Uri)" | Should -BeLike '*/whitelabel/domains/1002'
+            foreach ($Call in $Calls) { "$($Call.Uri)" | Should -Not -Match 'limit=|offset=' }
+        }
+    }
+
+    It 'Gets an id given through the UniqueId alias with one call' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Fixture = $script:Fixture } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtPagedNetworkStub -Items @(New-SgtFixtureItem -Kind Domain -Count 51 -Path $Fixture) -Shape List
+
+            $Out = @(Get-SGAuthenticatedDomain -UniqueId '1003' -Confirm:$false)
+
+            $Out.Count | Should -Be 1
+            $Calls = @(Get-SgtNetworkCall)[0]
+            $Calls.Count | Should -Be 1
+            "$($Calls[0].Uri)" | Should -BeLike '*/whitelabel/domains/1003'
+            "$($Calls[0].Uri)" | Should -Not -Match 'limit=|offset='
+        }
+    }
+
+    It 'Gets piped ids with one call each after the DomainName list' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Fixture = $script:Fixture } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtPagedNetworkStub -Items @(New-SgtFixtureItem -Kind Domain -Count 51 -Path $Fixture) -Shape List
+
+            # The DynamicParam runs before the pipeline binds Id, so it pages the list once (two calls) before the id call.
+            $Out = @('1001' | Get-SGAuthenticatedDomain -Confirm:$false)
+
+            $Out.Count | Should -Be 1
+            $Calls = @(Get-SgtNetworkCall)[0]
+            $Calls.Count | Should -Be 3
+            @($Calls[0..1] | ForEach-Object { [int][regex]::Match("$($_.Uri)", 'offset=(\d+)').Groups[1].Value }) | Should -Be @(0, 50)
+            "$($Calls[2].Uri)" | Should -BeLike '*/whitelabel/domains/1001'
+            "$($Calls[2].Uri)" | Should -Not -Match 'limit=|offset='
+        }
+    }
+
     It 'Fails as before without a session' {
         InModuleScope SendGridTools {
             $script:Session = $null
