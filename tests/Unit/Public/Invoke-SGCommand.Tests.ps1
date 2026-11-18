@@ -111,6 +111,21 @@ Describe 'Invoke-SGCommand request' {
         }
     }
 
+    It 'Sends relative <Ns> to the global scopes URL' -ForEach @(
+        @{ Ns = '//scopes' }
+        @{ Ns = '//v3/scopes' }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Ns = $Ns } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            $script:Session._BaseURL = [uri]'https://api.sendgrid.com/v3'
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ ok = 1 })
+            $null = Invoke-SGCommand -Namespace $Ns -Confirm:$false
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            "$($Calls[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/scopes'
+        }
+    }
+
     It 'Sends <Url> only to the session host' -ForEach @(
         @{ Url = 'https://api.sendgrid.com//evil.example.net/x' }
         @{ Url = 'https://api.sendgrid.com/v3/@evil.example.net/x' }
