@@ -5,8 +5,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `Connect-SendGrid -Region Global|EU` connects to SendGrid's EU host `api.eu.sendgrid.com` (issue #3), and `-BaseUri` to a given https base URI with `/v3` added when missing; without them `Connect-SendGrid` connects to the global host as before.
+
 ### Fixed
 
+- `Invoke-SGCommand` accepts a full URL on the session's host, global or EU, and refuses a URL to another host so the API key is never sent there; before, it recognised only the global host and removed `/v3/` anywhere in the path.
 - The module imports in a new Windows PowerShell 5.1 session; the internal session class named a type that 5.1 had not loaded when the module is parsed. `New-SGSubuser` now also works in 5.1; it used a parameter that 5.1 does not have.
 - `New-SGAuthenticatedDomain` sends the addresses given with `-IPAddress` (it sent an empty value) and asks for a custom SPF only when `-CustomSPF` is set, and `New-SGCombinedDomain` no longer asks for one when only `-DisableAutomaticSecurity` is given.
 - `New-SGAuthenticatedDomain`, `New-SGBrandedDomainLink` and `New-SGCombinedDomain` send the subdomain given with `-SendGridSubdomain` and none when none is given; before, they failed, sent an empty subdomain or dropped it.

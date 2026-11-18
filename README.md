@@ -77,6 +77,12 @@ Enter your ApiKey
 Password for user apikey:
 ```
 
+By default `Connect-SendGrid` connects to SendGrid's global host. For an account on the EU host, use `-Region EU`, or give another https base URI with `-BaseUri` (`/v3` is added when missing).
+```PowerShell
+Connect-SendGrid -Region EU
+Connect-SendGrid -BaseUri 'https://api.eu.sendgrid.com'
+```
+
 *The session lifetime when connecting is **1 hour** and will be renewed with each cmdlet run.*
 
 
