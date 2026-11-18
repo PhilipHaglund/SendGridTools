@@ -85,7 +85,7 @@ Connect-SendGrid -BaseUri 'https://api.eu.sendgrid.com'
 
 To sign in without a prompt, for example from a vault or an environment variable, give the key as a secure string with `-ApiKey` (it cannot be combined with `-Credential`); in a host that cannot prompt, `Connect-SendGrid` without `-Credential` or `-ApiKey` fails with an error that names both.
 ```PowerShell
-$ApiKey = ConvertTo-SecureString -String $env:<variable> -AsPlainText -Force
+$ApiKey = ConvertTo-SecureString -String $env:SENDGRID_API_KEY -AsPlainText -Force
 Connect-SendGrid -ApiKey $ApiKey
 ```
 

@@ -45,7 +45,10 @@ LONG DESCRIPTION
     without a signed-in user, or a runspace without a user interface),
     Connect-SendGrid without -Credential or -ApiKey fails with an error
     that names both, and leaves an existing session as it was. An
-    interactive host asks for the key as before.
+    interactive host asks for the key as before. On Linux and macOS only
+    -NonInteractive is recognised, because .NET reports every process
+    there as user interactive, so start a cron or systemd job with
+    pwsh -NonInteractive or pass -ApiKey.
 
     REGION
     SendGrid has a global host and an EU host. Connect-SendGrid -Region EU
@@ -93,7 +96,7 @@ EXAMPLES
 
     Example 4: Sign in without a prompt
 
-    PS C:\> $ApiKey = ConvertTo-SecureString -String $env:<variable> -AsPlainText -Force
+    PS C:\> $ApiKey = ConvertTo-SecureString -String $env:SENDGRID_API_KEY -AsPlainText -Force
     PS C:\> Connect-SendGrid -ApiKey $ApiKey
 
     Example 5: Send a message
