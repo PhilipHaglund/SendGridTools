@@ -15,9 +15,9 @@ function Enable-SgtNetworkTripwire {
     $global:SgtNetworkStub = $null
     function global:Invoke-RestMethod {
         [CmdletBinding()]
-        param($Method, $Uri, $Headers, $Body, [Parameter(ValueFromRemainingArguments)]$Remaining)
+        param($Method, $Uri, $Headers, $Body, $MaximumRedirection, [Parameter(ValueFromRemainingArguments)]$Remaining)
         if ($null -ne $global:SgtNetworkStub) {
-            $null = $global:SgtNetworkCall.Add(@{ Method = "$Method"; Uri = $Uri; Headers = $Headers; Body = $Body; BodyPassed = ($null -ne $Body) })
+            $null = $global:SgtNetworkCall.Add(@{ Method = "$Method"; Uri = $Uri; Headers = $Headers; Body = $Body; BodyPassed = ($null -ne $Body); MaximumRedirection = $MaximumRedirection; MaximumRedirectionPassed = $PSBoundParameters.ContainsKey('MaximumRedirection') })
             & $global:SgtNetworkStub
             return
         }

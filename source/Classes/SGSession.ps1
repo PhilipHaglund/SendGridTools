@@ -69,12 +69,14 @@ class SendGridSession {
                     'Authorization' = ('Bearer {0}' -f $this._Credential.GetNetworkCredential().Password)
                     'Content-Type'  = 'application/json'
                 }
-                $null = Invoke-RestMethod -Method Get -Uri  $this.EndpointURL -Headers $Headers -ErrorAction Stop
+                $null = Invoke-RestMethod -Method Get -Uri  $this.EndpointURL -Headers $Headers -MaximumRedirection 0 -ErrorAction Stop
                 $this._Connected = $true
                 $this._CreateDateTime = Get-Date # Used to refresh "session lifetime"
             }
             catch {
+                $Refusal = Get-SendGridRedirectRefusal -ErrorRecord $_ -RequestUri $this.EndpointURL
                 $this._Connected = $false
+                if ($Refusal) { throw $Refusal }
                 throw ('Unable to connect to SendGrid. {0}' -f $_.Exception.Message)
             }
         }
@@ -101,12 +103,14 @@ class SendGridSession {
                 'Authorization' = ('Bearer {0}' -f $this._Credential.GetNetworkCredential().Password)
                 'Content-Type'  = 'application/json'
             }
-            $null = Invoke-RestMethod -Method Get -Uri  $this.EndpointURL -Headers $Headers -ErrorAction Stop
+            $null = Invoke-RestMethod -Method Get -Uri  $this.EndpointURL -Headers $Headers -MaximumRedirection 0 -ErrorAction Stop
             $this._Connected = $true
             $this._CreateDateTime = Get-Date
         }
         catch {
+            $Refusal = Get-SendGridRedirectRefusal -ErrorRecord $_ -RequestUri $this.EndpointURL
             $this._Connected = $false
+            if ($Refusal) { throw $Refusal }
             throw ('Unable to connect to SendGrid. {0}' -f $_.Exception.Message)
         }
     }
@@ -160,13 +164,15 @@ class SendGridSession {
                     'Authorization' = "Bearer $($this._Credential.GetNetworkCredential().Password)"
                     'Content-Type'  = 'application/json'
                 }
-                $Query = (Invoke-RestMethod -Method $WebRequestMethod -Uri $this.EndpointURL -Headers $Headers -ErrorAction Stop)
+                $Query = (Invoke-RestMethod -Method $WebRequestMethod -Uri $this.EndpointURL -Headers $Headers -MaximumRedirection 0 -ErrorAction Stop)
                 $this.BuildEndpointURL($null)
                 $this._CreateDateTime = Get-Date
                 return $Query
             }
             catch {
+                $Refusal = Get-SendGridRedirectRefusal -ErrorRecord $_ -RequestUri $this.EndpointURL
                 $this.BuildEndpointURL($null)
+                if ($Refusal) { throw $Refusal }
                 if ($null -ne $_.ErrorDetails.Message) {
                     throw ('SendGrid Error: "{0}"' -f ($_.ErrorDetails.Message | ConvertFrom-Json | Select-Object -ExpandProperty errors | Select-Object -ExpandProperty message) -join ', ' )
                 }
@@ -219,13 +225,15 @@ class SendGridSession {
                     'Authorization' = "Bearer $($this._Credential.GetNetworkCredential().Password)"
                     'Content-Type'  = 'application/json'
                 }
-                $Query = (Invoke-RestMethod -Method $WebRequestMethod -Uri $this.EndpointURL -Headers $Headers -Body $Body -ErrorAction Stop)
+                $Query = (Invoke-RestMethod -Method $WebRequestMethod -Uri $this.EndpointURL -Headers $Headers -Body $Body -MaximumRedirection 0 -ErrorAction Stop)
                 $this.BuildEndpointURL($null)
                 $this._CreateDateTime = Get-Date
                 return $Query
             }
             catch {
+                $Refusal = Get-SendGridRedirectRefusal -ErrorRecord $_ -RequestUri $this.EndpointURL
                 $this.BuildEndpointURL($null)
+                if ($Refusal) { throw $Refusal }
                 if ($null -ne $_.ErrorDetails.Message) {
                     throw ('SendGrid Error: "{0}"' -f ($_.ErrorDetails.Message | ConvertFrom-Json | Select-Object -ExpandProperty errors | Select-Object -ExpandProperty message) -join ', ' )
                 }
@@ -275,13 +283,15 @@ class SendGridSession {
                     'on-behalf-of'  = $OnBehalfOf
                     'Content-Type'  = 'application/json'
                 }
-                $Query = (Invoke-RestMethod -Method $WebRequestMethod -Uri $this.EndpointURL -Headers $Headers -ErrorAction Stop)
+                $Query = (Invoke-RestMethod -Method $WebRequestMethod -Uri $this.EndpointURL -Headers $Headers -MaximumRedirection 0 -ErrorAction Stop)
                 $this.BuildEndpointURL($null)
                 $this._CreateDateTime = Get-Date
                 return $Query
             }
             catch {
+                $Refusal = Get-SendGridRedirectRefusal -ErrorRecord $_ -RequestUri $this.EndpointURL
                 $this.BuildEndpointURL($null)
+                if ($Refusal) { throw $Refusal }
                 if ($null -ne $_.ErrorDetails.Message) {
                     throw ('SendGrid Error: "{0}"' -f ($_.ErrorDetails.Message | ConvertFrom-Json | Select-Object -ExpandProperty errors | Select-Object -ExpandProperty message) -join ', ' )
                 }
@@ -335,13 +345,15 @@ class SendGridSession {
                     'on-behalf-of'  = $OnBehalfOf
                     'Content-Type'  = 'application/json'
                 }
-                $Query = (Invoke-RestMethod -Method $WebRequestMethod -Uri $this.EndpointURL -Headers $Headers -Body $Body -ErrorAction Stop)
+                $Query = (Invoke-RestMethod -Method $WebRequestMethod -Uri $this.EndpointURL -Headers $Headers -Body $Body -MaximumRedirection 0 -ErrorAction Stop)
                 $this.BuildEndpointURL($null)
                 $this._CreateDateTime = Get-Date
                 return $Query
             }
             catch {
+                $Refusal = Get-SendGridRedirectRefusal -ErrorRecord $_ -RequestUri $this.EndpointURL
                 $this.BuildEndpointURL($null)
+                if ($Refusal) { throw $Refusal }
                 if ($null -ne $_.ErrorDetails.Message) {
                     throw ('SendGrid Error: "{0}"' -f ($_.ErrorDetails.Message | ConvertFrom-Json | Select-Object -ExpandProperty errors | Select-Object -ExpandProperty message) -join ', ' )
                 }
