@@ -6,7 +6,8 @@
     .DESCRIPTION
         Connect-SendGrid, or its alias Connect-SG, initiates a connection with a SendGrid instance using an API key as the credential.
         If a connection already exists, it ensures that the connection is active, on that session's own host; when Credential or ApiKey is given,
-        that key replaces the session's key and is verified first, and without them the stored key is used. If no connection exists, it creates a new connection,
+        that key replaces the session's key and is verified, and if that fails no session is left; without them the stored key is used.
+        If no connection exists, it creates a new connection,
         on the global host unless Region or BaseUri says otherwise. Region or BaseUri naming another host than the current session starts a new
         session and asks for the key when Credential and ApiKey are not given; if that connection fails, no session is left. In a host that cannot
         prompt (a console host started with -NonInteractive, not user interactive, or without a user interface), a new session without
@@ -18,12 +19,12 @@
     .PARAMETER Credential
         Specifies the API key to use when connecting to the SendGrid instance. The 'Username' field of the PSCredential object does not matter,
         and can be set to any string. The 'Password' field of the PSCredential object should be set to the SendGrid API key. On a refresh of an
-        existing session on the same host, the key replaces the session's key and is verified against SendGrid; the host and region are kept.
+        existing session on the same host, the key replaces the session's key and is verified against SendGrid; the one-hour session lifetime starts again, and the host and region are kept.
         If the verification fails, no session is left.
 
     .PARAMETER ApiKey
         Specifies the API key as a secure string, for a host that cannot prompt. It becomes a credential with the user name 'apikey'. It cannot be
-        combined with Credential. On a refresh of an existing session on the same host it replaces the session's key, as Credential does.
+        combined with Credential. On a refresh of an existing session on the same host it replaces the session's key and starts the session lifetime again, as Credential does.
 
     .PARAMETER Force
         Indicates that this cmdlet forces a new connection, even if a connection already exists.
