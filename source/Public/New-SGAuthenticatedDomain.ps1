@@ -173,7 +173,7 @@
         if ($PSBoundParameters.ContainsKey('SubUser')) {
             $ContentBody.Add('username', $SubUser)
         }
-        if ($PSBoundParameters.ContainsKey('DisableAutomaticSecurity')) {
+        if ($DisableAutomaticSecurity.IsPresent) {
             $ContentBody.Add('automatic_security', $false)
         }
         else {
@@ -200,7 +200,7 @@
     }
     process {
         if ($PSCmdlet.ShouldProcess($ProcessMessage)) {
-            if ($PSBoundParameters.ContainsKey('Default') -and $PSCmdlet.ShouldContinue($Domain,'Setting this domain as the default domain will remove the current default domain. Do you want to continue?')) {
+            if ($Default.IsPresent -and (Confirm-SendGridContinue -Cmdlet $PSCmdlet -Query $Domain -Caption 'Setting this domain as the default domain will remove the current default domain. Do you want to continue?')) {
                 $ContentBody.Add('default', $true)
             }
             try {
