@@ -97,8 +97,8 @@
             $ReplacedNamespace = $Rest -replace '^/'
         }
         else {
-            # Remove one leading '/' and one leading 'v3/'; the session's base URL supplies the version.
-            $ReplacedNamespace = $Namespace -replace '^/' -replace '^v3/'
+            # Remove leading '/' characters and one leading 'v3/'; the session's base URL supplies the version.
+            $ReplacedNamespace = $Namespace -replace '^/+' -replace '^v3/'
         }
         $InvokeSplat = @{
             Method        = $WebMethod
