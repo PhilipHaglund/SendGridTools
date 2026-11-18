@@ -1,4 +1,4 @@
-function Get-SGAuthenticatedDomain {
+﻿function Get-SGAuthenticatedDomain {
     <#
     .SYNOPSIS
         Retrieves all or specific Authenticated Domains within the current SendGrid instance.
