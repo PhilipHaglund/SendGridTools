@@ -19,8 +19,9 @@ LONG DESCRIPTION
       - Subusers: create, enable, disable and remove.
       - API keys: list, create, change and remove.
       - Alerts: create, change and remove.
-      - Settings: mail, bounce purge, forward bounce, forward spam and
-        address allow list settings.
+      - Settings: mail, bounce purge, forward bounce, forward spam,
+        address allow list and Enforced TLS settings (Get-SGEnforcedTls,
+        Set-SGEnforcedTls).
       - Teammates (Get-SGTeammate), IP addresses (Get-SGIPAddress),
         designs (Get-SGDesign) and permission scopes
         (Get-SGPermissionScopes): read what the account holds.
@@ -36,6 +37,22 @@ LONG DESCRIPTION
     object where the Password field holds the SendGrid API key; the
     user name is not used. Connect-SendGrid -Force replaces an existing
     session. Disconnect-SendGrid ends the session.
+
+    Connect-SendGrid -ApiKey takes the API key as a secure string, so a
+    key from a vault or an environment variable needs no PSCredential;
+    it cannot be combined with -Credential. In a host that cannot prompt
+    (a console host started with -NonInteractive, a Windows service, a
+    scheduled task without a signed-in user, or a runspace without a
+    user interface), Connect-SendGrid without -Credential or -ApiKey
+    fails with an error that names both, and leaves an existing session
+    as it was. An interactive host asks for the key as before.
+    -NonInteractive counts only in the console host: a host with its
+    own user interface (for example Visual Studio Code) asks for the
+    key as before, and a remote session leaves the prompt to the
+    client. On Linux and macOS only
+    -NonInteractive is recognised, because .NET reports every process
+    there as user interactive, so start a cron or systemd job with
+    pwsh -NonInteractive or pass -ApiKey.
 
     REGION
     SendGrid has a global host and an EU host. Connect-SendGrid -Region EU
@@ -81,7 +98,12 @@ EXAMPLES
 
     PS C:\> Get-SGAuthenticatedDomain -ShowDNS
 
-    Example 4: Send a message
+    Example 4: Sign in without a prompt
+
+    PS C:\> $ApiKey = ConvertTo-SecureString -String $env:SENDGRID_API_KEY -AsPlainText -Force
+    PS C:\> Connect-SendGrid -ApiKey $ApiKey
+
+    Example 5: Send a message
 
     PS C:\> $Message = @{
         From    = '<address>'

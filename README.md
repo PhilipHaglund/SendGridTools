@@ -83,11 +83,17 @@ Connect-SendGrid -Region EU
 Connect-SendGrid -BaseUri 'https://api.eu.sendgrid.com'
 ```
 
+To sign in without a prompt, for example from a vault or an environment variable, give the key as a secure string with `-ApiKey` (it cannot be combined with `-Credential`); in a host that cannot prompt, `Connect-SendGrid` without `-Credential` or `-ApiKey` fails with an error that names both.
+```PowerShell
+$ApiKey = ConvertTo-SecureString -String $env:SENDGRID_API_KEY -AsPlainText -Force
+Connect-SendGrid -ApiKey $ApiKey
+```
+
 *The session lifetime when connecting is **1 hour** and will be renewed with each cmdlet run.*
 
 
 ## Cmdlets
-Currently contains **61** functions.
+Currently contains **63** functions.
 
 For a full list of cmdlets, use the following command:
 

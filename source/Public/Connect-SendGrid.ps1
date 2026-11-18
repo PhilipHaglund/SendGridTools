@@ -7,11 +7,20 @@
         Connect-SendGrid, or its alias Connect-SG, initiates a connection with a SendGrid instance using an API key as the credential.
         If a connection already exists, it ensures that the connection is active, on that session's own host. If not, it creates a new connection,
         on the global host unless Region or BaseUri says otherwise. Region or BaseUri naming another host than the current session starts a new
-        session and asks for the key when Credential is not given; if that connection fails, no session is left.
+        session and asks for the key when Credential and ApiKey are not given; if that connection fails, no session is left. In a host that cannot
+        prompt (a console host started with -NonInteractive, not user interactive, or without a user interface), a new session without
+        Credential or ApiKey is refused with an error, and Get-Credential is not called. -NonInteractive counts only in the console host: a
+        host with its own user interface (for example Visual Studio Code) prompts as before, and a remote session leaves the prompt to the
+        client. On Linux and macOS only -NonInteractive is recognised, because .NET reports every process there as user interactive, so start
+        a cron or systemd job with pwsh -NonInteractive or pass -ApiKey.
 
     .PARAMETER Credential
         Specifies the API key to use when connecting to the SendGrid instance. The 'Username' field of the PSCredential object does not matter,
         and can be set to any string. The 'Password' field of the PSCredential object should be set to the SendGrid API key.
+
+    .PARAMETER ApiKey
+        Specifies the API key as a secure string, for a host that cannot prompt. It becomes a credential with the user name 'apikey'. It cannot be
+        combined with Credential. On a refresh of an existing session on the same host it is ignored, as Credential is.
 
     .PARAMETER Force
         Indicates that this cmdlet forces a new connection, even if a connection already exists.
@@ -38,6 +47,13 @@
         PS C:\> Connect-SendGrid -Credential $myCred -BaseUri 'https://proxy.example.com/sendgrid'
 
         This command connects through an explicit base address. '/v3' is appended, so requests go to https://proxy.example.com/sendgrid/v3.
+
+    .EXAMPLE
+        PS C:\> $Key = ConvertTo-SecureString -String $env:SENDGRID_API_KEY -AsPlainText -Force
+        PS C:\> Connect-SendGrid -ApiKey $Key
+
+        This command connects with an API key that was read from an environment variable (or a vault) as a secure string, without a prompt.
+        Use it in a script that runs unattended.
 
     .EXAMPLE
         PS C:\> Connect-SendGrid
@@ -92,6 +108,10 @@
         )]
         [switch]$Force,
 
+        [Parameter()]
+        [ValidateNotNull()]
+        [securestring]$ApiKey,
+
         [Parameter(
             ParameterSetName = 'Region'
         )]
@@ -106,6 +126,14 @@
     )
 
     process {
+        # Checked first, before anything is resolved or touched: an existing session stays as it is.
+        if ($PSBoundParameters.ContainsKey('ApiKey')) {
+            if ($PSBoundParameters.ContainsKey('Credential')) {
+                Write-Error -Message 'Unable to connect to SendGrid. Error detail: Use either -Credential or -ApiKey, not both.' -ErrorAction Stop
+            }
+            $Credential = [System.Management.Automation.PSCredential]::new('apikey', $ApiKey)
+        }
+
         # Resolve before anything else: a bad -BaseUri must neither reach the network nor disturb an existing session.
         try {
             $ResolveParams = @{ Region = $Region }
@@ -118,13 +146,19 @@
             Write-Error -Message ('Unable to connect to SendGrid. Error detail: {0}' -f $_.Exception.Message) -ErrorAction Stop
         }
 
+        # A new session is built when forced, when none exists, or when -Region/-BaseUri names another host than the session's.
+        $NewSession = $Force -or -not $script:Session -or -not ($script:Session -is [SendGridSession])
+        if (-not $NewSession -and ($PSBoundParameters.ContainsKey('Region') -or $PSBoundParameters.ContainsKey('BaseUri'))) {
+            $NewSession = -not [string]::Equals($script:Session._BaseURL.AbsoluteUri, $Target.AbsoluteUri, [System.StringComparison]::OrdinalIgnoreCase)
+        }
+
+        # Outside the try, so the catch below never removes an existing session; also under -WhatIf.
+        if ($NewSession -and -not $Credential -and -not (Test-SendGridHostCanPrompt)) {
+            Write-Error -Message 'Unable to connect to SendGrid. Error detail: This PowerShell host cannot prompt for the API key. Use -Credential or -ApiKey.' -ErrorAction Stop
+        }
+
         try {
             if ($PSCmdlet.ShouldProcess('SendGrid Session', 'Connect')) {
-                # A new session is built when forced, when none exists, or when -Region/-BaseUri names another host than the session's.
-                $NewSession = $Force -or -not $script:Session -or -not ($script:Session -is [SendGridSession])
-                if (-not $NewSession -and ($PSBoundParameters.ContainsKey('Region') -or $PSBoundParameters.ContainsKey('BaseUri'))) {
-                    $NewSession = -not [string]::Equals($script:Session._BaseURL.AbsoluteUri, $Target.AbsoluteUri, [System.StringComparison]::OrdinalIgnoreCase)
-                }
                 if ($NewSession) {
                     $script:Session = [SendGridSession]::new($Target)
                     if ($Credential) {
