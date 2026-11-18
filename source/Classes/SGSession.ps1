@@ -15,7 +15,14 @@ class SendGridSession {
     SendGridSession () {
         $null = [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
     }
-    
+
+    # Constructor function for SendGridSession with an explicit base URL, such as the EU host.
+    # PowerShell classes cannot chain constructors, so the TLS 1.2 line is repeated.
+    SendGridSession ([uri]$BaseURL) {
+        $null = [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        $this._BaseURL = $BaseURL
+    }
+
     <#
     .SYNOPSIS
         Constructs the URL for accessing the SendGrid API.

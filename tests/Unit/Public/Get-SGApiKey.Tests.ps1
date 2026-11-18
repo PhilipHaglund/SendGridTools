@@ -48,6 +48,29 @@ Describe 'Get-SGApiKey list paging' {
         }
     }
 
+    It 'Reads every page from the EU host on an EU session and never from the global host' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Fixture = $script:Fixture } {
+            $script:Session = [SendGridSession]::new([uri]'https://api.eu.sendgrid.com/v3')
+            $script:Session._Credential = $Cred
+            $script:Session._Connected = $true
+            $script:Session._CreateDateTime = Get-Date
+            $Items = @(New-SgtFixtureItem -Kind Key -Count 120 -Path $Fixture)
+            Set-SgtPagedNetworkStub -Items $Items -Shape Result
+
+            $Out = @(Get-SGApiKey -Confirm:$false)
+
+            $Out.Count | Should -Be 120
+            @($Out.ApiKeyId) | Should -Be @($Items.api_key_id)
+            @(Get-SgtListCall | ForEach-Object { [int][regex]::Match("$($_.Uri)", 'offset=(\d+)').Groups[1].Value }) | Should -Be @(0, 50, 100)
+            $Calls = @(Get-SgtNetworkCall)[0]
+            $Calls.Count | Should -Be 3
+            foreach ($Call in $Calls) {
+                ([uri]"$($Call.Uri)").Host | Should -Be 'api.eu.sendgrid.com'
+                "$($Call.Uri)" | Should -BeLike 'https://api.eu.sendgrid.com/v3/api_keys?limit=50&offset=*'
+            }
+        }
+    }
+
     It 'Stops after a short page' {
         InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Fixture = $script:Fixture } {
             $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0

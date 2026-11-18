@@ -55,6 +55,51 @@ Describe 'SendGridSession constructor and BuildEndpointURL' {
     }
 }
 
+Describe 'SendGridSession with a base URL' {
+    AfterEach {
+        InModuleScope SendGridTools { Reset-SgtNetworkStub }
+    }
+
+    It 'Builds the endpoint from the base URL it is given' {
+        InModuleScope SendGridTools {
+            $Session = [SendGridSession]::new([uri]'https://api.eu.sendgrid.com/v3')
+            $Session.BuildEndpointURL('scopes')
+            $Session.EndpointURL.AbsoluteUri | Should -Be 'https://api.eu.sendgrid.com/v3/scopes'
+        }
+    }
+
+    It 'Keeps the global base URL for the constructor without arguments' {
+        InModuleScope SendGridTools {
+            [SendGridSession]::new()._BaseURL.AbsoluteUri | Should -Be 'https://api.sendgrid.com/v3'
+        }
+    }
+
+    It 'Connects to the scopes of the given base URL' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ scopes = @('scopes.read') })
+            $Session = [SendGridSession]::new([uri]'https://api.eu.sendgrid.com/v3')
+            $Session.Connect($Cred)
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            "$($Calls[0].Uri)" | Should -Be 'https://api.eu.sendgrid.com/v3/scopes'
+        }
+    }
+
+    It 'Sends InvokeQuery to the given base URL' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Set-SgtNetworkStub -Response ([pscustomobject]@{})
+            $Session = [SendGridSession]::new([uri]'https://api.eu.sendgrid.com/v3')
+            $Session._Credential = $Cred
+            $Session._Connected = $true
+            $Session._CreateDateTime = Get-Date
+            $null = $Session.InvokeQuery('Get', 'subusers')
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            "$($Calls[0].Uri)" | Should -Be 'https://api.eu.sendgrid.com/v3/subusers'
+        }
+    }
+}
+
 Describe 'SendGridSession Connect with credential' {
     AfterEach {
         InModuleScope SendGridTools { Reset-SgtNetworkStub }

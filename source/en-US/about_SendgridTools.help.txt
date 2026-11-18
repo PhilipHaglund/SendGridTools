@@ -37,6 +37,21 @@ LONG DESCRIPTION
     user name is not used. Connect-SendGrid -Force replaces an existing
     session. Disconnect-SendGrid ends the session.
 
+    REGION
+    SendGrid has a global host and an EU host. Connect-SendGrid -Region EU
+    connects to the EU host, for an account that is hosted there.
+    Connect-SendGrid -BaseUri connects to another https base URI; the path
+    /v3 is added when it is missing. -Region and -BaseUri cannot be used
+    together. A new session without them uses the global host, as before;
+    an existing session is refreshed on its own host. -Region or -BaseUri
+    naming another host than the current session starts a new session and
+    asks for the key when -Credential is not given. If that connection
+    fails, no session is left.
+
+    Invoke-SGCommand takes a relative path, or a full URL on the session's
+    host. It refuses a URL to another host, so the API key is sent only
+    to the session's host.
+
     SESSION LIFETIME
     A session lasts one hour. Each command that completes a request
     renews the hour. When the hour passes without use, the next command
@@ -52,11 +67,15 @@ EXAMPLES
 
     Enter any user name and the API key as the password.
 
-    Example 2: List authenticated domains with their DNS records
+    Example 2: Sign in to the EU region
+
+    PS C:\> Connect-SendGrid -Credential $Credential -Region EU
+
+    Example 3: List authenticated domains with their DNS records
 
     PS C:\> Get-SGAuthenticatedDomain -ShowDNS
 
-    Example 3: Send a message
+    Example 4: Send a message
 
     PS C:\> $Message = @{
         From    = '<address>'
@@ -84,4 +103,4 @@ SEE ALSO
 
 KEYWORDS
     SendGrid, Email, Mail, API, Suppression, Bounce, Subuser, Domain,
-    Authentication
+    Authentication, Region, EU

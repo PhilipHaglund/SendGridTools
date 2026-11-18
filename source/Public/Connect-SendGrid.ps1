@@ -5,7 +5,9 @@
 
     .DESCRIPTION
         Connect-SendGrid, or its alias Connect-SG, initiates a connection with a SendGrid instance using an API key as the credential.
-        If a connection already exists, it ensures that the connection is active. If not, it creates a new connection.
+        If a connection already exists, it ensures that the connection is active, on that session's own host. If not, it creates a new connection,
+        on the global host unless Region or BaseUri says otherwise. Region or BaseUri naming another host than the current session starts a new
+        session and asks for the key when Credential is not given; if that connection fails, no session is left.
 
     .PARAMETER Credential
         Specifies the API key to use when connecting to the SendGrid instance. The 'Username' field of the PSCredential object does not matter,
@@ -14,10 +16,28 @@
     .PARAMETER Force
         Indicates that this cmdlet forces a new connection, even if a connection already exists.
 
+    .PARAMETER Region
+        Specifies the SendGrid region to connect to, Global or EU. Global is the default for a new session. Use EU for an account that is hosted on the
+        EU host. It cannot be combined with BaseUri.
+
+    .PARAMETER BaseUri
+        Specifies an explicit SendGrid API address to use instead of a region. Only https is accepted, and '/v3' is appended when the
+        path does not end with it. It cannot be combined with Region.
+
     .EXAMPLE
         PS C:\> Connect-SendGrid -Credential $myCred
 
         This command attempts to establish a connection to SendGrid using the API key stored in $myCred.
+
+    .EXAMPLE
+        PS C:\> Connect-SendGrid -Credential $myCred -Region EU
+
+        This command selects the EU region for the connection, using the API key stored in $myCred.
+
+    .EXAMPLE
+        PS C:\> Connect-SendGrid -Credential $myCred -BaseUri 'https://proxy.example.com/sendgrid'
+
+        This command connects through an explicit base address. '/v3' is appended, so requests go to https://proxy.example.com/sendgrid/v3.
 
     .EXAMPLE
         PS C:\> Connect-SendGrid
@@ -55,6 +75,7 @@
         you'll need to reconnect using your credentials. This is done to help ensure the security of your API key.
     #>
     [CmdletBinding(
+        DefaultParameterSetName = 'Region',
         SupportsShouldProcess
     )]
     [Alias('Connect-SG')]
@@ -69,14 +90,43 @@
         [Parameter(
             Position = 1
         )]
-        [switch]$Force
+        [switch]$Force,
+
+        [Parameter(
+            ParameterSetName = 'Region'
+        )]
+        [ValidateSet('Global', 'EU')]
+        [string]$Region = 'Global',
+
+        [Parameter(
+            Mandatory,
+            ParameterSetName = 'BaseUri'
+        )]
+        [uri]$BaseUri
     )
 
     process {
+        # Resolve before anything else: a bad -BaseUri must neither reach the network nor disturb an existing session.
+        try {
+            $ResolveParams = @{ Region = $Region }
+            if ($PSBoundParameters.ContainsKey('BaseUri')) {
+                $ResolveParams['BaseUri'] = $BaseUri
+            }
+            $Target = Resolve-SendGridBaseUri @ResolveParams
+        }
+        catch {
+            Write-Error -Message ('Unable to connect to SendGrid. Error detail: {0}' -f $_.Exception.Message) -ErrorAction Stop
+        }
+
         try {
             if ($PSCmdlet.ShouldProcess('SendGrid Session', 'Connect')) {
-                if ($Force -or -not $script:Session -or -not ($script:Session -is [SendGridSession])) {
-                    $script:Session = [SendGridSession]::new()
+                # A new session is built when forced, when none exists, or when -Region/-BaseUri names another host than the session's.
+                $NewSession = $Force -or -not $script:Session -or -not ($script:Session -is [SendGridSession])
+                if (-not $NewSession -and ($PSBoundParameters.ContainsKey('Region') -or $PSBoundParameters.ContainsKey('BaseUri'))) {
+                    $NewSession = -not [string]::Equals($script:Session._BaseURL.AbsoluteUri, $Target.AbsoluteUri, [System.StringComparison]::OrdinalIgnoreCase)
+                }
+                if ($NewSession) {
+                    $script:Session = [SendGridSession]::new($Target)
                     if ($Credential) {
                         $script:Session.Connect($Credential)
                     }

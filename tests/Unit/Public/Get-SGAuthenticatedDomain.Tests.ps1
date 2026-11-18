@@ -59,6 +59,30 @@ Describe 'Get-SGAuthenticatedDomain list paging' {
         }
     }
 
+    It 'Reads every page from the EU host on an EU session and never from the global host' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Fixture = $script:Fixture } {
+            $script:Session = [SendGridSession]::new([uri]'https://api.eu.sendgrid.com/v3')
+            $script:Session._Credential = $Cred
+            $script:Session._Connected = $true
+            $script:Session._CreateDateTime = Get-Date
+            $Items = @(New-SgtFixtureItem -Kind Domain -Count 120 -Path $Fixture)
+            Set-SgtPagedNetworkStub -Items $Items -Shape List
+
+            $Out = @(Get-SGAuthenticatedDomain -Confirm:$false)
+
+            $Out.Count | Should -Be 120
+            @($Out.Id) | Should -Be @($Items.id | ForEach-Object { "$_" })
+            # The DynamicParam reads the list once and the process block once more.
+            @(Get-SgtListCall | ForEach-Object { [int][regex]::Match("$($_.Uri)", 'offset=(\d+)').Groups[1].Value }) | Should -Be @(0, 50, 100, 0, 50, 100)
+            $Calls = @(Get-SgtNetworkCall)[0]
+            $Calls.Count | Should -Be 6
+            foreach ($Call in $Calls) {
+                ([uri]"$($Call.Uri)").Host | Should -Be 'api.eu.sendgrid.com'
+                "$($Call.Uri)" | Should -BeLike 'https://api.eu.sendgrid.com/v3/whitelabel/domains?limit=50&offset=*'
+            }
+        }
+    }
+
     It 'Stops after a short page' {
         InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Fixture = $script:Fixture } {
             $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
