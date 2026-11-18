@@ -22,7 +22,6 @@ Get-SGInvalidEmail
 Get-SGMailSetting
 Get-SGPermissionScopes
 Get-SGSpamReport
-Get-SGSubuser
 Get-SGSuppression
 Get-SGSuppressionGroup
 Get-SGTeammate

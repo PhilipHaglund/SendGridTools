@@ -1,0 +1,4 @@
+[
+  { "username": "sgt-test-subuser-1", "id": 1001, "email": "<address>", "disabled": false },
+  { "username": "sgt-test-subuser-2", "id": 1002, "email": "<address>", "disabled": false }
+]
