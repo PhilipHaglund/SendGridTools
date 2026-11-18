@@ -5,13 +5,15 @@
 
     .DESCRIPTION
         Get-SGIPAddress retrieves the IP addresses associated with the current SendGrid instance.
-        Without -IncludeRegion it reads /v3/ips, as before. With -IncludeRegion it reads another API, the IP
-        Address Management API (/v3/send_ips/ips), whose objects have other properties, among them Region, and it
-        reads every page of that list.
+        Without -IncludeRegion it reads /v3/ips and the output has no Region property.
+        With -IncludeRegion it reads another API, the IP Address Management
+        API (/v3/send_ips/ips), whose objects have other properties, among them Region, and it reads every page
+        of that list.
 
     .PARAMETER IncludeRegion
         Reads the IP Address Management API (send_ips/ips with include_region=true) instead of /v3/ips, follows
         every page, and returns its objects, which have other properties than the default output, among them Region.
+        Time values such as AddedAt and UpdatedAt are Unix seconds, as SendGrid sends them.
 
     .EXAMPLE
         PS C:\> Get-SGIPAddress

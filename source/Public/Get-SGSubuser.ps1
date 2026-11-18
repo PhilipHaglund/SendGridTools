@@ -20,7 +20,7 @@
 
     .PARAMETER IncludeRegion
         Adds the region of each Subuser to the output, as the Region property, by sending include_region=true.
-        Without it the request and the output are the same as before.
+        Without it the request has no region query and the output has no Region property.
         It has no effect together with -Username, because SendGrid does not report the region of a single subuser.
 
     .PARAMETER Region
@@ -85,6 +85,10 @@
         [string]$Region
     )
 
+    begin {
+        $WarnedAboutRegion = $false
+    }
+
     process {
         $InvokeSplat = @{
             Method        = 'Get'
@@ -107,7 +111,10 @@
         }
         if ($IncludeRegion.IsPresent -or $PSBoundParameters.ContainsKey('Region')) {
             if ($PSBoundParameters.Username) {
-                Write-Warning -Message 'SendGrid does not report the region of a single subuser: -IncludeRegion and -Region apply only when -Username is not given.'
+                if (-not $WarnedAboutRegion) {
+                    $WarnedAboutRegion = $true
+                    Write-Warning -Message 'SendGrid does not report the region of a single subuser: -IncludeRegion and -Region apply only when -Username is not given.'
+                }
             }
             else {
                 $QueryParameters.Add('include_region=true')

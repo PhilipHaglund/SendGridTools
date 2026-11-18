@@ -50,7 +50,8 @@ LONG DESCRIPTION
 
     Get-SGSubuser -IncludeRegion shows the region of each subuser, and
     Get-SGSubuser -Region All, Global or EU lists only the subusers in that
-    region. Get-SGIPAddress -IncludeRegion reads the IP Address Management
+    region; this applies to the list, not to a single subuser named with
+    -Username. Get-SGIPAddress -IncludeRegion reads the IP Address Management
     API, which shows the region of each IP address.
 
     Invoke-SGCommand takes a relative path, or a full URL on the session's

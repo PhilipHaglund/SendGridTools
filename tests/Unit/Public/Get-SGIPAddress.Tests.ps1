@@ -159,6 +159,55 @@ Describe 'Get-SGIPAddress' {
         }
     }
 
+    It 'Returns AddedAt and UpdatedAt as Unix seconds, not dates' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Fixture = $script:PageFixture } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            $Item = New-IpItem -Path $Fixture -Count 1 -First 1
+            $Item.updated_at = 1700000000
+            $Item.added_at = 1600000000
+            Set-SgtCursorNetworkStub -Page @(@{ Items = @($Item); AfterKey = $null })
+
+            $Out = @(Get-SGIPAddress -IncludeRegion)
+
+            $Out.Count | Should -Be 1
+            $Out[0].UpdatedAt | Should -Not -BeOfType [datetime]
+            $Out[0].UpdatedAt | Should -Be 1700000000
+            $Out[0].AddedAt | Should -Be 1600000000
+        }
+    }
+
+    It 'Follows an after_key past a page without items' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Fixture = $script:PageFixture } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtCursorNetworkStub -Page @(
+                @{ Items = @(); AfterKey = 'cursor-1' }
+                @{ Items = @(New-IpItem -Path $Fixture -Count 1 -First 1); AfterKey = $null }
+            )
+
+            $Out = @(Get-SGIPAddress -IncludeRegion)
+
+            @(Get-SgtNetworkCall)[0].Count | Should -Be 2
+            $Out.Count | Should -Be 1
+        }
+    }
+
+    It 'Follows a numeric after_key' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Fixture = $script:PageFixture } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtCursorNetworkStub -Page @(
+                @{ Items = @(New-IpItem -Path $Fixture -Count 1 -First 1); AfterKey = 42 }
+                @{ Items = @(New-IpItem -Path $Fixture -Count 1 -First 2); AfterKey = $null }
+            )
+
+            $Out = @(Get-SGIPAddress -IncludeRegion)
+
+            $Calls = @(Get-SgtNetworkCall)[0]
+            $Calls.Count | Should -Be 2
+            $Out.Count | Should -Be 2
+            "$($Calls[1].Uri)" | Should -BeLike '*&after_key=42'
+        }
+    }
+
     It 'Stops on an empty after_key without a warning' {
         InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Fixture = $script:PageFixture } {
             $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0

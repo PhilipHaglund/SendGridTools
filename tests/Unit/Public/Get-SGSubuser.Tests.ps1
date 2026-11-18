@@ -171,8 +171,25 @@ Describe 'Get-SGSubuser region' {
             $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
             Set-SgtNetworkStub -Response (Get-Content -LiteralPath $Fixture -Raw | ConvertFrom-Json)
 
-            { Get-SGSubuser -Region US -Confirm:$false } | Should -Throw
+            { Get-SGSubuser -Region US -Confirm:$false } | Should -Throw -ErrorId 'ParameterArgumentValidationError*'
             @(Get-SgtNetworkCall)[0].Count | Should -Be 0
+        }
+    }
+
+    It 'Warns once, not once per piped object, and sends no region query for piped Usernames' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Fixture = $script:RegionFixture } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response (Get-Content -LiteralPath $Fixture -Raw | ConvertFrom-Json)
+
+            $null = @(
+                [pscustomobject]@{ Username = 'sgt-test-subuser-1' }
+                [pscustomobject]@{ Username = 'sgt-test-subuser-2' }
+            ) | Get-SGSubuser -IncludeRegion -Confirm:$false -WarningVariable Warned -WarningAction SilentlyContinue
+
+            $Calls = @(Get-SgtNetworkCall)[0]
+            $Calls.Count | Should -Be 2
+            foreach ($Call in $Calls) { "$($Call.Uri)" | Should -Not -Match '\?' }
+            @($Warned).Count | Should -Be 1
         }
     }
 
