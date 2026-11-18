@@ -48,6 +48,12 @@ LONG DESCRIPTION
     asks for the key when -Credential is not given. If that connection
     fails, no session is left.
 
+    Get-SGSubuser -IncludeRegion shows the region of each subuser, and
+    Get-SGSubuser -Region All, Global or EU lists only the subusers in that
+    region; this applies to the list, not to a single subuser named with
+    -Username. Get-SGIPAddress -IncludeRegion reads the IP Address Management
+    API, which shows the region of each IP address.
+
     Invoke-SGCommand takes a relative path, or a full URL on the session's
     host. It refuses a URL to another host, so the API key is sent only
     to the session's host.

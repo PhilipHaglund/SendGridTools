@@ -77,6 +77,41 @@ function Install-SgtSessionHelper {
                 }
             }
         }
+        function Script:Set-SgtCursorNetworkStub {
+            # Answers send_ips style calls page by page. -Page is a list of @{ Items = @(...); AfterKey = <value> };
+            # a call without after_key gets page 0, a call with after_key=K gets the page after the first page whose
+            # AfterKey is K. -Endless answers every call with one item and a new after_key. Calls are logged.
+            param([object[]]$Page, [switch]$Endless)
+            $global:SgtNetworkCall.Clear()
+            $global:SgtCursorPage = @($Page)
+            $global:SgtCursorEndless = [bool]$Endless
+            $global:SgtNetworkStub = {
+                if ($global:SgtNetworkCall.Count -gt 500) { throw 'Cursor stub call cap reached: 500 calls' }
+                $Uri = "$($global:SgtNetworkCall[-1].Uri)"
+                $Count = $global:SgtNetworkCall.Count
+                if ($global:SgtCursorEndless) {
+                    $Items = @([pscustomobject]@{ ip = '192.0.2.{0}' -f ($Count % 250 + 1); region = 'us' })
+                    $After = 'cursor-{0}' -f $Count
+                }
+                else {
+                    $Index = 0
+                    if ($Uri -match '[?&]after_key=([^&]*)') {
+                        $Key = [uri]::UnescapeDataString($Matches[1])
+                        $Index = -1
+                        for ($i = 0; $i -lt $global:SgtCursorPage.Count; $i++) {
+                            if ("$($global:SgtCursorPage[$i].AfterKey)" -eq $Key) { $Index = $i + 1; break }
+                        }
+                        if ($Index -lt 0 -or $Index -ge $global:SgtCursorPage.Count) { throw "Cursor stub has no page after key $Key" }
+                    }
+                    $Items = @($global:SgtCursorPage[$Index].Items)
+                    $After = $global:SgtCursorPage[$Index].AfterKey
+                }
+                [pscustomobject]@{
+                    result    = $Items
+                    _metadata = [pscustomobject]@{ next_params = [pscustomobject]@{ after_key = $After; before_key = $null; include_region = 'true' } }
+                }
+            }
+        }
         function Script:New-SgtFixtureItem {
             # Clones the one element in a fixture file -Count times; domains get id and domain, keys get api_key_id and name.
             param([ValidateSet('Domain', 'Key')][string]$Kind, [int]$Count, [string]$Path)
@@ -110,6 +145,8 @@ function Install-SgtSessionHelper {
             $global:SgtPagedItems = $null
             $global:SgtPagedShape = $null
             $global:SgtPagedIgnoreOffset = $null
+            $global:SgtCursorPage = $null
+            $global:SgtCursorEndless = $null
             $global:SgtStubValue = $null
             $global:SgtNetworkCall.Clear()
         }
@@ -188,7 +225,7 @@ function Install-SgtSessionHelper {
 
 function Uninstall-SgtSessionHelper {
     InModuleScope SendGridTools {
-        Remove-Item -Path 'Function:\New-SgtTestSession', 'Function:\New-SgtErrorRecord', 'Function:\Invoke-SgtOverload', 'Function:\Get-SgtLeakText', 'Function:\Invoke-SgtTarget', 'Function:\Set-SgtNetworkStub', 'Function:\Set-SgtPagedNetworkStub', 'Function:\New-SgtFixtureItem', 'Function:\Get-SgtExpectedOffset', 'Function:\Get-SgtListCall', 'Function:\Reset-SgtNetworkStub', 'Function:\Get-SgtNetworkCall' -ErrorAction SilentlyContinue
-        Remove-Variable -Name SgtPagedItems, SgtPagedShape, SgtPagedIgnoreOffset -Scope Global -ErrorAction SilentlyContinue
+        Remove-Item -Path 'Function:\New-SgtTestSession', 'Function:\New-SgtErrorRecord', 'Function:\Invoke-SgtOverload', 'Function:\Get-SgtLeakText', 'Function:\Invoke-SgtTarget', 'Function:\Set-SgtNetworkStub', 'Function:\Set-SgtPagedNetworkStub', 'Function:\Set-SgtCursorNetworkStub', 'Function:\New-SgtFixtureItem', 'Function:\Get-SgtExpectedOffset', 'Function:\Get-SgtListCall', 'Function:\Reset-SgtNetworkStub', 'Function:\Get-SgtNetworkCall' -ErrorAction SilentlyContinue
+        Remove-Variable -Name SgtPagedItems, SgtPagedShape, SgtPagedIgnoreOffset, SgtCursorPage, SgtCursorEndless -Scope Global -ErrorAction SilentlyContinue
     }
 }

@@ -17,12 +17,10 @@ Get-SGEmailActivity
 Get-SGForwardBounceSetting
 Get-SGForwardSpamSetting
 Get-SGGlobalSuppression
-Get-SGIPAddress
 Get-SGInvalidEmail
 Get-SGMailSetting
 Get-SGPermissionScopes
 Get-SGSpamReport
-Get-SGSubuser
 Get-SGSuppression
 Get-SGSuppressionGroup
 Get-SGTeammate

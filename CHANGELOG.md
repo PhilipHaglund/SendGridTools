@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `Connect-SendGrid -Region Global|EU` connects to SendGrid's EU host `api.eu.sendgrid.com` (issue #3), and `-BaseUri` to a given https base URI with `/v3` added when missing; a new session without them uses the global host, as before, and an existing session is refreshed on its own host. `-Region` or `-BaseUri` naming another host than the current session starts a new session (it asks for the key when `-Credential` is not given); if that connection fails, no session is left.
+- `Get-SGSubuser -IncludeRegion` adds the region of each subuser as `Region`, and `-Region All|Global|EU` returns only the subusers in that region (issue #4). Both apply to the list only; with `-Username` they send nothing extra and warn, because SendGrid does not report the region of a single subuser. `Get-SGIPAddress -IncludeRegion` reads the IP Address Management API (`/v3/send_ips/ips`), which has other properties than `/v3/ips`, among them `Region`, and reads every page of it. Without the new parameters both commands send the same request and return the same output as before.
 
 ### Fixed
 

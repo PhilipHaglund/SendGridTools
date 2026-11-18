@@ -18,6 +18,16 @@
         The number of Subusers to skip.
         Default: none
 
+    .PARAMETER IncludeRegion
+        Adds the region of each Subuser to the output, as the Region property, by sending include_region=true.
+        Without it the request has no region query and the output has no Region property.
+        It has no effect together with -Username, because SendGrid does not report the region of a single subuser.
+
+    .PARAMETER Region
+        Returns only the Subusers in the given region: All, Global or EU. It sends region=all, region=global or
+        region=eu together with include_region=true, so the output also has the Region property.
+        It has no effect together with -Username, because SendGrid does not report the region of a single subuser.
+
     .EXAMPLE
         PS C:\> Get-SGSubuser
 
@@ -32,6 +42,16 @@
         PS C:\> Get-SGSubuser -Limit 2
 
         This command retrieves the first two Subusers within the current SendGrid instance.
+
+    .EXAMPLE
+        PS C:\> Get-SGSubuser -IncludeRegion
+
+        This command retrieves all Subusers with the region of each, global or eu, in the Region property.
+
+    .EXAMPLE
+        PS C:\> Get-SGSubuser -Region EU
+
+        This command retrieves the Subusers in SendGrid's EU region, with the Region property.
     #>
     [CmdletBinding(
         SupportsShouldProcess
@@ -53,8 +73,21 @@
 
         # Specifies the number of items in the list to skip over before starting to retrieve the items for the requested page.
         [Parameter()]
-        [int]$Offset
+        [int]$Offset,
+
+        # Adds the region of each Subuser to the output by sending include_region=true.
+        [Parameter()]
+        [switch]$IncludeRegion,
+
+        # Returns only the Subusers in the given region (All, Global or EU) and adds the region to the output.
+        [Parameter()]
+        [ValidateSet('All', 'Global', 'EU')]
+        [string]$Region
     )
+
+    begin {
+        $WarnedAboutRegion = $false
+    }
 
     process {
         $InvokeSplat = @{
@@ -75,6 +108,20 @@
         }
         if ($PSBoundParameters.Offset) {
             $QueryParameters.Add("offset=$offset")
+        }
+        if ($IncludeRegion.IsPresent -or $PSBoundParameters.ContainsKey('Region')) {
+            if ($PSBoundParameters.Username) {
+                if (-not $WarnedAboutRegion) {
+                    $WarnedAboutRegion = $true
+                    Write-Warning -Message 'SendGrid does not report the region of a single subuser: -IncludeRegion and -Region apply only when -Username is not given.'
+                }
+            }
+            else {
+                $QueryParameters.Add('include_region=true')
+                if ($PSBoundParameters.ContainsKey('Region')) {
+                    $QueryParameters.Add(('region={0}' -f $Region.ToLowerInvariant()))
+                }
+            }
         }
 
         if ($QueryParameters.Count -gt 0) {
