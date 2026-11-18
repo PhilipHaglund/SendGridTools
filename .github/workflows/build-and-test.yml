@@ -473,8 +473,9 @@ jobs:
               }
 
               # The checkout above is fetch-depth 1, so git cannot answer this; the compare API can.
-              # Its status describes GITHUB_SHA relative to main: identical or behind means main's
-              # history already contains the commit, ahead or diverged means it does not.
+              # Its status describes GITHUB_SHA relative to main: identical means the commit is main's
+              # tip, behind means an older commit on main (main has moved on), ahead or diverged means
+              # it is not in main's history. Only identical goes through.
               $Answer = @(gh api "repos/$env:GITHUB_REPOSITORY/compare/main...$env:GITHUB_SHA" --jq .status 2>&1)
               $ExitCode = $LASTEXITCODE
               if ($ExitCode -ne 0) {
@@ -485,6 +486,9 @@ jobs:
 
               if ($Status -cin @('ahead', 'diverged')) {
                   throw "REFUSING TO PUBLISH. The tag $Tag must point at a commit on main, but $env:GITHUB_SHA is not in main's history (GitHub compares it to main as '$Status'). A full release ships reviewed code only. $Nothing$Repair"
+              }
+              if ($Status -ceq 'behind') {
+                  throw "REFUSING TO PUBLISH. The tag $Tag must point at main's tip, but main has moved on: $env:GITHUB_SHA is an older commit on main (GitHub compares it to main as '$Status'). A full release is built from main's tip only. $Nothing$Repair"
               }
               if ($Status -cnotin @('identical', 'behind')) {
                   throw "REFUSING TO PUBLISH. Expected GitHub to compare $env:GITHUB_SHA to main as identical, behind, ahead or diverged, and it answered '$Status'. $Nothing$Repair"
