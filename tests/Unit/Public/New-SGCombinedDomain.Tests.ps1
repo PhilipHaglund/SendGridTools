@@ -115,6 +115,42 @@ Describe 'New-SGCombinedDomain request' {
         }
     }
 
+    It 'Fails at binding and makes no call when the DKIM selector is <Selector> (too short)' -ForEach @(
+        @{ Selector = 'a' }
+        @{ Selector = 'ab' }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Selector = $Selector } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            { New-SGCombinedDomain -Domain 'example.com' -CustomDkimSelector $Selector -Confirm:$false } | Should -Throw -ErrorId 'ParameterArgumentValidationError,New-SGCombinedDomain'
+
+            # The error must come from binding the command's own parameter, not from the inner call in its process block.
+            $Failure = $null
+            try { New-SGCombinedDomain -Domain 'example.com' -CustomDkimSelector $Selector -Confirm:$false } catch { $Failure = $_ }
+            $Failure.ScriptStackTrace | Should -Not -Match 'New-SGCombinedDomain<Process>'
+
+            $All = Get-SgtNetworkCall
+            @($All | Where-Object { $_.Method -ne 'Get' }).Count | Should -Be 0
+        }
+    }
+
+    It 'Sends a three character DKIM selector to the authenticated domain and still makes the link call' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $null = New-SGCombinedDomain -Domain 'example.com' -DisableAutomaticSecurity -CustomDkimSelector 'abc' -Confirm:$false
+
+            $All = Get-SgtNetworkCall
+            $Calls = @($All | Where-Object { $_.Method -ne 'Get' })
+            $Calls.Count | Should -Be 2
+            "$($Calls[0].Uri)" | Should -BeLike '*/whitelabel/domains'
+            ($Calls[0].Body | ConvertFrom-Json).custom_dkim_selector | Should -Be 'abc'
+            "$($Calls[1].Uri)" | Should -BeLike '*/whitelabel/links'
+        }
+    }
+
     It 'Makes no call under WhatIf' {
         InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
             $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
@@ -172,6 +208,33 @@ Describe 'New-SGCombinedDomain forwarding' {
 
         Should -Invoke New-SGAuthenticatedDomain -ModuleName SendGridTools -Times 1 -Exactly -ParameterFilter {
             $PesterBoundParameters['DisableAutomaticSecurity'] -eq $true -and $PesterBoundParameters['CustomSPF'] -eq $true
+        }
+    }
+
+    It 'Throws at binding and calls neither inner command for a two character DKIM selector' {
+        Mock -CommandName New-SGBrandedDomainLink -ModuleName SendGridTools -MockWith { }
+
+        InModuleScope SendGridTools {
+            { New-SGCombinedDomain -Domain 'example.com' -CustomDkimSelector 'ab' -Confirm:$false } | Should -Throw -ErrorId 'ParameterArgumentValidationError,New-SGCombinedDomain'
+
+            $Failure = $null
+            try { New-SGCombinedDomain -Domain 'example.com' -CustomDkimSelector 'ab' -Confirm:$false } catch { $Failure = $_ }
+            $Failure.ScriptStackTrace | Should -Not -Match 'New-SGCombinedDomain<Process>'
+        }
+
+        Should -Invoke New-SGAuthenticatedDomain -ModuleName SendGridTools -Times 0 -Exactly
+        Should -Invoke New-SGBrandedDomainLink -ModuleName SendGridTools -Times 0 -Exactly
+    }
+
+    It 'Forwards a three character DKIM selector to the authenticated domain' {
+        Mock -CommandName New-SGBrandedDomainLink -ModuleName SendGridTools -MockWith { }
+
+        InModuleScope SendGridTools {
+            $null = New-SGCombinedDomain -Domain 'example.com' -CustomDkimSelector 'abc' -Confirm:$false
+        }
+
+        Should -Invoke New-SGAuthenticatedDomain -ModuleName SendGridTools -Times 1 -Exactly -ParameterFilter {
+            $PesterBoundParameters['CustomDkimSelector'] -eq 'abc'
         }
     }
 }

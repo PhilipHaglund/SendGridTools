@@ -14,8 +14,9 @@
         PS C:\> Set-SGAddressWhitelistSetting -Enabled -List @('example.com')
         This command updates the address whitelist mail settings on SendGrid to enable the whitelist and add 'example.com' to the whitelist.
     #>
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '', Justification = 'Adding SupportsShouldProcess would add the -WhatIf and -Confirm parameters to this public function and change behaviour; the repair is deferred so the public surface stays unchanged.')]
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess
+    )]
     param (
         # Specifies whether the email address whitelist is enabled.
         [Parameter()]
@@ -54,11 +55,13 @@
             }
         }
         $InvokeSplat.Add('ContentBody', $ContentBody)
-        try {
-            Invoke-SendGrid @InvokeSplat
-        }
-        catch {
-            Write-Error ('Failed to update SendGrid address whitelist settings. {0}' -f $_.Exception.Message) -ErrorAction Stop
+        if ($PSCmdlet.ShouldProcess('mail_settings/address_whitelist')) {
+            try {
+                Invoke-SendGrid @InvokeSplat
+            }
+            catch {
+                Write-Error ('Failed to update SendGrid address whitelist settings. {0}' -f $_.Exception.Message) -ErrorAction Stop
+            }
         }
     }
 }

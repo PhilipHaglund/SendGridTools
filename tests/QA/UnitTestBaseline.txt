@@ -36,10 +36,6 @@ Remove-SGInvalidEmail
 Remove-SGSpamReport
 Remove-SGSubuser
 Send-SGMailMessage
-Set-SGAddressWhitelistSetting
 Set-SGAlert
-Set-SGApiKey
 Set-SGAuthenticatedDomainToSubUser
-Set-SGBouncePurgeSetting
 Set-SGBrandedDomainLink
-Set-SGForwardBounceSetting

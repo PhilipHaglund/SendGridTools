@@ -231,6 +231,100 @@ Describe 'New-SGAuthenticatedDomain request' {
         }
     }
 
+    It 'Sends automatic security as true when the switch is not given' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $null = New-SGAuthenticatedDomain -Domain 'example.com' -Confirm:$false
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Sent = $Calls[0].Body | ConvertFrom-Json
+            $Sent.automatic_security | Should -BeTrue
+        }
+    }
+
+    It 'Sends automatic security as true when the switch is given as false' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $null = New-SGAuthenticatedDomain -Domain 'example.com' -DisableAutomaticSecurity:$false -Confirm:$false
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Sent = $Calls[0].Body | ConvertFrom-Json
+            $Sent.automatic_security | Should -BeTrue
+        }
+    }
+
+    It 'Asks once and sends default when Default is given and the answer is yes' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+            Mock Confirm-SendGridContinue -ModuleName SendGridTools -MockWith { $true }
+
+            $null = New-SGAuthenticatedDomain -Domain 'example.com' -Default -Confirm:$false
+
+            Should -Invoke Confirm-SendGridContinue -ModuleName SendGridTools -Times 1 -Exactly -ParameterFilter {
+                $Query -eq 'example.com' -and $Caption -ceq 'Setting this domain as the default domain will remove the current default domain. Do you want to continue?'
+            }
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Sent = $Calls[0].Body | ConvertFrom-Json
+            $Sent.default | Should -BeTrue
+        }
+    }
+
+    It 'Asks once and sends no default when Default is given and the answer is no' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+            Mock Confirm-SendGridContinue -ModuleName SendGridTools -MockWith { $false }
+
+            $null = New-SGAuthenticatedDomain -Domain 'example.com' -Default -Confirm:$false
+
+            Should -Invoke Confirm-SendGridContinue -ModuleName SendGridTools -Times 1 -Exactly
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Sent = $Calls[0].Body | ConvertFrom-Json
+            $Sent.PSObject.Properties.Name | Should -Not -Contain 'default'
+        }
+    }
+
+    It 'Does not ask and sends no default when Default is given as false' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+            Mock Confirm-SendGridContinue -ModuleName SendGridTools -MockWith { $true }
+
+            $null = New-SGAuthenticatedDomain -Domain 'example.com' -Default:$false -Confirm:$false
+
+            Should -Invoke Confirm-SendGridContinue -ModuleName SendGridTools -Times 0 -Exactly
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Sent = $Calls[0].Body | ConvertFrom-Json
+            $Sent.PSObject.Properties.Name | Should -Not -Contain 'default'
+        }
+    }
+
+    It 'Does not ask and sends no default when Default is not given' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+            Mock Confirm-SendGridContinue -ModuleName SendGridTools -MockWith { $true }
+
+            $null = New-SGAuthenticatedDomain -Domain 'example.com' -Confirm:$false
+
+            Should -Invoke Confirm-SendGridContinue -ModuleName SendGridTools -Times 0 -Exactly
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Sent = $Calls[0].Body | ConvertFrom-Json
+            $Sent.PSObject.Properties.Name | Should -Not -Contain 'default'
+        }
+    }
+
     It 'Makes no call under WhatIf' {
         InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
             $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0

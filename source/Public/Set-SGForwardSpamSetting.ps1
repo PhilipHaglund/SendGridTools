@@ -19,8 +19,9 @@
     .NOTES
         To use this function, you must be connected to a SendGrid instance. Use the Connect-SendGrid function to establish a connection.
     #>
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '', Justification = 'Adding SupportsShouldProcess would add the -WhatIf and -Confirm parameters to this public function and change behaviour; the repair is deferred so the public surface stays unchanged.')]
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess
+    )]
     param (
         # The email address that you would like your spam reports forwarded to. If you do not want to forward spam reports, set this to $null.
         [Parameter()]
@@ -62,11 +63,13 @@
         }
 
         $InvokeSplat.Add('ContentBody', $ContentBody)
-        try {
-            Invoke-SendGrid @InvokeSplat
-        }
-        catch {
-            Write-Error ('Failed to update SendGrid forward spam settings. {0}' -f $_.Exception.Message) -ErrorAction Stop
+        if ($PSCmdlet.ShouldProcess('mail_settings/forward_spam')) {
+            try {
+                Invoke-SendGrid @InvokeSplat
+            }
+            catch {
+                Write-Error ('Failed to update SendGrid forward spam settings. {0}' -f $_.Exception.Message) -ErrorAction Stop
+            }
         }
     }
 }
