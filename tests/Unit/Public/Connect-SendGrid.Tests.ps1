@@ -174,6 +174,7 @@ Describe 'Connect-SendGrid base URL' {
 
     It 'Asks for the key again and does not reuse the old one when -Region names another host' {
         Mock -ModuleName SendGridTools Get-Credential { [pscredential]::new('apikey', (ConvertTo-SecureString -String 'test-key-b-not-real' -AsPlainText -Force)) }
+        Mock -ModuleName SendGridTools Test-SendGridHostCanPrompt { $true }
         InModuleScope SendGridTools {
             $KeyA = [pscredential]::new('apikey', (ConvertTo-SecureString -String 'test-key-a-not-real' -AsPlainText -Force))
             $script:Session = New-SgtTestSession -Credential $KeyA -AgeHours 0
@@ -218,6 +219,149 @@ Describe 'Connect-SendGrid base URL' {
         InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
             $Leak = Get-SgtLeakText -Action { Connect-SendGrid -Credential $Cred -Region EU -Verbose }
             $Leak.Text | Should -Not -BeLike '*test-key-not-real*'
+        }
+    }
+}
+
+Describe 'Connect-SendGrid -ApiKey and a host that cannot prompt' {
+    BeforeAll {
+        $script:ApiKey = ConvertTo-SecureString -String 'test-apikey-not-real' -AsPlainText -Force
+    }
+    BeforeEach {
+        Mock -ModuleName SendGridTools Get-Credential { [pscredential]::new('apikey', (ConvertTo-SecureString -String 'test-key-asked-not-real' -AsPlainText -Force)) }
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ scopes = @('scopes.read') })
+        }
+    }
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Declares -ApiKey as a securestring without a position in both parameter sets' {
+        $Parameter = (Get-Command Connect-SendGrid).Parameters['ApiKey']
+        $Parameter.ParameterType | Should -Be ([securestring])
+        $Attributes = @($Parameter.Attributes | Where-Object { $_ -is [System.Management.Automation.ParameterAttribute] })
+        $Attributes.Count | Should -Be 1
+        $Attributes[0].Position | Should -Be ([int]::MinValue)
+        $Attributes[0].ParameterSetName | Should -Be '__AllParameterSets'
+        $Attributes[0].Mandatory | Should -BeFalse
+        $Parameter.ParameterSets.Keys | Should -Contain '__AllParameterSets'
+    }
+
+    It 'Connects with -ApiKey without Get-Credential and keeps the key in the session' {
+        Mock -ModuleName SendGridTools Test-SendGridHostCanPrompt { $false }
+        InModuleScope SendGridTools -Parameters @{ ApiKey = $script:ApiKey } {
+            Connect-SendGrid -ApiKey $ApiKey
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            "$($Calls[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/scopes'
+            $Calls[0].Headers.Authorization | Should -Be 'Bearer test-apikey-not-real'
+            Set-SgtNetworkStub -Response ([pscustomobject]@{})
+            $null = Invoke-SGCommand -Namespace subusers
+            $Later = Get-SgtNetworkCall
+            $Later.Count | Should -Be 1
+            $Later[0].Headers.Authorization | Should -Be 'Bearer test-apikey-not-real'
+        }
+        Should -Invoke -ModuleName SendGridTools Get-Credential -Times 0 -Exactly
+    }
+
+    It 'Connects with -ApiKey to <Url> for <Label>' -ForEach @(
+        @{ Label = '-Region EU'; Splat = @{ Region = 'EU' }; Url = 'https://api.eu.sendgrid.com/v3/scopes' }
+        @{ Label = '-BaseUri'; Splat = @{ BaseUri = 'https://proxy.example.com' }; Url = 'https://proxy.example.com/v3/scopes' }
+    ) {
+        Mock -ModuleName SendGridTools Test-SendGridHostCanPrompt { $false }
+        InModuleScope SendGridTools -Parameters @{ ApiKey = $script:ApiKey; Splat = $Splat; Url = $Url } {
+            Connect-SendGrid -ApiKey $ApiKey @Splat
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            "$($Calls[0].Uri)" | Should -Be $Url
+            $Calls[0].Headers.Authorization | Should -Be 'Bearer test-apikey-not-real'
+        }
+        Should -Invoke -ModuleName SendGridTools Get-Credential -Times 0 -Exactly
+    }
+
+    It 'Refuses -ApiKey with -Credential without a call and leaves the session' {
+        Mock -ModuleName SendGridTools Test-SendGridHostCanPrompt { $true }
+        InModuleScope SendGridTools -Parameters @{ ApiKey = $script:ApiKey; Cred = $script:Cred } {
+            $Existing = New-SgtTestSession -Credential $Cred -AgeHours 0
+            $script:Session = $Existing
+            { Connect-SendGrid -ApiKey $ApiKey -Credential $Cred } | Should -Throw 'Unable to connect to SendGrid. Error detail: Use either -Credential or -ApiKey, not both.'
+            [object]::ReferenceEquals($script:Session, $Existing) | Should -BeTrue
+            (Get-SgtNetworkCall).Count | Should -Be 0
+        }
+        Should -Invoke -ModuleName SendGridTools Get-Credential -Times 0 -Exactly
+    }
+
+    It 'Refuses to prompt in a host that cannot prompt: <Label>' -ForEach @(
+        @{ Label = 'no session'; Splat = @{}; Existing = $false }
+        @{ Label = '-Force over a session'; Splat = @{ Force = $true }; Existing = $true }
+        @{ Label = '-Region EU over a global session'; Splat = @{ Region = 'EU' }; Existing = $true }
+        @{ Label = '-Region EU with -WhatIf'; Splat = @{ Region = 'EU'; WhatIf = $true }; Existing = $true }
+    ) {
+        Mock -ModuleName SendGridTools Test-SendGridHostCanPrompt { $false }
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Splat = $Splat; HasExisting = $Existing } {
+            $Existing = $null
+            if ($HasExisting) {
+                $Existing = New-SgtTestSession -Credential $Cred -AgeHours 0
+                $script:Session = $Existing
+            }
+            { Connect-SendGrid @Splat } | Should -Throw '*-Credential*-ApiKey*'
+            (Get-SgtNetworkCall).Count | Should -Be 0
+            if ($HasExisting) {
+                [object]::ReferenceEquals($script:Session, $Existing) | Should -BeTrue
+            }
+            else {
+                $script:Session | Should -BeNullOrEmpty
+            }
+        }
+        Should -Invoke -ModuleName SendGridTools Get-Credential -Times 0 -Exactly
+    }
+
+    It 'Asks with Get-Credential in an interactive host' {
+        Mock -ModuleName SendGridTools Test-SendGridHostCanPrompt { $true }
+        InModuleScope SendGridTools {
+            Connect-SendGrid
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Calls[0].Headers.Authorization | Should -Be 'Bearer test-key-asked-not-real'
+        }
+        Should -Invoke -ModuleName SendGridTools Get-Credential -Times 1 -Exactly
+    }
+
+    It 'Refreshes an existing session without a key in a host that cannot prompt' {
+        Mock -ModuleName SendGridTools Test-SendGridHostCanPrompt { $false }
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $Existing = New-SgtTestSession -Credential $Cred -AgeHours 0
+            $script:Session = $Existing
+            { Connect-SendGrid } | Should -Not -Throw
+            (Get-SgtNetworkCall).Count | Should -Be 1
+            [object]::ReferenceEquals($script:Session, $Existing) | Should -BeTrue
+        }
+        Should -Invoke -ModuleName SendGridTools Get-Credential -Times 0 -Exactly
+    }
+
+    It 'Makes no call with -ApiKey and -WhatIf' {
+        Mock -ModuleName SendGridTools Test-SendGridHostCanPrompt { $false }
+        InModuleScope SendGridTools -Parameters @{ ApiKey = $script:ApiKey } {
+            Connect-SendGrid -ApiKey $ApiKey -WhatIf
+            (Get-SgtNetworkCall).Count | Should -Be 0
+            $script:Session | Should -BeNullOrEmpty
+        }
+        Should -Invoke -ModuleName SendGridTools Get-Credential -Times 0 -Exactly
+    }
+
+    It 'Keeps -ApiKey out of verbose, debug and error output' {
+        Mock -ModuleName SendGridTools Test-SendGridHostCanPrompt { $false }
+        InModuleScope SendGridTools -Parameters @{ ApiKey = $script:ApiKey; Cred = $script:Cred } {
+            $Success = Get-SgtLeakText -Action { Connect-SendGrid -ApiKey $ApiKey -Verbose -Debug }
+            $Success.Text | Should -Not -BeLike '*test-apikey-not-real*'
+            $Refused = Get-SgtLeakText -Action { Connect-SendGrid -ApiKey $ApiKey -Credential $Cred -Verbose -Debug }
+            $Refused.Threw | Should -BeTrue
+            $Refused.Text | Should -Not -BeLike '*test-apikey-not-real*'
         }
     }
 }
