@@ -114,7 +114,7 @@ Describe 'Get-SGAuthenticatedDomain list paging' {
             $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
             Set-SgtPagedNetworkStub -Items @() -Shape List
 
-            { Get-SGAuthenticatedDomain -DomainName 'x' -Confirm:$false } | Should -Throw
+            { Get-SGAuthenticatedDomain -DomainName 'x' -Confirm:$false } | Should -Throw -ErrorId 'NamedParameterNotFound*'
             $Out = @(Get-SGAuthenticatedDomain -Confirm:$false -ErrorAction Stop)
             $Out.Count | Should -Be 0
         }
@@ -157,6 +157,8 @@ Describe 'Get-SGAuthenticatedDomain list paging' {
             $ListCalls = @(Get-SgtListCall)
             $ListCalls.Count | Should -Be 4
             # The first two calls are the DynamicParam's (it has never sent the header); the last two are the process block's pages.
+            # Pins today's behaviour: the DynamicParam list calls never send the on-behalf-of header.
+            foreach ($Call in $ListCalls[0..1]) { $Call.Headers.ContainsKey('on-behalf-of') | Should -BeFalse }
             foreach ($Call in $ListCalls[2..3]) { $Call.Headers['on-behalf-of'] | Should -Be 'user-placeholder' }
         }
     }

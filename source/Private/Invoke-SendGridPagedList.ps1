@@ -54,6 +54,9 @@ function Invoke-SendGridPagedList {
             }
         }
         if ($New.Count -eq 0) {
+            if ($Page.Count -gt 0) {
+                Write-Verbose -Message ('Stopped reading {0}: a page brought no new item.' -f $InvokeSplat['Namespace'])
+            }
             break
         }
         foreach ($Object in $New) {

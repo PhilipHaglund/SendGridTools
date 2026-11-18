@@ -16,19 +16,19 @@
         "valid": true,
         "type": "cname",
         "host": "em0001.domain-1.example.com",
-        "data": "u2001.wl001.sendgrid.net"
+        "data": "u2001.wl001.example.net"
       },
       "dkim1": {
         "valid": true,
         "type": "cname",
         "host": "s1._domainkey.domain-1.example.com",
-        "data": "s1.domainkey.u2001.wl001.sendgrid.net"
+        "data": "s1.domainkey.u2001.wl001.example.net"
       },
       "dkim2": {
         "valid": true,
         "type": "cname",
         "host": "s2._domainkey.domain-1.example.com",
-        "data": "s2.domainkey.u2001.wl001.sendgrid.net"
+        "data": "s2.domainkey.u2001.wl001.example.net"
       }
     },
     "last_validation_attempt_at": 1700000000

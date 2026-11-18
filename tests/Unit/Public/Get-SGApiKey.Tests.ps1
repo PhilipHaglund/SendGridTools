@@ -122,6 +122,19 @@ Describe 'Get-SGApiKey list paging' {
         }
     }
 
+    It 'Says in the verbose stream when a page brings nothing new, and only then' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Fixture = $script:Fixture } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtPagedNetworkStub -Items @(New-SgtFixtureItem -Kind Key -Count 60 -Path $Fixture) -Shape Result -IgnoreOffset
+            $Stream = @(Get-SGApiKey -Verbose -Confirm:$false 4>&1 | Where-Object { $_ -is [System.Management.Automation.VerboseRecord] } | ForEach-Object { $_.Message })
+            @($Stream | Where-Object { $_ -like '*a page brought no new item*' }).Count | Should -Be 1
+
+            Set-SgtPagedNetworkStub -Items @(New-SgtFixtureItem -Kind Key -Count 60 -Path $Fixture) -Shape Result
+            $Stream = @(Get-SGApiKey -Verbose -Confirm:$false 4>&1 | Where-Object { $_ -is [System.Management.Automation.VerboseRecord] } | ForEach-Object { $_.Message })
+            @($Stream | Where-Object { $_ -like '*a page brought no new item*' }).Count | Should -Be 0
+        }
+    }
+
     It 'Sends the on-behalf-of header on every page' {
         InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Fixture = $script:Fixture } {
             $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0

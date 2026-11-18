@@ -188,6 +188,7 @@ function Install-SgtSessionHelper {
 
 function Uninstall-SgtSessionHelper {
     InModuleScope SendGridTools {
-        Remove-Item -Path 'Function:\New-SgtTestSession', 'Function:\New-SgtErrorRecord', 'Function:\Invoke-SgtOverload', 'Function:\Get-SgtLeakText', 'Function:\Invoke-SgtTarget', 'Function:\Set-SgtNetworkStub', 'Function:\Set-SgtPagedNetworkStub', 'Function:\New-SgtFixtureItem', 'Function:\Get-SgtExpectedOffset', 'Function:\Get-SgtListCall','Function:\Reset-SgtNetworkStub', 'Function:\Get-SgtNetworkCall' -ErrorAction SilentlyContinue
+        Remove-Item -Path 'Function:\New-SgtTestSession', 'Function:\New-SgtErrorRecord', 'Function:\Invoke-SgtOverload', 'Function:\Get-SgtLeakText', 'Function:\Invoke-SgtTarget', 'Function:\Set-SgtNetworkStub', 'Function:\Set-SgtPagedNetworkStub', 'Function:\New-SgtFixtureItem', 'Function:\Get-SgtExpectedOffset', 'Function:\Get-SgtListCall', 'Function:\Reset-SgtNetworkStub', 'Function:\Get-SgtNetworkCall' -ErrorAction SilentlyContinue
+        Remove-Variable -Name SgtPagedItems, SgtPagedShape, SgtPagedIgnoreOffset -Scope Global -ErrorAction SilentlyContinue
     }
 }

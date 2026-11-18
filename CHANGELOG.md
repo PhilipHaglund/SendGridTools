@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- `Get-SGAuthenticatedDomain` and `Get-SGApiKey` return every authenticated domain and API key: they read the list page by page instead of taking only what one request returned, and `-DomainName` offers every domain. With no authenticated domains, `Get-SGAuthenticatedDomain` returns nothing instead of failing.
+- `Get-SGAuthenticatedDomain` and `Get-SGApiKey` return every authenticated domain and API key: they read the list page by page instead of taking only what one request returned, and `-DomainName` offers every domain. With no authenticated domains, `Get-SGAuthenticatedDomain` returns nothing instead of failing. The API key choices in `Get-SGEmailActivity` now include every key too.
 
 ## [0.4.8] - 2026-11-18
 
