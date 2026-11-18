@@ -67,6 +67,18 @@ Describe 'Connect-SendGrid parameters' {
             Get-SgtNetworkCall | Should -BeNullOrEmpty
         }
     }
+
+    It 'Does not put the user information of a refused -BaseUri in the error' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = $null
+            Set-SgtNetworkStub -Response ([pscustomobject]@{})
+            $Message = $null
+            try { Connect-SendGrid -Credential $Cred -BaseUri 'http://user:pass@example.com' } catch { $Message = $_.Exception.Message }
+            $Message | Should -BeLike 'Unable to connect to SendGrid*The base URI*'
+            $Message | Should -Not -BeLike '*pass*'
+            Get-SgtNetworkCall | Should -BeNullOrEmpty
+        }
+    }
 }
 
 Describe 'Connect-SendGrid base URL' {
@@ -157,6 +169,48 @@ Describe 'Connect-SendGrid base URL' {
             $Calls.Count | Should -Be 1
             $Calls[0].Method | Should -Be 'Get'
             "$($Calls[0].Uri)" | Should -Be 'https://api.eu.sendgrid.com/v3/scopes'
+        }
+    }
+
+    It 'Asks for the key again and does not reuse the old one when -Region names another host' {
+        Mock -ModuleName SendGridTools Get-Credential { [pscredential]::new('apikey', (ConvertTo-SecureString -String 'test-key-b-not-real' -AsPlainText -Force)) }
+        InModuleScope SendGridTools {
+            $KeyA = [pscredential]::new('apikey', (ConvertTo-SecureString -String 'test-key-a-not-real' -AsPlainText -Force))
+            $script:Session = New-SgtTestSession -Credential $KeyA -AgeHours 0
+            Connect-SendGrid -Region EU
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            "$($Calls[0].Uri)" | Should -Be 'https://api.eu.sendgrid.com/v3/scopes'
+            $Calls[0].Headers.Authorization | Should -Be 'Bearer test-key-b-not-real'
+            foreach ($Call in $Calls) { "$($Call.Headers.Authorization)" | Should -Not -BeLike '*test-key-a-not-real*' }
+        }
+    }
+
+    It 'Connects to the global host with a positional credential' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Connect-SendGrid $Cred
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            "$($Calls[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/scopes'
+        }
+    }
+
+    It 'Connects to the global host through the alias Connect-SG' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Connect-SG -Credential $Cred
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            "$($Calls[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/scopes'
+        }
+    }
+
+    It 'Makes no call and keeps the session with -WhatIf' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $Existing = New-SgtTestSession -Credential $Cred -AgeHours 0
+            $script:Session = $Existing
+            Connect-SendGrid -Credential $Cred -Region EU -WhatIf
+            Get-SgtNetworkCall | Should -BeNullOrEmpty
+            [object]::ReferenceEquals($script:Session, $Existing) | Should -BeTrue
         }
     }
 
