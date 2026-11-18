@@ -41,11 +41,15 @@ LONG DESCRIPTION
     Connect-SendGrid -ApiKey takes the API key as a secure string, so a
     key from a vault or an environment variable needs no PSCredential;
     it cannot be combined with -Credential. In a host that cannot prompt
-    (started with -NonInteractive, a Windows service, a scheduled task
-    without a signed-in user, or a runspace without a user interface),
-    Connect-SendGrid without -Credential or -ApiKey fails with an error
-    that names both, and leaves an existing session as it was. An
-    interactive host asks for the key as before. On Linux and macOS only
+    (a console host started with -NonInteractive, a Windows service, a
+    scheduled task without a signed-in user, or a runspace without a
+    user interface), Connect-SendGrid without -Credential or -ApiKey
+    fails with an error that names both, and leaves an existing session
+    as it was. An interactive host asks for the key as before.
+    -NonInteractive counts only in the console host: a host with its
+    own user interface (for example Visual Studio Code) asks for the
+    key as before, and a remote session leaves the prompt to the
+    client. On Linux and macOS only
     -NonInteractive is recognised, because .NET reports every process
     there as user interactive, so start a cron or systemd job with
     pwsh -NonInteractive or pass -ApiKey.

@@ -8,10 +8,11 @@
         If a connection already exists, it ensures that the connection is active, on that session's own host. If not, it creates a new connection,
         on the global host unless Region or BaseUri says otherwise. Region or BaseUri naming another host than the current session starts a new
         session and asks for the key when Credential and ApiKey are not given; if that connection fails, no session is left. In a host that cannot
-        prompt (started with -NonInteractive, not user interactive, or without a user interface), a new session without Credential or ApiKey
-        is refused with an error, and Get-Credential is not called. A remote session leaves the prompt to the client. On Linux and macOS only
-        -NonInteractive is recognised, because .NET reports every process there as user interactive, so start a cron or systemd job with
-        pwsh -NonInteractive or pass -ApiKey.
+        prompt (a console host started with -NonInteractive, not user interactive, or without a user interface), a new session without
+        Credential or ApiKey is refused with an error, and Get-Credential is not called. -NonInteractive counts only in the console host: a
+        host with its own user interface (for example Visual Studio Code) prompts as before, and a remote session leaves the prompt to the
+        client. On Linux and macOS only -NonInteractive is recognised, because .NET reports every process there as user interactive, so start
+        a cron or systemd job with pwsh -NonInteractive or pass -ApiKey.
 
     .PARAMETER Credential
         Specifies the API key to use when connecting to the SendGrid instance. The 'Username' field of the PSCredential object does not matter,
