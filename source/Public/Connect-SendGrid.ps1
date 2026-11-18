@@ -5,7 +5,9 @@
 
     .DESCRIPTION
         Connect-SendGrid, or its alias Connect-SG, initiates a connection with a SendGrid instance using an API key as the credential.
-        If a connection already exists, it ensures that the connection is active. If not, it creates a new connection.
+        If a connection already exists, it ensures that the connection is active, on that session's own host. If not, it creates a new connection,
+        on the global host unless Region or BaseUri says otherwise. Region or BaseUri naming another host than the current session starts a new
+        session and asks for the key when Credential is not given; if that connection fails, no session is left.
 
     .PARAMETER Credential
         Specifies the API key to use when connecting to the SendGrid instance. The 'Username' field of the PSCredential object does not matter,
@@ -15,7 +17,7 @@
         Indicates that this cmdlet forces a new connection, even if a connection already exists.
 
     .PARAMETER Region
-        Specifies the SendGrid region to connect to, Global or EU. Global is the default. Use EU for an account that is hosted on the
+        Specifies the SendGrid region to connect to, Global or EU. Global is the default for a new session. Use EU for an account that is hosted on the
         EU host. It cannot be combined with BaseUri.
 
     .PARAMETER BaseUri
