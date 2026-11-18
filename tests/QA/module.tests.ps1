@@ -144,12 +144,23 @@ Describe 'Changelog Management' -Tag 'Changelog' {
         {
             # Decide on the commit, never on the branch name. GitVersion 5 on GitHub Actions checks out
             # a local branch named after GITHUB_REF, so a tag run sits on a branch such as tags/v1.2.3.
-            # Exit code 0 means HEAD is on origin/main; 1 (a branch with its own commits) or an error
-            # falls through to the comparison below.
+            # Exit code 0 means HEAD is on origin/main. Exit code 1 (a branch with its own commits) does
+            # not skip; a git error does not skip either (in Windows PowerShell 5.1 it throws here).
             $null = & git -C $projectPath merge-base --is-ancestor HEAD 'refs/remotes/origin/main' 2>$null
-            if ($LASTEXITCODE -eq 0)
+            $headIsOnMain = ($LASTEXITCODE -eq 0)
+            $headCommit = (& git -C $projectPath rev-parse HEAD 2>$null)
+            $mainCommit = (& git -C $projectPath rev-parse 'refs/remotes/origin/main' 2>$null)
+
+            # A version tag is built only on main's tip (see Publishing in CLAUDE.md). A tag run on an
+            # older main commit is not skipped: it is compared, finds no change and fails.
+            $isTagRun = "$env:GITHUB_REF" -clike 'refs/tags/*'
+            if ($isTagRun -and $headCommit -ceq $mainCommit)
             {
-                $skipReason = 'HEAD is already on origin/main (main, a detached HEAD or a version tag), so this commit brings no change to compare'
+                $skipReason = 'version tag on the tip of origin/main, so this commit brings no change to compare'
+            }
+            elseif ($headIsOnMain -and -not $isTagRun)
+            {
+                $skipReason = 'HEAD is already on origin/main (main or a detached HEAD), so this commit brings no change to compare'
             }
         }
 
@@ -157,6 +168,11 @@ Describe 'Changelog Management' -Tag 'Changelog' {
         {
             Set-ItResult -Skipped -Because $skipReason
             return
+        }
+
+        if ($isTagRun -and $headIsOnMain)
+        {
+            $headCommit | Should -Be $mainCommit -Because 'a version tag is built only on the tip of origin/main, and this tag names an older main commit'
         }
 
         $mergeBase = (& git -C $projectPath merge-base HEAD 'refs/remotes/origin/main' 2>$null)
