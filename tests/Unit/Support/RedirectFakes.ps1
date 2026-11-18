@@ -27,8 +27,13 @@ public class SgtFakeWebResponse : WebResponse
 public class SgtFakeWebRequest : WebRequest
 {
     public bool HaveResponse { get; set; }
+    public bool ThrowOnGetResponse { get; set; }
     public WebResponse Response { get; set; }
-    public override WebResponse GetResponse() { return Response; }
+    public override WebResponse GetResponse()
+    {
+        if (ThrowOnGetResponse) { throw new InvalidOperationException("The cached response is not readable."); }
+        return Response;
+    }
 }
 
 public class SgtFakeHttpResponseException : Exception
@@ -37,5 +42,20 @@ public class SgtFakeHttpResponseException : Exception
     public HttpResponseMessage Response { get; set; }
 }
 '@
-    Add-Type -TypeDefinition $Source -ReferencedAssemblies $Reference -IgnoreWarnings
+    # SYSLIB0014 (the obsolete WebRequest constructor) is expected in PowerShell 7 and is not part of what the tests check.
+    Add-Type -TypeDefinition $Source -ReferencedAssemblies $Reference -IgnoreWarnings -WarningAction SilentlyContinue
+}
+
+function Install-SgtRedirectBuilder {
+    # Defines the fixture builder both redirect test files share inside the SendGridTools module scope.
+    # Each file removes it in AfterAll with Remove-Item 'Function:\New-SgtFakeWebResponse'.
+    InModuleScope SendGridTools {
+        function Script:New-SgtFakeWebResponse {
+            param([int]$Code, [string]$Location)
+            $Response = [SgtFakeWebResponse]::new()
+            $Response.StatusCode = [System.Enum]::ToObject([System.Net.HttpStatusCode], $Code)
+            if ($Location) { $Response.Headers['Location'] = $Location }
+            $Response
+        }
+    }
 }

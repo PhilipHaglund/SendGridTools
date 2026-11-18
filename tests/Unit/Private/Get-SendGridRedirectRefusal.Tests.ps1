@@ -10,23 +10,21 @@ BeforeAll {
     Assert-SgtNetworkTripwireActive
     Install-SgtSessionHelper
     Add-SgtRedirectFake
+    Install-SgtRedirectBuilder
     InModuleScope SendGridTools {
         function Script:New-SgtHttpMessage {
             param([int]$Code, [string]$Location)
             $Message = [System.Net.Http.HttpResponseMessage]::new([System.Enum]::ToObject([System.Net.HttpStatusCode], $Code))
-            if ($Location) { $Message.Headers.Location = [uri]::new($Location, [UriKind]::RelativeOrAbsolute) }
+            if ($Location) {
+                # A path starting with a single slash is a relative reference; on Linux and macOS RelativeOrAbsolute would make it a file URI.
+                $Kind = if ($Location -match '^/(?!/)') { [UriKind]::Relative } else { [UriKind]::RelativeOrAbsolute }
+                $Message.Headers.Location = [uri]::new($Location, $Kind)
+            }
             $Message
-        }
-        function Script:New-SgtFakeWebResponse {
-            param([int]$Code, [string]$Location)
-            $Response = [SgtFakeWebResponse]::new()
-            $Response.StatusCode = [System.Enum]::ToObject([System.Net.HttpStatusCode], $Code)
-            if ($Location) { $Response.Headers['Location'] = $Location }
-            $Response
         }
         function Script:New-SgtRedirectRecord {
             # Builds the ErrorRecord that Invoke-RestMethod throws, in one of the measured forms.
-            param([ValidateSet('Message', 'WebException', 'MaximumRedirect')][string]$Form, [int]$Code, [string]$Location, [switch]$HaveResponse)
+            param([ValidateSet('Message', 'WebException', 'MaximumRedirect')][string]$Form, [int]$Code, [string]$Location, [switch]$HaveResponse, [switch]$ThrowOnGetResponse)
             switch ($Form) {
                 'Message' {
                     $Exception = [SgtFakeHttpResponseException]::new('Response status code does not indicate success.')
@@ -43,6 +41,7 @@ BeforeAll {
                     if ($Code) {
                         $Request = [SgtFakeWebRequest]::new()
                         $Request.HaveResponse = [bool]$HaveResponse
+                        $Request.ThrowOnGetResponse = [bool]$ThrowOnGetResponse
                         $Request.Response = New-SgtFakeWebResponse -Code $Code -Location $Location
                     }
                     $Exception = [System.InvalidOperationException]::new('The maximum redirection count has been exceeded.')
@@ -117,10 +116,31 @@ Describe 'Get-SendGridRedirectRefusal' {
         }
     }
 
-    It 'Resolves a relative Location against the request URI' {
-        InModuleScope SendGridTools {
-            $Record = New-SgtRedirectRecord -Form Message -Code 302 -Location '/v3/elsewhere'
+    It 'Resolves a relative Location against the request URI (<Form>)' -ForEach @(@{ Form = 'Message' }, @{ Form = 'WebException' }) {
+        InModuleScope SendGridTools -Parameters @{ Form = $Form } {
+            $Record = New-SgtRedirectRecord -Form $Form -Code 302 -Location '/v3/elsewhere'
             Get-SendGridRedirectRefusal -ErrorRecord $Record -RequestUri ([uri]'https://api.eu.sendgrid.com/v3/scopes') | Should -BeExactly 'SendGrid answered with a redirect to api.eu.sendgrid.com; the request was refused so that the API key is not sent there.'
+        }
+    }
+
+    It 'Resolves a protocol-relative Location (<Form>)' -ForEach @(@{ Form = 'Message' }, @{ Form = 'WebException' }) {
+        InModuleScope SendGridTools -Parameters @{ Form = $Form } {
+            $Record = New-SgtRedirectRecord -Form $Form -Code 302 -Location '//other.example.net/v3/x'
+            Get-SendGridRedirectRefusal -ErrorRecord $Record -RequestUri ([uri]'https://api.eu.sendgrid.com/v3/scopes') | Should -BeExactly 'SendGrid answered with a redirect to other.example.net; the request was refused so that the API key is not sent there.'
+        }
+    }
+
+    It 'Names an unknown host for a file Location (<Form>)' -ForEach @(@{ Form = 'Message' }, @{ Form = 'WebException' }) {
+        InModuleScope SendGridTools -Parameters @{ Form = $Form } {
+            $Record = New-SgtRedirectRecord -Form $Form -Code 302 -Location 'file:///v3/elsewhere'
+            Get-SendGridRedirectRefusal -ErrorRecord $Record -RequestUri ([uri]'https://api.eu.sendgrid.com/v3/scopes') | Should -BeExactly 'SendGrid answered with a redirect to an unknown host; the request was refused so that the API key is not sent there.'
+        }
+    }
+
+    It 'Names an unknown host when a recognised redirect has an unreadable response' {
+        InModuleScope SendGridTools -Parameters @{ RequestUri = $script:RequestUri } {
+            $Record = New-SgtRedirectRecord -Form MaximumRedirect -Code 302 -Location 'https://other.example.net/' -HaveResponse -ThrowOnGetResponse
+            Get-SendGridRedirectRefusal -ErrorRecord $Record -RequestUri $RequestUri | Should -BeExactly 'SendGrid answered with a redirect to an unknown host; the request was refused so that the API key is not sent there.'
         }
     }
 

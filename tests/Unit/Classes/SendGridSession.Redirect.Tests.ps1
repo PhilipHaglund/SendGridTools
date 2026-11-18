@@ -5,7 +5,7 @@ BeforeDiscovery {
         @{ Label = 'Connect()'; Target = 'Connect()'; Case = $null }
     ) + @(Get-SgtOverloadCase | ForEach-Object { @{ Label = "InvokeQuery $($_.Name)"; Target = 'InvokeQuery'; Case = $_ } })
     $script:RedirectForms = foreach ($Target in $script:Targets) {
-        foreach ($Form in 'Message', 'MaximumRedirect') {
+        foreach ($Form in 'Message', 'MaximumRedirect', 'UnreadableCache') {
             @{ Label = $Target.Label; Target = $Target.Target; Case = $Target.Case; Form = $Form }
         }
     }
@@ -32,18 +32,13 @@ BeforeAll {
     Assert-SgtNetworkTripwireActive
     Install-SgtSessionHelper
     Add-SgtRedirectFake
+    Install-SgtRedirectBuilder
     $script:Cred = [pscredential]::new('apikey', (ConvertTo-SecureString -String 'test-key-not-real' -AsPlainText -Force))
     InModuleScope SendGridTools {
-        function Script:New-SgtFakeWebResponse {
-            param([int]$Code, [string]$Location)
-            $Response = [SgtFakeWebResponse]::new()
-            $Response.StatusCode = [System.Enum]::ToObject([System.Net.HttpStatusCode], $Code)
-            if ($Location) { $Response.Headers['Location'] = $Location }
-            $Response
-        }
         function Script:New-SgtFormRecord {
             # Builds the ErrorRecord that Invoke-RestMethod throws, in one of the measured forms.
-            param([ValidateSet('Message', 'WebException', 'MaximumRedirect')][string]$Form, [int]$Code, [string]$Location, [string]$Details)
+            # UnreadableCache is the 5.1 form whose cached response cannot be read.
+            param([ValidateSet('Message', 'WebException', 'MaximumRedirect', 'UnreadableCache')][string]$Form, [int]$Code, [string]$Location, [string]$Details)
             $Id = 'WebCmdletWebResponseException,Microsoft.PowerShell.Commands.InvokeRestMethodCommand'
             $Target = $null
             switch ($Form) {
@@ -55,11 +50,12 @@ BeforeAll {
                 'WebException' {
                     $Exception = [System.Net.WebException]::new('web failure', $null, [System.Net.WebExceptionStatus]::ProtocolError, (New-SgtFakeWebResponse -Code $Code -Location $Location))
                 }
-                'MaximumRedirect' {
+                { $_ -in 'MaximumRedirect', 'UnreadableCache' } {
                     $Exception = [System.InvalidOperationException]::new('The maximum redirection count has been exceeded.')
                     $Id = 'MaximumRedirectExceeded,Microsoft.PowerShell.Commands.InvokeRestMethodCommand'
                     $Target = [SgtFakeWebRequest]::new()
                     $Target.HaveResponse = $true
+                    $Target.ThrowOnGetResponse = ($Form -eq 'UnreadableCache')
                     $Target.Response = New-SgtFakeWebResponse -Code $Code -Location $Location
                     $Details = 'The maximum redirection count has been exceeded. To increase the number of redirections allowed, supply a higher value to the -MaximumRedirection parameter.'
                 }
@@ -72,7 +68,8 @@ BeforeAll {
             # Runs one target and returns the session, the thrown message and the number of calls made.
             param([string]$Target, $Case, [pscredential]$Credential)
             $Session = switch ($Target) {
-                'Connect(credential)' { [SendGridSession]::new() }
+                # Start connected, so that the assertion on _Connected after a refusal can fail.
+                'Connect(credential)' { New-SgtTestSession -Credential $Credential -AgeHours 0 }
                 default { New-SgtTestSession -Credential $Credential -AgeHours 0 }
             }
             $Message = $null
@@ -123,7 +120,8 @@ Describe 'SendGridSession refuses a redirect' {
         InModuleScope SendGridTools -Parameters @{ Target = $Target; Case = $Case; Form = $Form; Cred = $script:Cred; Expected = $script:Expected; Location = $script:Location } {
             Set-SgtNetworkStub -Throw (New-SgtFormRecord -Form $Form -Code 302 -Location $Location)
             $Result = Invoke-SgtSessionTarget -Target $Target -Case $Case -Credential $Cred
-            $Result.Message | Should -BeExactly $Expected
+            $Want = if ($Form -eq 'UnreadableCache') { 'SendGrid answered with a redirect to an unknown host; the request was refused so that the API key is not sent there.' } else { $Expected }
+            $Result.Message | Should -BeExactly $Want
             $Result.Message | Should -Not -Match 'v3|scopes|token|test-key-not-real'
             if ($Target -like 'Connect*') {
                 $Result.Session._Connected | Should -BeFalse
