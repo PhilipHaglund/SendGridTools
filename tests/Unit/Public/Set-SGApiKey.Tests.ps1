@@ -1,0 +1,120 @@
+BeforeAll {
+    . (Join-Path -Path $PSScriptRoot -ChildPath '../Support/NetworkTripwire.ps1')
+    . (Join-Path -Path $PSScriptRoot -ChildPath '../Support/SessionHelpers.ps1')
+    # Import once per run: in Windows PowerShell 5.1 a class stays bound to the first loaded module instance.
+    if (-not (Get-Module -Name SendGridTools)) {
+        Get-Module -Name SendGridTools -ListAvailable | Select-Object -First 1 | Import-Module -ErrorAction Stop
+    }
+    Enable-SgtNetworkTripwire
+    Assert-SgtNetworkTripwireActive
+    Install-SgtSessionHelper
+    $script:Cred = [pscredential]::new('apikey', (ConvertTo-SecureString -String 'test-key-not-real' -AsPlainText -Force))
+}
+
+AfterAll {
+    Uninstall-SgtSessionHelper
+    Disable-SgtNetworkTripwire
+}
+
+Describe 'Set-SGApiKey -Scopes' {
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Shows its syntax without throwing and names Scopes' {
+        { Get-Command -Name Set-SGApiKey -Syntax } | Should -Not -Throw
+        (Get-Command -Name Set-SGApiKey -Syntax) | Should -Match 'Scopes'
+    }
+
+    It 'Has an ArgumentCompleter and no ValidateSet on Scopes' {
+        $Attributes = (Get-Command -Name Set-SGApiKey).Parameters['Scopes'].Attributes
+        @($Attributes | Where-Object { $_ -is [System.Management.Automation.ValidateSetAttribute] }).Count | Should -Be 0
+        @($Attributes | Where-Object { $_ -is [System.Management.Automation.ArgumentCompleterAttribute] }).Count | Should -Be 1
+    }
+
+    It 'Sends one Put to api_keys/<id> with the given scopes and the current name' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Mock Get-SGApiKey { [pscustomobject]@{ Name = 'placeholder-name'; Scopes = @('alerts.read') } }
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ name = 'placeholder-name' })
+
+            $null = Set-SGApiKey -UniqueId 'placeholder-id' -Scopes 'mail.send' -Confirm:$false
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Calls[0].Method | Should -Be 'Put'
+            "$($Calls[0].Uri)" | Should -BeLike '*/api_keys/placeholder-id'
+            $Sent = $Calls[0].Body | ConvertFrom-Json
+            @($Sent.scopes) | Should -Be @('mail.send')
+            $Sent.name | Should -Be 'placeholder-name'
+        }
+    }
+
+    It 'Sends a scope that is not a known scope as given, without local validation' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Mock Get-SGApiKey { [pscustomobject]@{ Name = 'placeholder-name'; Scopes = @('alerts.read') } }
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ name = 'placeholder-name' })
+
+            [SendGridScopes]::ValidScopes() | Should -Not -Contain 'placeholder.future.scope'
+            $null = Set-SGApiKey -UniqueId 'placeholder-id' -Scopes 'placeholder.future.scope' -Confirm:$false
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Sent = $Calls[0].Body | ConvertFrom-Json
+            @($Sent.scopes) | Should -Be @('placeholder.future.scope')
+        }
+    }
+
+    It 'Keeps the current scopes without -Scopes and uses -NewName for the name' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Mock Get-SGApiKey { [pscustomobject]@{ Name = 'placeholder-name'; Scopes = @('alerts.read') } }
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ name = 'placeholder-new-name' })
+
+            $null = Set-SGApiKey -UniqueId 'placeholder-id' -NewName 'placeholder-new-name' -Confirm:$false
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Sent = $Calls[0].Body | ConvertFrom-Json
+            @($Sent.scopes) | Should -Be @('alerts.read')
+            $Sent.name | Should -Be 'placeholder-new-name'
+        }
+    }
+
+    It 'Makes no call with -WhatIf' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Mock Get-SGApiKey { [pscustomobject]@{ Name = 'placeholder-name'; Scopes = @('alerts.read') } }
+            Mock Invoke-SendGrid { }
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ name = 'placeholder-name' })
+
+            $null = Set-SGApiKey -UniqueId 'placeholder-id' -Scopes 'mail.send' -WhatIf
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 0
+            Should -Invoke Invoke-SendGrid -Times 0 -Exactly
+        }
+    }
+
+    It 'Completes scopes from ValidScopes' {
+        $Completer = (Get-Command -Name Set-SGApiKey).Parameters['Scopes'].Attributes |
+            Where-Object { $_ -is [System.Management.Automation.ArgumentCompleterAttribute] }
+        $Valid = InModuleScope SendGridTools { , @([SendGridScopes]::ValidScopes()) }
+        $Partial = @(& $Completer.ScriptBlock 'Set-SGApiKey' 'Scopes' 'mail.' $null @{})
+        $Partial.Count | Should -BeGreaterThan 0
+        $Partial | Should -Be @($Valid | Where-Object { $_ -like 'mail.*' })
+        $All = @(& $Completer.ScriptBlock 'Set-SGApiKey' 'Scopes' '' $null @{})
+        $All | Should -Be @($Valid)
+    }
+}
+
+Describe 'Network tripwire' {
+    It 'Made no unmocked network call' {
+        Assert-SgtNetworkTripwireActive
+        Get-SgtUnmockedNetworkCall | Should -BeNullOrEmpty
+    }
+}

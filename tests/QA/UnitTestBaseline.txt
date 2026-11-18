@@ -37,6 +37,5 @@ Remove-SGSpamReport
 Remove-SGSubuser
 Send-SGMailMessage
 Set-SGAlert
-Set-SGApiKey
 Set-SGAuthenticatedDomainToSubUser
 Set-SGBrandedDomainLink

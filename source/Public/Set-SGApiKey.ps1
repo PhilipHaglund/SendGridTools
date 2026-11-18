@@ -10,7 +10,7 @@
         Specifies the ID of the API Key to be updated.
 
     .PARAMETER Scopes
-        Specifies the new scopes of the API Key.
+        Specifies the new scopes of the API Key. Tab completion offers the known scopes; SendGrid decides whether a scope is valid.
 
     .PARAMETER NewName
         Specifies the new name of the API Key. This parameter is not mandatory.
@@ -31,6 +31,7 @@
 
         This command updates both the name and scopes of the API Key with the specified ID within the current SendGrid instance.
     #>
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '', Justification = 'CommandName, ParameterName, CommandAst and FakeBoundParameters are the fixed positional parameters PowerShell passes to an ArgumentCompleter script block; the signature is dictated by the engine and cannot be trimmed.')]
     [CmdletBinding(
         SupportsShouldProcess
     )]
@@ -58,7 +59,23 @@
         [Parameter(
             Position = 1
         )]
-        [ValidateSet([SendGridScopes])]
+        #[ValidateSet([SendGridScopes])] Removed to make it PowerShell 5.1 compatible
+        [ArgumentCompleter({
+                param(
+                    [string]$CommandName,
+                    [string]$ParameterName,
+                    [string]$WordToComplete,
+                    $CommandAst,
+                    $FakeBoundParameters
+                )
+                $ReturnedValue = [SendGridScopes]::ValidScopes()
+
+                if ($WordToComplete) {
+                    $ReturnedValue | Where-Object { $_ -like "$WordToComplete*" }
+                }
+                else {
+                    $ReturnedValue
+                } })]
         [string[]]$Scopes,
 
         # Specifies the new name of the API Key. This parameter is not mandatory.
