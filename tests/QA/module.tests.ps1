@@ -152,7 +152,7 @@ Describe 'Changelog Management' -Tag 'Changelog' {
             $mainCommit = (& git -C $projectPath rev-parse 'refs/remotes/origin/main' 2>$null)
 
             # A version tag is built only on main's tip (see Publishing in CLAUDE.md). A tag run on an
-            # older main commit is not skipped: it is compared, finds no change and fails.
+            # older main commit is not skipped: it fails on the tip assertion below.
             $isTagRun = "$env:GITHUB_REF" -clike 'refs/tags/*'
             if ($isTagRun -and $headCommit -ceq $mainCommit)
             {
