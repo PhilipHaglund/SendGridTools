@@ -25,6 +25,12 @@ Describe 'Get-SGApiKey list paging' {
         }
     }
 
+    It 'Fixtures match the recorded structure' {
+        $Document = Get-Content -LiteralPath $script:Fixture -Raw | ConvertFrom-Json
+        @($Document.PSObject.Properties.Name) | Should -Be @('result')
+        @($Document.result[0].PSObject.Properties.Name | Sort-Object) | Should -Be @('api_key_id', 'name')
+    }
+
     It 'Reads two pages and returns every key' {
         InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Fixture = $script:Fixture } {
             $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0

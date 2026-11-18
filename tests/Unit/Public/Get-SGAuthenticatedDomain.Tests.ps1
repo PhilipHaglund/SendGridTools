@@ -27,6 +27,21 @@ Describe 'Get-SGAuthenticatedDomain list paging' {
 
     # The DynamicParam pages the same list before the process block does, so a plain call makes the page sequence twice. Only calls that carry limit= are counted.
 
+    It 'Fixtures match the recorded structure' {
+        function Get-PropertyPath ($Object, $Prefix) {
+            foreach ($Property in $Object.PSObject.Properties) {
+                $Path = if ($Prefix) { "$Prefix.$($Property.Name)" } else { $Property.Name }
+                if ($Property.Value -is [System.Management.Automation.PSCustomObject]) { Get-PropertyPath -Object $Property.Value -Prefix $Path } else { $Path }
+            }
+        }
+        $Parsed = Get-Content -LiteralPath $script:Fixture -Raw | ConvertFrom-Json
+        # Windows PowerShell 5.1 returns a JSON array as one object; enumerate it through the pipeline to get the first element in both editions.
+        $Element = @($Parsed | ForEach-Object { $_ })[0]
+        $Expected = @('id', 'user_id', 'subdomain', 'domain', 'username', 'ips', 'custom_spf', 'default', 'legacy', 'automatic_security', 'valid', 'last_validation_attempt_at') +
+            @(foreach ($Block in 'mail_cname', 'dkim1', 'dkim2') { foreach ($Field in 'valid', 'type', 'host', 'data') { "dns.$Block.$Field" } })
+        @(Get-PropertyPath -Object $Element | Sort-Object) | Should -Be @($Expected | Sort-Object)
+    }
+
     It 'Reads two pages and returns every domain' {
         InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Fixture = $script:Fixture } {
             $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
