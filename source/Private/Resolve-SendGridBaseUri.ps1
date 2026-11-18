@@ -50,13 +50,13 @@ function Resolve-SendGridBaseUri {
         $Parsed = $null
         $Text = $BaseUri.OriginalString
         if (-not [uri]::TryCreate($Text, [UriKind]::Absolute, [ref]$Parsed)) {
-            throw ('The base URI ''{0}'' is not an absolute URI.' -f $Text)
-        }
-        if ($Parsed.Scheme -ne 'https') {
-            throw ('The base URI ''{0}'' must use https.' -f $Text)
+            throw 'The base URI is not an absolute URI.'
         }
         if ($Parsed.UserInfo) {
             throw 'The base URI must not contain user information.'
+        }
+        if ($Parsed.Scheme -ne 'https') {
+            throw ('The base URI must use https; the scheme given is ''{0}''.' -f $Parsed.Scheme)
         }
         if ($Parsed.Query -or $Parsed.Fragment) {
             throw 'The base URI must not contain a query or a fragment.'
