@@ -5,8 +5,8 @@
 
     .DESCRIPTION
         Connect-SendGrid, or its alias Connect-SG, initiates a connection with a SendGrid instance using an API key as the credential.
-        If a connection already exists, it ensures that the connection is active, on that session's own host. When Credential or ApiKey is given,
-        that key replaces the session's key and is verified first; without them the stored key is used. If not, it creates a new connection,
+        If a connection already exists, it ensures that the connection is active, on that session's own host; when Credential or ApiKey is given,
+        that key replaces the session's key and is verified first, and without them the stored key is used. If no connection exists, it creates a new connection,
         on the global host unless Region or BaseUri says otherwise. Region or BaseUri naming another host than the current session starts a new
         session and asks for the key when Credential and ApiKey are not given; if that connection fails, no session is left. In a host that cannot
         prompt (a console host started with -NonInteractive, not user interactive, or without a user interface), a new session without
