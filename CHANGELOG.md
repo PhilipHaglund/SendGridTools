@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The module is built and tested on Linux, Windows and macOS in PowerShell 7 and in Windows PowerShell 5.1, and published to the PowerShell Gallery from GitHub Actions: every merge to main publishes a preview, and a full release comes only from a version tag.
 - The build resolves its dependencies locally into `output/RequiredModules` at pinned versions, runs the tests on Pester 5, and imports only the four Sampler task files that build and test use, so the publish and tag tasks and the `pack` workflow alias are gone.
+- The build accepts a version tag on a commit that is already on main: the changelog check now looks at whether the commit is on main, not at the branch name, which on a tag run is named after the tag.
 - Unit tests with mocked HTTP cover the transport and the commands whose requests or output are fixed above, in both shells, and check that the API key and request body values never appear in output, errors, verbose or debug. Quality tests import the built module in a new PowerShell 7 process and, on Windows, a new Windows PowerShell process, and check that the exported functions match the files in `source/Public`. The code coverage threshold is raised from 0 to 21.
 - The README states the real requirements (Windows PowerShell 5.1 or PowerShell 7) and the install and build steps, `about_SendGridTools` has real content, and the changelog lists every released version.
 
