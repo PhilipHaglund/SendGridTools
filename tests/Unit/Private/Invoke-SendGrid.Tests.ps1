@@ -135,6 +135,110 @@ Describe 'Invoke-SendGrid with a connected session' {
     }
 }
 
+Describe 'Invoke-SendGrid keeps empty lists (D8)' {
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Keeps an empty list as a property with an empty value' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Set-SgtNetworkStub -Response ('[{"ip":"192.0.2.10","pools":[],"warmup":false}]' | ConvertFrom-Json)
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+
+            $Result = @(Invoke-SendGrid -Method Get -Namespace 'things')
+
+            $Result.Count | Should -Be 1
+            (@($Result[0].PSObject.Properties.Name | Sort-Object) -join ',') | Should -Be 'Ip,Pools,Warmup'
+            $Result[0].PSObject.Properties['Pools'] | Should -Not -BeNullOrEmpty
+            @($Result[0].Pools).Count | Should -Be 0
+            $Result[0].Ip | Should -Be '192.0.2.10'
+            $Result[0].Warmup | Should -Be $false
+        }
+    }
+
+    It 'Gives the same output as before for a list with elements, null, a number and dates' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Set-SgtNetworkStub -Response ('[{"subusers":["sgt-test-subuser-1","sgt-test-subuser-2"],"start_date":null,"count":3,"created":1700000000,"date":"2023-11-14"}]' | ConvertFrom-Json)
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+
+            $Result = @(Invoke-SendGrid -Method Get -Namespace 'things')
+
+            $Result.Count | Should -Be 1
+            (@($Result[0].PSObject.Properties.Name | Sort-Object) -join ',') | Should -Be 'Count,Created,Date,StartDate,Subusers'
+            @($Result[0].Subusers) | Should -Be @('sgt-test-subuser-1', 'sgt-test-subuser-2')
+            $Result[0].PSObject.Properties['StartDate'] | Should -Not -BeNullOrEmpty
+            $Result[0].PSObject.Properties['StartDate'].Value | Should -BeNullOrEmpty
+            $Result[0].PSObject.Properties['Count'].Value | Should -Be 3
+            if ($PSVersionTable.PSEdition -eq 'Core') {
+                $Result[0].Created | Should -BeOfType [datetime]
+                $Result[0].Created | Should -Be ([datetime]::new(1970, 1, 1, 0, 0, 0, 0).AddSeconds(1700000000))
+            }
+            else {
+                # Windows PowerShell 5.1 reads this number as Int32, which the int64 conversion does not match; it stays a number as before.
+                $Result[0].Created | Should -Be 1700000000
+            }
+            $Result[0].Date | Should -BeOfType [datetime]
+            $Result[0].Date | Should -Be ([datetime]::Parse('2023-11-14'))
+        }
+    }
+
+    It 'Returns an object for a response whose only properties are empty lists' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Set-SgtNetworkStub -Response ('{"pools":[],"subusers":[]}' | ConvertFrom-Json)
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+
+            $Result = @(Invoke-SendGrid -Method Get -Namespace 'things')
+
+            $Result.Count | Should -Be 1
+            (@($Result[0].PSObject.Properties.Name | Sort-Object) -join ',') | Should -Be 'Pools,Subusers'
+            @($Result[0].Pools).Count | Should -Be 0
+            @($Result[0].Subusers).Count | Should -Be 0
+        }
+    }
+
+    It 'Does not throw for an empty errors list' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Set-SgtNetworkStub -Response ('{"errors":[],"name":"sgt-test-ok"}' | ConvertFrom-Json)
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+
+            { Invoke-SendGrid -Method Get -Namespace 'things' } | Should -Not -Throw
+            $Result = @(Invoke-SendGrid -Method Get -Namespace 'things')
+
+            $Result.Count | Should -Be 1
+            (@($Result[0].PSObject.Properties.Name | Sort-Object) -join ',') | Should -Be 'Errors,Name'
+            @($Result[0].Errors).Count | Should -Be 0
+        }
+    }
+
+    It 'Throws the error message for an errors list with one error, as before' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Set-SgtNetworkStub -Response ('{"errors":[{"field":null,"message":"sgt-test-error-message"}]}' | ConvertFrom-Json)
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+
+            { Invoke-SendGrid -Method Get -Namespace 'things' } | Should -Throw -ExpectedMessage 'sgt-test-error-message'
+        }
+    }
+
+    It 'Keeps an empty list in every object of a list' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Set-SgtNetworkStub -Response ('[{"id":1,"pools":[]},{"id":2,"pools":["sgt-test-pool"]}]' | ConvertFrom-Json)
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+
+            $Result = @(Invoke-SendGrid -Method Get -Namespace 'things')
+
+            $Result.Count | Should -Be 2
+            foreach ($Item in $Result) {
+                (@($Item.PSObject.Properties.Name | Sort-Object) -join ',') | Should -Be 'Id,Pools'
+            }
+            @($Result[0].Pools).Count | Should -Be 0
+            @($Result[1].Pools) | Should -Be @('sgt-test-pool')
+        }
+    }
+}
+
 Describe 'Network tripwire' {
     It 'Made no unmocked network call' {
         Assert-SgtNetworkTripwireActive

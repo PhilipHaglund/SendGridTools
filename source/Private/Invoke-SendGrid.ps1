@@ -205,6 +205,12 @@ function Invoke-SendGrid {
                         }
                     }
 
+                    # An empty list gives the switch below no round, so it is kept here with its empty value (D8).
+                    if (0 -eq @($Object.$Property).Count) {
+                        $PSObject | Add-Member -MemberType NoteProperty -Name (($Property | ConvertTo-TitleCase) -replace '[\s_-]+') -Value $Object.$Property -Force
+                        continue
+                    }
+
                     # Switch based on the property type.
                     switch ($Object.$Property) {
                         { $_ -is [int64] -and $Property -match 'valid|created|updated|lastat' } {
@@ -221,7 +227,8 @@ function Invoke-SendGrid {
                         }
                     }
                 }
-                if ($PSObject | Get-Member -Name 'Errors' -MemberType 'NoteProperty') {
+                # An empty errors list is no error (D8); any other Errors value throws as before.
+                if (($PSObject | Get-Member -Name 'Errors' -MemberType 'NoteProperty') -and 0 -ne @($PSObject.Errors).Count) {
                     throw $PSObject.Errors.Message
                 }
                 else {

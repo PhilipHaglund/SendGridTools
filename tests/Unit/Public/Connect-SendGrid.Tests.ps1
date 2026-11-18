@@ -366,6 +366,149 @@ Describe 'Connect-SendGrid -ApiKey and a host that cannot prompt' {
     }
 }
 
+Describe 'Connect-SendGrid refresh with a given key (D9)' {
+    BeforeAll {
+        $script:OldCred = [pscredential]::new('apikey', (ConvertTo-SecureString -String 'test-key-old-not-real' -AsPlainText -Force))
+        $script:NewCred = [pscredential]::new('apikey', (ConvertTo-SecureString -String 'test-key-new-not-real' -AsPlainText -Force))
+        $script:NewKey = ConvertTo-SecureString -String 'test-key-new-not-real' -AsPlainText -Force
+    }
+    BeforeEach {
+        Mock -ModuleName SendGridTools Get-Credential { throw 'Get-Credential must not be called' }
+        Mock -ModuleName SendGridTools Test-SendGridHostCanPrompt { $true }
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ scopes = @('scopes.read') })
+        }
+    }
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Verifies and keeps a new key given with -Credential on the same host' {
+        InModuleScope SendGridTools -Parameters @{ Old = $script:OldCred; New = $script:NewCred } {
+            $Existing = New-SgtTestSession -Credential $Old -AgeHours 0.5
+            $script:Session = $Existing
+            Connect-SendGrid -Credential $New
+            [object]::ReferenceEquals($script:Session, $Existing) | Should -BeTrue
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            "$($Calls[0].Method)" | Should -Be 'Get'
+            "$($Calls[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/scopes'
+            $Calls[0].Headers.Authorization | Should -Be 'Bearer test-key-new-not-real'
+            $script:Session._Credential.GetNetworkCredential().Password | Should -Be 'test-key-new-not-real'
+            $script:Session._CreateDateTime | Should -BeGreaterThan (Get-Date).AddMinutes(-1)
+            $script:Session._Connected | Should -BeTrue
+        }
+        Should -Invoke -ModuleName SendGridTools Get-Credential -Times 0 -Exactly
+    }
+
+    It 'Verifies and keeps a new key given with -ApiKey on the same host' {
+        InModuleScope SendGridTools -Parameters @{ Old = $script:OldCred; NewKey = $script:NewKey } {
+            $Existing = New-SgtTestSession -Credential $Old -AgeHours 0.5
+            $script:Session = $Existing
+            Connect-SendGrid -ApiKey $NewKey
+            [object]::ReferenceEquals($script:Session, $Existing) | Should -BeTrue
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            "$($Calls[0].Method)" | Should -Be 'Get'
+            "$($Calls[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/scopes'
+            $Calls[0].Headers.Authorization | Should -Be 'Bearer test-key-new-not-real'
+            $script:Session._Credential.UserName | Should -Be 'apikey'
+            $script:Session._Credential.GetNetworkCredential().Password | Should -Be 'test-key-new-not-real'
+            $script:Session._CreateDateTime | Should -BeGreaterThan (Get-Date).AddMinutes(-1)
+            $script:Session._Connected | Should -BeTrue
+        }
+        Should -Invoke -ModuleName SendGridTools Get-Credential -Times 0 -Exactly
+    }
+
+    It 'Keeps the EU host of the session when a key is given (<Label>)' -ForEach @(
+        @{ Label = 'no region'; Splat = @{} }
+        @{ Label = '-Region EU'; Splat = @{ Region = 'EU' } }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ Old = $script:OldCred; New = $script:NewCred; Splat = $Splat } {
+            $Existing = New-SgtTestSession -Credential $Old -AgeHours 0.5
+            $Existing._BaseURL = [uri]'https://api.eu.sendgrid.com/v3'
+            $script:Session = $Existing
+            Connect-SendGrid -Credential $New @Splat
+            [object]::ReferenceEquals($script:Session, $Existing) | Should -BeTrue
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            "$($Calls[0].Uri)" | Should -Be 'https://api.eu.sendgrid.com/v3/scopes'
+            $Calls[0].Headers.Authorization | Should -Be 'Bearer test-key-new-not-real'
+            $script:Session._BaseURL.AbsoluteUri | Should -Be 'https://api.eu.sendgrid.com/v3'
+        }
+    }
+
+    It 'Writes the refreshed-with-key verbose line' {
+        InModuleScope SendGridTools -Parameters @{ Old = $script:OldCred; New = $script:NewCred } {
+            $script:Session = New-SgtTestSession -Credential $Old -AgeHours 0.5
+            $Streams = Connect-SendGrid -Credential $New 4>&1
+            $Messages = @($Streams | Where-Object { $_ -is [System.Management.Automation.VerboseRecord] } | ForEach-Object { $_.Message })
+            $Messages | Should -Contain 'Existing connection to SendGrid refreshed with the given API key.'
+            $Messages | Should -Not -Contain 'Existing connection to SendGrid refreshed.'
+        }
+    }
+
+    It 'Refreshes without a key exactly as before' {
+        InModuleScope SendGridTools -Parameters @{ Old = $script:OldCred } {
+            $Existing = New-SgtTestSession -Credential $Old -AgeHours 0.5
+            $script:Session = $Existing
+            $Streams = Connect-SendGrid 4>&1
+            $Messages = @($Streams | Where-Object { $_ -is [System.Management.Automation.VerboseRecord] } | ForEach-Object { $_.Message })
+            [object]::ReferenceEquals($script:Session, $Existing) | Should -BeTrue
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Calls[0].Headers.Authorization | Should -Be 'Bearer test-key-old-not-real'
+            $Messages | Should -Contain 'Existing connection to SendGrid refreshed.'
+            $Messages | Should -Not -Contain 'Existing connection to SendGrid refreshed with the given API key.'
+        }
+        Should -Invoke -ModuleName SendGridTools Get-Credential -Times 0 -Exactly
+        InModuleScope SendGridTools -Parameters @{ Old = $script:OldCred } {
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ scopes = @('scopes.read') })
+            $script:Session = New-SgtTestSession -Credential $Old -AgeHours 2
+            { Connect-SendGrid } | Should -Throw '*The SendGrid session has expired*'
+            (Get-SgtNetworkCall).Count | Should -Be 0
+            $script:Session | Should -BeNullOrEmpty
+        }
+    }
+
+    It 'Removes the session when the given key fails verification' {
+        InModuleScope SendGridTools -Parameters @{ Old = $script:OldCred; New = $script:NewCred } {
+            $script:Session = New-SgtTestSession -Credential $Old -AgeHours 0.5
+            Set-SgtNetworkStub -Throw 'sgt-test-unauthorized'
+            { Connect-SendGrid -Credential $New } | Should -Throw 'Unable to connect to SendGrid. Error detail: Unable to connect to SendGrid. sgt-test-unauthorized*'
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Calls[0].Headers.Authorization | Should -Be 'Bearer test-key-new-not-real'
+            $script:Session | Should -BeNullOrEmpty
+        }
+    }
+
+    It 'Uses the given key on an expired session on the same host' {
+        InModuleScope SendGridTools -Parameters @{ Old = $script:OldCred; New = $script:NewCred } {
+            $script:Session = New-SgtTestSession -Credential $Old -AgeHours 2
+            Connect-SendGrid -Credential $New
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Calls[0].Headers.Authorization | Should -Be 'Bearer test-key-new-not-real'
+            $script:Session._CreateDateTime | Should -BeGreaterThan (Get-Date).AddMinutes(-1)
+            $script:Session._Connected | Should -BeTrue
+        }
+    }
+
+    It 'Keeps the new key out of verbose, debug and error output' {
+        InModuleScope SendGridTools -Parameters @{ Old = $script:OldCred; New = $script:NewCred } {
+            $script:Session = New-SgtTestSession -Credential $Old -AgeHours 0.5
+            $Result = Get-SgtLeakText -Action { Connect-SendGrid -Credential $New -Verbose -Debug }
+            $Result.Text | Should -Not -BeLike '*test-key-new-not-real*'
+            $Result.Text | Should -Not -BeLike '*test-key-old-not-real*'
+        }
+    }
+}
+
 Describe 'Network tripwire' {
     It 'Made no unmocked network call' {
         Assert-SgtNetworkTripwireActive
