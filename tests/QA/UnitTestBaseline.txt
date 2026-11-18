@@ -8,8 +8,6 @@ Disconnect-SendGrid
 Enable-SGSubuser
 Get-SGAddressWhitelistSetting
 Get-SGAlert
-Get-SGApiKey
-Get-SGAuthenticatedDomain
 Get-SGBlock
 Get-SGBounce
 Get-SGBounceByClassification

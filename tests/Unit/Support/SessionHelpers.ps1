@@ -35,8 +35,81 @@ function Install-SgtSessionHelper {
                 $global:SgtNetworkStub = { $global:SgtStubValue }
             }
         }
+        function Script:Set-SgtPagedNetworkStub {
+            # Makes the tripwire answer list calls page by page from -Items, reading limit and offset from the last logged Uri.
+            # -Shape List returns the slice as an array, -Shape Result wraps it as { result = [...] }.
+            # -IgnoreOffset always returns the first page. A single-item Uri (not ending in domains or api_keys) returns that item.
+            param([object[]]$Items, [ValidateSet('List', 'Result')][string]$Shape, [switch]$IgnoreOffset)
+            $global:SgtNetworkCall.Clear()
+            $global:SgtPagedItems = @($Items)
+            $global:SgtPagedShape = $Shape
+            $global:SgtPagedIgnoreOffset = [bool]$IgnoreOffset
+            $global:SgtNetworkStub = {
+                # The call is logged before the stub runs, so the log count is the number of calls since the stub was set.
+                if ($global:SgtNetworkCall.Count -gt 20) { throw 'Paged stub call cap reached: 20 calls' }
+                $Uri = "$($global:SgtNetworkCall[-1].Uri)"
+                $All = @($global:SgtPagedItems)
+                $IdName = if ($global:SgtPagedShape -eq 'List') { 'id' } else { 'api_key_id' }
+                $Path = ($Uri -split '\?')[0]
+                $Last = ($Path -split '/')[-1]
+                if ($Uri -match '[?&]limit=(\d+)') {
+                    $Limit = [int]$Matches[1]
+                    $Offset = 0
+                    if (-not $global:SgtPagedIgnoreOffset -and $Uri -match '[?&]offset=(\d+)') {
+                        $Offset = [int]$Matches[1]
+                    }
+                    $Slice = @($All | Select-Object -Skip $Offset -First $Limit)
+                }
+                elseif ($Last -in 'domains', 'api_keys') {
+                    $Slice = $All
+                }
+                else {
+                    $Slice = @($All | Where-Object { "$($_.$IdName)" -eq $Last })
+                    $Slice[0]
+                    return
+                }
+                if ($global:SgtPagedShape -eq 'List') {
+                    # Invoke-RestMethod unrolls a JSON array into the pipeline.
+                    $Slice
+                }
+                else {
+                    [pscustomobject]@{ result = @($Slice) }
+                }
+            }
+        }
+        function Script:New-SgtFixtureItem {
+            # Clones the one element in a fixture file -Count times; domains get id and domain, keys get api_key_id and name.
+            param([ValidateSet('Domain', 'Key')][string]$Kind, [int]$Count, [string]$Path)
+            $Base = Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json
+            $Element = if ($Kind -eq 'Domain') { @($Base)[0] } else { @($Base.result)[0] }
+            $Json = $Element | ConvertTo-Json -Depth 6
+            for ($n = 1; $n -le $Count; $n++) {
+                $Item = $Json | ConvertFrom-Json
+                if ($Kind -eq 'Domain') {
+                    $Item.id = 1000 + $n
+                    $Item.domain = "domain-$n.example.com"
+                }
+                else {
+                    $Item.api_key_id = "key-id-$n"
+                    $Item.name = "sgt-test-key-$n"
+                }
+                $Item
+            }
+        }
+        function Script:Get-SgtListCall {
+            # The logged calls that carry a limit query parameter, one object per call (wrap in @() at the call site).
+            $global:SgtNetworkCall | Where-Object { "$($_.Uri)" -match '[?&]limit=' }
+        }
+        function Script:Get-SgtExpectedOffset {
+            # The offsets a full read of -Count items asks for with a page size of 50: one call per full page plus one that ends the list.
+            param([int]$Count, [int]$Limit = 50)
+            for ($Page = 0; $Page -le [math]::Floor($Count / $Limit); $Page++) { $Page * $Limit }
+        }
         function Script:Reset-SgtNetworkStub {
             $global:SgtNetworkStub = $null
+            $global:SgtPagedItems = $null
+            $global:SgtPagedShape = $null
+            $global:SgtPagedIgnoreOffset = $null
             $global:SgtStubValue = $null
             $global:SgtNetworkCall.Clear()
         }
@@ -115,6 +188,7 @@ function Install-SgtSessionHelper {
 
 function Uninstall-SgtSessionHelper {
     InModuleScope SendGridTools {
-        Remove-Item -Path 'Function:\New-SgtTestSession', 'Function:\New-SgtErrorRecord', 'Function:\Invoke-SgtOverload', 'Function:\Get-SgtLeakText', 'Function:\Invoke-SgtTarget', 'Function:\Set-SgtNetworkStub', 'Function:\Reset-SgtNetworkStub', 'Function:\Get-SgtNetworkCall' -ErrorAction SilentlyContinue
+        Remove-Item -Path 'Function:\New-SgtTestSession', 'Function:\New-SgtErrorRecord', 'Function:\Invoke-SgtOverload', 'Function:\Get-SgtLeakText', 'Function:\Invoke-SgtTarget', 'Function:\Set-SgtNetworkStub', 'Function:\Set-SgtPagedNetworkStub', 'Function:\New-SgtFixtureItem', 'Function:\Get-SgtExpectedOffset', 'Function:\Get-SgtListCall', 'Function:\Reset-SgtNetworkStub', 'Function:\Get-SgtNetworkCall' -ErrorAction SilentlyContinue
+        Remove-Variable -Name SgtPagedItems, SgtPagedShape, SgtPagedIgnoreOffset -Scope Global -ErrorAction SilentlyContinue
     }
 }

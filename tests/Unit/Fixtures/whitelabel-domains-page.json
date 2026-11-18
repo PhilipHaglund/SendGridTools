@@ -1,0 +1,36 @@
+[
+  {
+    "id": 1001,
+    "user_id": 2001,
+    "subdomain": "em0001",
+    "domain": "domain-1.example.com",
+    "username": "user-placeholder",
+    "ips": [],
+    "custom_spf": false,
+    "default": false,
+    "legacy": false,
+    "automatic_security": true,
+    "valid": true,
+    "dns": {
+      "mail_cname": {
+        "valid": true,
+        "type": "cname",
+        "host": "em0001.domain-1.example.com",
+        "data": "u2001.wl001.example.net"
+      },
+      "dkim1": {
+        "valid": true,
+        "type": "cname",
+        "host": "s1._domainkey.domain-1.example.com",
+        "data": "s1.domainkey.u2001.wl001.example.net"
+      },
+      "dkim2": {
+        "valid": true,
+        "type": "cname",
+        "host": "s2._domainkey.domain-1.example.com",
+        "data": "s2.domainkey.u2001.wl001.example.net"
+      }
+    },
+    "last_validation_attempt_at": 1700000000
+  }
+]
