@@ -5,7 +5,8 @@
 
     .DESCRIPTION
         Connect-SendGrid, or its alias Connect-SG, initiates a connection with a SendGrid instance using an API key as the credential.
-        If a connection already exists, it ensures that the connection is active, on that session's own host. If not, it creates a new connection,
+        If a connection already exists, it ensures that the connection is active, on that session's own host. When Credential or ApiKey is given,
+        that key replaces the session's key and is verified first; without them the stored key is used. If not, it creates a new connection,
         on the global host unless Region or BaseUri says otherwise. Region or BaseUri naming another host than the current session starts a new
         session and asks for the key when Credential and ApiKey are not given; if that connection fails, no session is left. In a host that cannot
         prompt (a console host started with -NonInteractive, not user interactive, or without a user interface), a new session without
@@ -16,11 +17,13 @@
 
     .PARAMETER Credential
         Specifies the API key to use when connecting to the SendGrid instance. The 'Username' field of the PSCredential object does not matter,
-        and can be set to any string. The 'Password' field of the PSCredential object should be set to the SendGrid API key.
+        and can be set to any string. The 'Password' field of the PSCredential object should be set to the SendGrid API key. On a refresh of an
+        existing session on the same host, the key replaces the session's key and is verified against SendGrid; the host and region are kept.
+        If the verification fails, no session is left.
 
     .PARAMETER ApiKey
         Specifies the API key as a secure string, for a host that cannot prompt. It becomes a credential with the user name 'apikey'. It cannot be
-        combined with Credential. On a refresh of an existing session on the same host it is ignored, as Credential is.
+        combined with Credential. On a refresh of an existing session on the same host it replaces the session's key, as Credential does.
 
     .PARAMETER Force
         Indicates that this cmdlet forces a new connection, even if a connection already exists.
@@ -168,6 +171,11 @@
                         $script:Session.Connect((Get-Credential -Message 'Enter your ApiKey' -UserName 'apikey')) # Removed -Title 'Connect-SendGrid' to make it PowerShell 5.1 compatible
                     }
                     Write-Verbose -Message 'Connection to SendGrid established.' -Verbose
+                }
+                elseif ($Credential) {
+                    # A key given on a refresh replaces the stored key, is verified against scopes and restarts the lifetime (D9).
+                    $script:Session.Connect($Credential)
+                    Write-Verbose -Message 'Existing connection to SendGrid refreshed with the given API key.' -Verbose
                 }
                 else {
                     $script:Session.Connect()
