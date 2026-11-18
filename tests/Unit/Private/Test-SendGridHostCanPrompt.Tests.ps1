@@ -27,6 +27,9 @@ Describe 'Test-SendGridHostCanPrompt' {
         @{ Label = 'a remote session that is not user interactive'; Arguments = @('wsmprovhost.exe', '-Embedding'); HostName = 'ServerRemoteHost'; Interactive = $false }
         @{ Label = 'a remote session on a host started with -NonInteractive'; Arguments = @('pwsh', '-NonInteractive'); HostName = 'ServerRemoteHost'; Interactive = $true }
         @{ Label = 'the Visual Studio Code host'; Arguments = @('pwsh'); HostName = 'Visual Studio Code Host'; Interactive = $true }
+        # PowerShell Editor Services starts with -NonInteractive, but its integrated console has its own user interface and prompts.
+        @{ Label = 'the Visual Studio Code host started with -NonInteractive'; Arguments = @('pwsh', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', 'Start-EditorServices'); HostName = 'Visual Studio Code Host'; Interactive = $true }
+        @{ Label = 'an unknown host started with -NonInteractive'; Arguments = @('pwsh', '-NoProfile', '-NonInteractive'); HostName = 'Some Other Host'; Interactive = $true }
     ) {
         InModuleScope SendGridTools -Parameters @{ Arguments = $Arguments; HostName = $HostName; Interactive = $Interactive } {
             Test-SendGridHostCanPrompt -CommandLineArgs $Arguments -UserInteractive $Interactive -HostName $HostName | Should -BeTrue
@@ -47,6 +50,9 @@ Describe 'Test-SendGridHostCanPrompt' {
         @{ Label = '-NonInteractive after -InputFormat and -OutputFormat'; Arguments = @('powershell.exe', '-InputFormat', 'Text', '-OutputFormat', 'Text', '-NonInteractive'); HostName = 'ConsoleHost'; Interactive = $true }
         @{ Label = 'a process that is not user interactive'; Arguments = @('pwsh'); HostName = 'ConsoleHost'; Interactive = $false }
         @{ Label = 'the Default Host'; Arguments = @('pwsh'); HostName = 'Default Host'; Interactive = $true }
+        @{ Label = 'the console host started with -NonInteractive like the editor services'; Arguments = @('pwsh', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', 'Start-EditorServices'); HostName = 'ConsoleHost'; Interactive = $true }
+        @{ Label = 'the Visual Studio Code host in a process that is not user interactive'; Arguments = @('pwsh'); HostName = 'Visual Studio Code Host'; Interactive = $false }
+        @{ Label = 'the Default Host started with -NonInteractive'; Arguments = @('pwsh', '-NonInteractive'); HostName = 'Default Host'; Interactive = $true }
     ) {
         InModuleScope SendGridTools -Parameters @{ Arguments = $Arguments; HostName = $HostName; Interactive = $Interactive } {
             Test-SendGridHostCanPrompt -CommandLineArgs $Arguments -UserInteractive $Interactive -HostName $HostName | Should -BeFalse
