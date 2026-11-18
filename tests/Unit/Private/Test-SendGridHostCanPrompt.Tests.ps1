@@ -22,6 +22,8 @@ Describe 'Test-SendGridHostCanPrompt' {
         @{ Label = '-NonInteractive after -File'; Arguments = @('pwsh', '-NoProfile', '-File', 'x.ps1', '-NonInteractive'); HostName = 'ConsoleHost'; Interactive = $true }
         @{ Label = '-noni after -c'; Arguments = @('pwsh', '-c', 'Get-Date', '-noni'); HostName = 'ConsoleHost'; Interactive = $true }
         @{ Label = 'powershell.exe -NoLogo'; Arguments = @('powershell.exe', '-NoLogo'); HostName = 'ConsoleHost'; Interactive = $true }
+        @{ Label = '-NonInteractive after -File with -ExecutionPolicy'; Arguments = @('powershell.exe', '-ExecutionPolicy', 'Bypass', '-File', 'x.ps1', '-NonInteractive'); HostName = 'ConsoleHost'; Interactive = $true }
+        @{ Label = '-Interactive and -NoProfile'; Arguments = @('pwsh', '-Interactive', '-NoProfile'); HostName = 'ConsoleHost'; Interactive = $true }
         @{ Label = 'the Visual Studio Code host'; Arguments = @('pwsh'); HostName = 'Visual Studio Code Host'; Interactive = $true }
     ) {
         InModuleScope SendGridTools -Parameters @{ Arguments = $Arguments; HostName = $HostName; Interactive = $Interactive } {
@@ -36,6 +38,11 @@ Describe 'Test-SendGridHostCanPrompt' {
         @{ Label = '--noninteractive'; Arguments = @('pwsh', '--noninteractive'); HostName = 'ConsoleHost'; Interactive = $true }
         @{ Label = '/NonInteractive'; Arguments = @('powershell.exe', '/NonInteractive'); HostName = 'ConsoleHost'; Interactive = $true }
         @{ Label = '-NonInteractive before -File'; Arguments = @('pwsh', '-NoProfile', '-NonInteractive', '-File', 'x.ps1'); HostName = 'ConsoleHost'; Interactive = $true }
+        @{ Label = '-NonInteractive after -ExecutionPolicy Bypass'; Arguments = @('powershell.exe', '-ExecutionPolicy', 'Bypass', '-NonInteractive', '-File', 'x.ps1'); HostName = 'ConsoleHost'; Interactive = $true }
+        @{ Label = '-noni after -ep Bypass'; Arguments = @('pwsh', '-ep', 'Bypass', '-noni', '-File', 'x.ps1'); HostName = 'ConsoleHost'; Interactive = $true }
+        @{ Label = '-NonInteractive after -WindowStyle Hidden'; Arguments = @('powershell.exe', '-WindowStyle', 'Hidden', '-NonInteractive', '-Command', 'Get-Date'); HostName = 'ConsoleHost'; Interactive = $true }
+        @{ Label = '-NonInteractive after -wd'; Arguments = @('pwsh', '-wd', 'C:\work', '-NonInteractive'); HostName = 'ConsoleHost'; Interactive = $true }
+        @{ Label = '-NonInteractive after -InputFormat and -OutputFormat'; Arguments = @('powershell.exe', '-InputFormat', 'Text', '-OutputFormat', 'Text', '-NonInteractive'); HostName = 'ConsoleHost'; Interactive = $true }
         @{ Label = 'a process that is not user interactive'; Arguments = @('pwsh'); HostName = 'ConsoleHost'; Interactive = $false }
         @{ Label = 'the Default Host'; Arguments = @('pwsh'); HostName = 'Default Host'; Interactive = $true }
     ) {
