@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-18
+
 ### Added
 
 - `Connect-SendGrid -Region Global|EU` connects to SendGrid's EU host `api.eu.sendgrid.com` (issue #3), and `-BaseUri` to a given https base URI with `/v3` added when missing; a new session without them uses the global host, as before, and an existing session is refreshed on its own host. `-Region` or `-BaseUri` naming another host than the current session starts a new session (it asks for the key when `-Credential` is not given); if that connection fails, no session is left.
@@ -122,7 +124,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - First release: connect to SendGrid, manage API keys, authenticated domains and branded links, and send mail with `Send-SGMailMessage`.
 
-[Unreleased]: https://github.com/PhilipHaglund/SendGridTools/compare/v0.4.8...HEAD
+[Unreleased]: https://github.com/PhilipHaglund/SendGridTools/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/PhilipHaglund/SendGridTools/compare/v0.4.8...v0.5.0
 [0.4.8]: https://github.com/PhilipHaglund/SendGridTools/compare/33c9a1ff5221e3612aa8357f7ecedfccfd5cc59f...v0.4.8
 [0.4.7]: https://github.com/PhilipHaglund/SendGridTools/commit/33c9a1ff5221e3612aa8357f7ecedfccfd5cc59f
 [0.4.6]: https://github.com/PhilipHaglund/SendGridTools/compare/0.4.5...0.4.6
