@@ -1,6 +1,6 @@
 # SendGridTools: notes for coding agents
 
-PowerShell module wrapping the SendGrid v3 Web API. Sessions start with `Connect-SendGrid`. The module has 61 exported functions in `source/Public`, helpers in `source/Private` and classes in `source/Classes`. Sampler and ModuleBuilder build it into `output/SendGridTools/<version>`.
+PowerShell module wrapping the SendGrid v3 Web API. Sessions start with `Connect-SendGrid`. The module has 63 exported functions in `source/Public`, helpers in `source/Private` and classes in `source/Classes`. Sampler and ModuleBuilder build it into `output/SendGridTools/<version>`.
 
 ## Build and test
 
