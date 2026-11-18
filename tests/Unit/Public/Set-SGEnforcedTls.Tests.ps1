@@ -155,6 +155,28 @@ Describe 'Set-SGEnforcedTls request' {
         }
     }
 
+    It 'Names the subuser in the -WhatIf message and makes no call' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{})
+
+            # The what-if text goes to the host, not to a stream, so a transcript is what captures it.
+            $Path = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath ('sgt-whatif-{0}.txt' -f [guid]::NewGuid())
+            $null = Start-Transcript -Path $Path
+            try {
+                $null = Set-SGEnforcedTls -RequireTls -OnBehalfOf 'subuser-placeholder' -WhatIf
+            }
+            finally {
+                $null = Stop-Transcript
+            }
+            $Text = Get-Content -Path $Path -Raw
+            Remove-Item -Path $Path -Force -ErrorAction SilentlyContinue
+
+            $Text | Should -BeLike '*subuser subuser-placeholder*'
+            (Get-SgtNetworkCall).Count | Should -Be 0
+        }
+    }
+
     It 'Has ConfirmImpact High' {
         $Attribute = (Get-Command -Name Set-SGEnforcedTls).ScriptBlock.Attributes | Where-Object { $_ -is [System.Management.Automation.CmdletBindingAttribute] }
         $Attribute.ConfirmImpact | Should -Be 'High'

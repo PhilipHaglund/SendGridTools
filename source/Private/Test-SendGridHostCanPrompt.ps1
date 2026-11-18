@@ -3,7 +3,8 @@
 Tells whether the PowerShell host can ask the user a question.
 
 .DESCRIPTION
-Test-SendGridHostCanPrompt returns $false when the host cannot prompt: the process is not user interactive (a Windows service or a
+Test-SendGridHostCanPrompt returns $true in a remote session (the host is 'ServerRemoteHost', for example Enter-PSSession), whatever the process
+looks like, because a remote session leaves the prompt to the client. Otherwise it returns $false when the host cannot prompt: the process is not user interactive (a Windows service or a
 scheduled task that runs whether or not the user is signed in), the host is the 'Default Host' (a runspace without a user interface, for
 example a hosted automation runbook), or the host was started with -NonInteractive or a prefix of it with at least four letters. Only
 the host's own switches are read, up to the first argument that is not a switch or that starts the command, so a -NonInteractive that
@@ -35,6 +36,11 @@ function Test-SendGridHostCanPrompt {
 
         [string]$HostName = $Host.Name
     )
+
+    # A remote session (Enter-PSSession): Get-Credential is relayed to the client's host, so the client decides.
+    if ($HostName -eq 'ServerRemoteHost') {
+        return $true
+    }
 
     if (-not $UserInteractive -or $HostName -eq 'Default Host') {
         return $false

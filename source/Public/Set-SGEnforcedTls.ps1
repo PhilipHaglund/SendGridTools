@@ -80,7 +80,12 @@ function Set-SGEnforcedTls {
 
         $InvokeSplat.Add('ContentBody', $ContentBody)
 
-        if ($PSCmdlet.ShouldProcess('Enforced TLS settings of the SendGrid account', 'Update')) {
+        $Target = 'Enforced TLS settings of the SendGrid account'
+        if ($PSBoundParameters.OnBehalfOf) {
+            $Target = 'Enforced TLS settings of subuser {0}' -f $OnBehalfOf
+        }
+
+        if ($PSCmdlet.ShouldProcess($Target, 'Update')) {
             try {
                 Invoke-SendGrid @InvokeSplat
             }

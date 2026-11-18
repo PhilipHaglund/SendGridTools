@@ -24,6 +24,8 @@ Describe 'Test-SendGridHostCanPrompt' {
         @{ Label = 'powershell.exe -NoLogo'; Arguments = @('powershell.exe', '-NoLogo'); HostName = 'ConsoleHost'; Interactive = $true }
         @{ Label = '-NonInteractive after -File with -ExecutionPolicy'; Arguments = @('powershell.exe', '-ExecutionPolicy', 'Bypass', '-File', 'x.ps1', '-NonInteractive'); HostName = 'ConsoleHost'; Interactive = $true }
         @{ Label = '-Interactive and -NoProfile'; Arguments = @('pwsh', '-Interactive', '-NoProfile'); HostName = 'ConsoleHost'; Interactive = $true }
+        @{ Label = 'a remote session that is not user interactive'; Arguments = @('wsmprovhost.exe', '-Embedding'); HostName = 'ServerRemoteHost'; Interactive = $false }
+        @{ Label = 'a remote session on a host started with -NonInteractive'; Arguments = @('pwsh', '-NonInteractive'); HostName = 'ServerRemoteHost'; Interactive = $true }
         @{ Label = 'the Visual Studio Code host'; Arguments = @('pwsh'); HostName = 'Visual Studio Code Host'; Interactive = $true }
     ) {
         InModuleScope SendGridTools -Parameters @{ Arguments = $Arguments; HostName = $HostName; Interactive = $Interactive } {
