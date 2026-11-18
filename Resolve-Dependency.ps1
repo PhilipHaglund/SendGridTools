@@ -525,6 +525,43 @@ if (-not ($UseModuleFast -or $UsePSResourceGet))
     }
 }
 
+# SGT-57: PSResourceGet 1.0.1 sporadically fails a save with a NullReferenceException and a second try passes.
+# Try a failed save up to three times, five seconds apart, then rethrow the last error unchanged. A non-terminating
+# error is not caught (as before) and is returned to the caller from the attempt's -ErrorVariable.
+function Save-PSResourceWithRetry
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [System.Collections.Hashtable]
+        $Parameter
+    )
+
+    for ($attempt = 1; $attempt -le 3; $attempt++)
+    {
+        try
+        {
+            Save-PSResource @Parameter -ErrorVariable 'saveError'
+
+            $saveError
+
+            return
+        }
+        catch
+        {
+            if ($attempt -ge 3)
+            {
+                throw
+            }
+
+            Write-Warning -Message ('Save-PSResource failed to save the module {0} on attempt {1} of {2} ({3}). Trying again in {4} seconds.' -f $Parameter.Name, $attempt, 3, $_.Exception.GetType().FullName, 5)
+
+            Start-Sleep -Seconds 5
+        }
+    }
+}
+
 try
 {
     # Check if legacy PowerShellGet and PSDepend must be used.
@@ -983,7 +1020,7 @@ try
                         # Clear all module from the current session so any new version fetched will be re-imported.
                         Get-Module -Name $savePSResourceParameters.Name | Remove-Module -Force
 
-                        Save-PSResource @savePSResourceParameters -ErrorVariable 'savePSResourceError'
+                        $savePSResourceError = Save-PSResourceWithRetry -Parameter $savePSResourceParameters
 
                         if ($savePSResourceError)
                         {
