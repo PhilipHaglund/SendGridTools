@@ -45,6 +45,8 @@ function Install-SgtSessionHelper {
             $global:SgtPagedShape = $Shape
             $global:SgtPagedIgnoreOffset = [bool]$IgnoreOffset
             $global:SgtNetworkStub = {
+                # The call is logged before the stub runs, so the log count is the number of calls since the stub was set.
+                if ($global:SgtNetworkCall.Count -gt 20) { throw 'Paged stub call cap reached: 20 calls' }
                 $Uri = "$($global:SgtNetworkCall[-1].Uri)"
                 $All = @($global:SgtPagedItems)
                 $IdName = if ($global:SgtPagedShape -eq 'List') { 'id' } else { 'api_key_id' }

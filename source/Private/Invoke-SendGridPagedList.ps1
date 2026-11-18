@@ -6,7 +6,8 @@ function Invoke-SendGridPagedList {
     .DESCRIPTION
         Invoke-SendGridPagedList calls Invoke-SendGrid with limit and offset query parameters, one page at a time,
         and streams the objects of every page. It stops after a page with fewer objects than the page size, and also
-        when a page holds no object it has not already returned, which is what a server that ignores offset sends.
+        after any page that holds no object it has not already returned, an empty page included. A server that
+        ignores offset sends the first page again, which is such a page.
 
     .PARAMETER InvokeSplat
         The parameters Invoke-SendGrid is called with (Method, Namespace without a query string, ErrorAction,
@@ -52,7 +53,7 @@ function Invoke-SendGridPagedList {
                 $New.Add($Object)
             }
         }
-        if ($Page.Count -gt 0 -and $New.Count -eq 0) {
+        if ($New.Count -eq 0) {
             break
         }
         foreach ($Object in $New) {
