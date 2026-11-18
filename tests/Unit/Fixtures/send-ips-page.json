@@ -1,0 +1,33 @@
+{
+  "result": [
+    {
+      "ip": "192.0.2.1",
+      "pools": [],
+      "added_at": 0,
+      "updated_at": null,
+      "is_enabled": null,
+      "is_leased": false,
+      "is_parent_assigned": false,
+      "region": "us",
+      "is_auto_warmup": false
+    },
+    {
+      "ip": "192.0.2.2",
+      "pools": [],
+      "added_at": 0,
+      "updated_at": null,
+      "is_enabled": null,
+      "is_leased": false,
+      "is_parent_assigned": false,
+      "region": "us",
+      "is_auto_warmup": false
+    }
+  ],
+  "_metadata": {
+    "next_params": {
+      "after_key": null,
+      "before_key": null,
+      "include_region": "true"
+    }
+  }
+}

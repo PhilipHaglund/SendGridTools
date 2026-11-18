@@ -1,0 +1,12 @@
+[
+  {
+    "ip": "192.0.2.10",
+    "subusers": ["sgt-test-subuser-1"],
+    "rdns": "o1.example.com",
+    "pools": [],
+    "warmup": false,
+    "start_date": null,
+    "whitelabeled": false,
+    "assigned_at": 0
+  }
+]
