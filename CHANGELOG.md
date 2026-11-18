@@ -5,9 +5,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `Connect-SendGrid -Region Global|EU` connects to SendGrid's EU host `api.eu.sendgrid.com` (issue #3), and `-BaseUri` to a given https base URI with `/v3` added when missing; without them `Connect-SendGrid` connects to the global host as before.
+
 ### Fixed
 
 - `Get-SGAuthenticatedDomain` and `Get-SGApiKey` return every authenticated domain and API key: they read the list page by page instead of taking only what one request returned, and `-DomainName` offers every domain. With no authenticated domains, `Get-SGAuthenticatedDomain` returns nothing instead of failing. The API key choices in `Get-SGEmailActivity` now include every key too.
+- `Invoke-SGCommand` accepts a full URL on the session's host, global or EU, and refuses a URL to another host so the API key is never sent there; before, it recognised only the global host and removed `/v3/` anywhere in the path.
 
 ## [0.4.8] - 2026-11-18
 
