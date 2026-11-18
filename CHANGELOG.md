@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-- Every request to SendGrid refuses an HTTP redirect, so the API key is never sent to the host a redirect points at. A redirect raises an error that names only that host (`SendGrid answered with a redirect to <host>; the request was refused so that the API key is not sent there.`). Without a redirect, requests, responses and error messages are as before.
+- Every request to SendGrid no longer follows an HTTP redirect, so the API key is never sent to the host a redirect points at. In PowerShell 7 every 3xx answer, and in Windows PowerShell 5.1 a 301 or 302 answer, raises an error that names only that host (`SendGrid answered with a redirect to <host>; the request was refused so that the API key is not sent there.`). In Windows PowerShell 5.1 another 3xx answer (300, 303, 304, 305, 307 or 308) is not followed either, but comes back as an empty answer instead of an error, because that version reports no status code. Without a redirect, requests, responses and error messages are as before.
 
 ## [0.5.0] - 2026-11-18
 
