@@ -204,9 +204,8 @@ Describe 'Invoke-SendGrid keeps empty lists (D8)' {
             Set-SgtNetworkStub -Response ('{"errors":[],"name":"sgt-test-ok"}' | ConvertFrom-Json)
             $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
 
-            $Result = $null
-            { $script:R = @(Invoke-SendGrid -Method Get -Namespace 'things') } | Should -Not -Throw
-            $Result = $script:R
+            { Invoke-SendGrid -Method Get -Namespace 'things' } | Should -Not -Throw
+            $Result = @(Invoke-SendGrid -Method Get -Namespace 'things')
 
             $Result.Count | Should -Be 1
             (@($Result[0].PSObject.Properties.Name | Sort-Object) -join ',') | Should -Be 'Errors,Name'
