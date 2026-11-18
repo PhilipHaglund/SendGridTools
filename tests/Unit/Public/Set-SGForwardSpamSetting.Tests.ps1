@@ -24,6 +24,44 @@ Describe 'Set-SGForwardSpamSetting request' {
         }
     }
 
+    It 'Supports ShouldProcess with the default Medium impact and exposes -WhatIf and -Confirm' {
+        $Command = Get-Command -Name Set-SGForwardSpamSetting
+        $Binding = $Command.ScriptBlock.Attributes | Where-Object { $_ -is [System.Management.Automation.CmdletBindingAttribute] }
+        $Binding.SupportsShouldProcess | Should -BeTrue
+        $Binding.ConfirmImpact | Should -Be 'Medium'
+        $Command.Parameters.ContainsKey('WhatIf') | Should -BeTrue
+        $Command.Parameters.ContainsKey('Confirm') | Should -BeTrue
+    }
+
+    It 'Makes no call with -WhatIf' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ enabled = $true })
+
+            # ShouldProcess in the command itself, not only the one in Invoke-SendGrid, must stop the call.
+            Mock Invoke-SendGrid { }
+
+            $null = Set-SGForwardSpamSetting -Email 'spam@example.com' -Enabled -WhatIf
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 0
+            Should -Invoke Invoke-SendGrid -Times 0 -Exactly
+        }
+    }
+
+    It 'Makes the call without a prompt when ConfirmPreference is High and no switch is given' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $ConfirmPreference = 'High'
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ enabled = $true })
+
+            $null = Set-SGForwardSpamSetting -Email 'spam@example.com' -Enabled
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+        }
+    }
+
     It 'Returns only the response and no dictionary' {
         InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
             $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
