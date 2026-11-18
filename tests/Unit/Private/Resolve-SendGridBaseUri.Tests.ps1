@@ -62,6 +62,18 @@ Describe 'Resolve-SendGridBaseUri' {
             { Resolve-SendGridBaseUri -BaseUri ([uri]::new($In, [UriKind]::RelativeOrAbsolute)) } | Should -Throw 'The base URI*'
         }
     }
+
+    It 'Does not echo user information in the error for <In>' -ForEach @(
+        @{ In = 'http://user:pass@example.com' }
+        @{ In = 'https://user:pass@example.com' }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ In = $In } {
+            $Message = $null
+            try { $null = Resolve-SendGridBaseUri -BaseUri ([uri]::new($In, [UriKind]::RelativeOrAbsolute)) } catch { $Message = $_.Exception.Message }
+            $Message | Should -BeLike 'The base URI*'
+            $Message | Should -Not -BeLike '*pass*'
+        }
+    }
 }
 
 Describe 'Network tripwire' {
