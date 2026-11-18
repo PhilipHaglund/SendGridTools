@@ -160,7 +160,7 @@ Describe 'Changelog Management' -Tag 'Changelog' {
             }
             elseif ($headIsOnMain -and -not $isTagRun)
             {
-                $skipReason = 'HEAD is already on origin/main (main or a detached HEAD), so this commit brings no change to compare'
+                $skipReason = 'HEAD is already on origin/main and this is not a version tag run, so this commit brings no change to compare'
             }
         }
 
