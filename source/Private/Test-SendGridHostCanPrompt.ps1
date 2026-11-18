@@ -8,11 +8,10 @@ looks like, because a remote session leaves the prompt to the client. Otherwise 
 scheduled task that runs whether or not the user is signed in), the host is the 'Default Host' (a runspace without a user interface, for
 example a hosted automation runbook), or the console host ('ConsoleHost') was started with -NonInteractive or a prefix of it with at
 least four letters. The command line is read only for the console host, because -NonInteractive turns off prompts only there: a host
-with its own user interface (for example the 'Visual Studio Code Host', whose process is started with -NonInteractive) prompts as
-before, and so returns $true. Only the host's own switches are read, up to the first argument that is not a switch or that starts the
-command, so a -NonInteractive that belongs to a script's arguments does not count. The value of a switch that takes one (for example
--ExecutionPolicy Bypass, -WindowStyle Hidden, -InputFormat Text or -WorkingDirectory) is skipped and does not end the scan. Otherwise it
-returns $true.
+with its own user interface (for example the 'Visual Studio Code Host') prompts, and so returns $true. Only the host's own switches are
+read, up to the first argument that is not a switch or that starts the command, so a -NonInteractive that belongs to a script's arguments
+does not count. The value of a switch that takes one (for example -ExecutionPolicy Bypass, -WindowStyle Hidden, -InputFormat Text or
+-WorkingDirectory) is skipped and does not end the scan. Otherwise it returns $true.
 
 .PARAMETER CommandLineArgs
 The command line of the process, the program name first. Defaults to the command line of the current process.
@@ -50,7 +49,7 @@ function Test-SendGridHostCanPrompt {
     }
 
     # -NonInteractive turns off prompts only in the console host. Another host (for example the Visual Studio Code Host of
-    # PowerShell Editor Services, which starts with -NonInteractive) has its own user interface and prompts.
+    # PowerShell Editor Services) has its own user interface and prompts.
     if ($HostName -ne 'ConsoleHost') {
         return $true
     }
