@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - A property whose value is an empty list is kept in the output, with the empty list as its value, instead of being dropped; for example `Get-SGIPAddress` now returns `Pools` for an IP address in no pool. A response whose only properties are empty lists now returns an object instead of the verbose line "Successfully invoked". An empty `errors` list still raises no error.
 - `Connect-SendGrid -Credential` or `-ApiKey` on an existing session on the same host now uses the given key: it replaces the session's key, is verified against SendGrid and starts the one-hour lifetime again, and the host and region are kept. Before, the given key was ignored and the old key was refreshed. If the new key fails, no session is left. Without a given key a refresh is as before.
+- `New-SGAuthenticatedDomain -DisableAutomaticSecurity:$false` and `-Default:$false` behave as if the switch were not given: SendGrid manages security and no default domain is asked for or set. Before, the switch counted when it was given at all, also with `$false`. With the switch set, or without it, the request is as before.
+- `New-SGCombinedDomain -CustomDkimSelector` accepts exactly three letters or digits, as `New-SGAuthenticatedDomain` does. A shorter selector fails before any request; before, the authenticated domain failed while the branded link was still created.
+- `Set-SGAddressWhitelistSetting`, `Set-SGBouncePurgeSetting`, `Set-SGForwardBounceSetting` and `Set-SGForwardSpamSetting` accept `-WhatIf` and `-Confirm`. They do not ask by default, and without the switches the request and output are as before.
+- `Set-SGApiKey -Scopes` accepts a scope again (it failed at binding in both PowerShell 7 and Windows PowerShell 5.1), and `Get-Command -Syntax Set-SGApiKey` no longer fails in PowerShell 7. The scope names complete with Tab, as in `New-SGApiKey`, and SendGrid decides whether a scope is valid.
 
 ### Security
 
