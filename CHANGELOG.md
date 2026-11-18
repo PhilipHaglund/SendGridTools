@@ -5,6 +5,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- A property whose value is an empty list is kept in the output, with the empty list as its value, instead of being dropped; for example `Get-SGIPAddress` now returns `Pools` for an IP address in no pool. A response whose only properties are empty lists now returns an object instead of the verbose line "Successfully invoked". An empty `errors` list still raises no error.
+- `Connect-SendGrid -Credential` or `-ApiKey` on an existing session on the same host now uses the given key: it replaces the session's key, is verified against SendGrid and starts the one-hour lifetime again, and the host and region are kept. Before, the given key was ignored and the old key was refreshed. If the new key fails, no session is left. Without a given key a refresh is as before.
+
 ### Security
 
 - Every request to SendGrid no longer follows an HTTP redirect, so the API key is never sent to the host a redirect points at. In PowerShell 7 every 3xx answer, and in Windows PowerShell 5.1 a 301 or 302 answer, raises an error that names only that host (`SendGrid answered with a redirect to <host>; the request was refused so that the API key is not sent there.`). In Windows PowerShell 5.1 another 3xx answer (300, 303, 304, 305, 307 or 308) is not followed either, but comes back as an empty answer instead of an error, because that version reports no status code. Without a redirect, requests, responses and error messages are as before.
