@@ -71,8 +71,8 @@ Describe 'Get-SGIPAddress' {
             $Calls[0].Method | Should -Be 'Get'
             "$($Calls[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/ips'
             $Out.Count | Should -Be 1
-            # Invoke-SendGrid writes nothing for an empty array, so Pools is absent; this is existing behaviour.
-            (@($Out[0].PSObject.Properties.Name | Sort-Object) -join ',') | Should -Be 'AssignedAt,Ip,Rdns,StartDate,Subusers,Warmup,Whitelabeled'
+            # Invoke-SendGrid keeps an empty array as a property with an empty value (D8).
+            (@($Out[0].PSObject.Properties.Name | Sort-Object) -join ',') | Should -Be 'AssignedAt,Ip,Pools,Rdns,StartDate,Subusers,Warmup,Whitelabeled'
             $Out[0].PSObject.Properties.Name | Should -Not -Contain 'Region'
         }
     }
@@ -115,8 +115,8 @@ Describe 'Get-SGIPAddress' {
                     $Out[$i].PSObject.Properties.Name | Should -Contain $Property.Name
                     "$($Out[$i].($Property.Name))" | Should -Be "$($Property.Value)"
                 }
-                # Invoke-SendGrid drops an empty array; the cursor reader keeps it.
-                $Reference[$i].PSObject.Properties.Name | Should -Not -Contain 'Pools'
+                # Both readers keep an empty array (D8).
+                $Reference[$i].PSObject.Properties.Name | Should -Contain 'Pools'
                 $Out[$i].PSObject.Properties.Name | Should -Contain 'Pools'
                 @($Out[$i].Pools).Count | Should -Be 0
             }
