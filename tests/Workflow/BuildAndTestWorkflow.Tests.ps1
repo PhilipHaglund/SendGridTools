@@ -252,10 +252,25 @@ Describe 'build-and-test.yml' -Skip:$script:OnDesktop {
 
         It 'lets a tag through when the build equals it and the commit is on main (<Status>)' -ForEach @(
             @{ Status = 'identical' }
-            @{ Status = 'behind' }
         ) {
             $Run = Invoke-RefusalStep -Environment @{ GITHUB_REF = 'refs/tags/v0.4.8'; GITHUB_REF_NAME = 'v0.4.8'; PublishVersion = '0.4.8'; PublishPrerelease = '' } -GhStatus $Status
             $Run.Thrown | Should -BeNullOrEmpty
+            @($Run.Calls).Count | Should -Be 1
+            $Run.Calls[0] | Should -BeLike "gh api repos/owner/repository/compare/main...$($script:Sha) --jq .status"
+        }
+
+        It 'refuses a tag on an older main commit, since main has moved on (<Status>)' -ForEach @(
+            @{ Status = 'behind' }
+            @{ Status = 'Behind' }
+        ) {
+            $Run = Invoke-RefusalStep -Environment @{ GITHUB_REF = 'refs/tags/v0.4.8'; GITHUB_REF_NAME = 'v0.4.8'; PublishVersion = '0.4.8'; PublishPrerelease = '' } -GhStatus $Status
+            $Run.Thrown | Should -BeLike 'REFUSING TO PUBLISH.*'
+            $Run.Thrown | Should -BeLike "*'$Status'*"
+            $Run.Thrown | Should -BeLike "*NOTHING has been published.*The tag v0.4.8 is still there.*"
+            if ($Status -ceq 'behind') {
+                $Run.Thrown | Should -BeLike "*main's tip*"
+                $Run.Thrown | Should -BeLike "*main has moved on*"
+            }
             @($Run.Calls).Count | Should -Be 1
             $Run.Calls[0] | Should -BeLike "gh api repos/owner/repository/compare/main...$($script:Sha) --jq .status"
         }
