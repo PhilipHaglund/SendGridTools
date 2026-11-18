@@ -75,7 +75,7 @@
         else {
             if ($PSCmdlet.ShouldProcess(('{0}' -f 'All API Keys'))) {
                 try {
-                    Invoke-SendGrid @InvokeSplat
+                    Invoke-SendGridPagedList -InvokeSplat $InvokeSplat -IdProperty 'ApiKeyId'
                 }
                 catch {
                     Write-Error ('Failed to retrieve SendGrid API Key. {0}' -f $_.Exception.Message) -ErrorAction Stop

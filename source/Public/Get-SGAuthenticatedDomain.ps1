@@ -168,7 +168,7 @@
         else {
             if ($PSCmdlet.ShouldProcess(('All Authenticated Domains'))) {
                 try {
-                    Invoke-SendGrid @InvokeSplat
+                    Invoke-SendGridPagedList -InvokeSplat $InvokeSplat -IdProperty 'Id'
                 }
                 catch {
                     Write-Error ('Failed to retrieve all SendGrid Authenticated Domain. {0}' -f $_.Exception.Message) -ErrorAction Stop
