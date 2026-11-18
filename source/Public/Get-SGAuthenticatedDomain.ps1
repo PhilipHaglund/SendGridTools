@@ -1,4 +1,4 @@
-﻿function Get-SGAuthenticatedDomain {
+function Get-SGAuthenticatedDomain {
     <#
     .SYNOPSIS
         Retrieves all or specific Authenticated Domains within the current SendGrid instance.
@@ -118,11 +118,26 @@
             $DomainNameAttributeCollection = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
             $DomainNameAttributeCollection.Add($DomainNameParamAttribute)
 
-            # Add ValidateSet to the parameter
-            $script:SGDomains = Invoke-SGCommand -Namespace 'whitelabel/domains' # Can't reference if self Get-SGAuthenticatedDomain for reasons unknown to me.
+            # Add ValidateSet to the parameter. The DynamicParam reads the same paged list as the list branch of the process block
+            # (a plain call therefore reads the list twice). Invoke-SGCommand is named as caller so the objects equal what it gave before.
+            $DynamicInvokeSplat = @{
+                Method        = 'Get'
+                Namespace     = 'whitelabel/domains'
+                ErrorAction   = 'Stop'
+                CallingCmdlet = 'Invoke-SGCommand'
+            }
+            try {
+                $script:SGDomains = @(Invoke-SendGridPagedList -InvokeSplat $DynamicInvokeSplat -IdProperty 'Id')
+            }
+            catch {
+                Write-Error ('Failed to make SendGrid API call. {0}' -f $_.Exception.Message) -ErrorAction Stop
+            }
+            # With no domains there is nothing to validate against, so DomainName is not offered (a ValidateSet cannot be empty).
+            if ($script:SGDomains.Count -eq 0) {
+                return $ParamDictionary
+            }
             $DomainNameValidateSet = [System.Management.Automation.ValidateSetAttribute]::new([string[]]$script:SGDomains.Domain)
             $DomainNameAttributeCollection.Add($DomainNameValidateSet)
-
             # Add Alias to the parameter
             $DomainNameAliasAttribute = [System.Management.Automation.AliasAttribute]::new('Domain')
             $DomainNameAttributeCollection.Add($DomainNameAliasAttribute)

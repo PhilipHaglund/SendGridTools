@@ -25,7 +25,7 @@ Describe 'Get-SGAuthenticatedDomain list paging' {
         }
     }
 
-    # The DynamicParam also lists the domains (one call without limit, before it pages too), so only calls that carry limit= are counted.
+    # The DynamicParam pages the same list before the process block does, so a plain call makes the page sequence twice. Only calls that carry limit= are counted.
 
     It 'Reads two pages and returns every domain' {
         InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Fixture = $script:Fixture } {
@@ -39,7 +39,7 @@ Describe 'Get-SGAuthenticatedDomain list paging' {
             @($Out.Id) | Should -Be @($Items.id | ForEach-Object { "$_" })
             @($Out.Id | Select-Object -Unique).Count | Should -Be 51
             $ListCalls = @(Get-SgtListCall)
-            @($ListCalls | ForEach-Object { [int][regex]::Match("$($_.Uri)", 'offset=(\d+)').Groups[1].Value }) | Should -Be @(Get-SgtExpectedOffset -Count 51)
+            @($ListCalls | ForEach-Object { [int][regex]::Match("$($_.Uri)", 'offset=(\d+)').Groups[1].Value }) | Should -Be @(Get-SgtExpectedOffset -Count 51; Get-SgtExpectedOffset -Count 51)
             foreach ($Call in $ListCalls) { "$($Call.Uri)" | Should -Match '[?&]limit=50(&|$)' }
         }
     }
@@ -51,7 +51,7 @@ Describe 'Get-SGAuthenticatedDomain list paging' {
 
             $null = Get-SGAuthenticatedDomain -Confirm:$false
 
-            @(Get-SgtListCall).Count | Should -Be 2
+            @(Get-SgtListCall).Count | Should -Be 4
         }
     }
 
@@ -64,7 +64,7 @@ Describe 'Get-SGAuthenticatedDomain list paging' {
 
             $Out.Count | Should -Be 120
             $ListCalls = @(Get-SgtListCall)
-            @($ListCalls | ForEach-Object { [int][regex]::Match("$($_.Uri)", 'offset=(\d+)').Groups[1].Value }) | Should -Be @(0, 50, 100)
+            @($ListCalls | ForEach-Object { [int][regex]::Match("$($_.Uri)", 'offset=(\d+)').Groups[1].Value }) | Should -Be @(0, 50, 100, 0, 50, 100)
         }
     }
 
@@ -77,14 +77,12 @@ Describe 'Get-SGAuthenticatedDomain list paging' {
 
             $Out.Count | Should -Be 7
             $ListCalls = @(Get-SgtListCall)
-            $ListCalls.Count | Should -Be 1
-            "$($ListCalls[0].Uri)" | Should -Match 'offset=0'
+            $ListCalls.Count | Should -Be 2
+            foreach ($Call in $ListCalls) { "$($Call.Uri)" | Should -Match 'offset=0' }
         }
     }
 
-    # Pre-existing and outside this task: with no domains at all the DynamicParam builds a ValidateSet from a null list and
-    # the call fails before the process block runs. The empty-list path of the paging itself is covered for API keys.
-    It 'Returns nothing for an empty list' -Skip:$true {
+    It 'Returns nothing for an empty list' {
         InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
             $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
             Set-SgtPagedNetworkStub -Items @() -Shape List
@@ -92,7 +90,18 @@ Describe 'Get-SGAuthenticatedDomain list paging' {
             $Out = @(Get-SGAuthenticatedDomain -Confirm:$false -ErrorAction Stop)
 
             $Out.Count | Should -Be 0
-            @(Get-SgtListCall).Count | Should -Be 1
+            @(Get-SgtListCall).Count | Should -Be 2
+        }
+    }
+
+    It 'Offers no DomainName when there are no domains' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtPagedNetworkStub -Items @() -Shape List
+
+            { Get-SGAuthenticatedDomain -DomainName 'x' -Confirm:$false } | Should -Throw
+            $Out = @(Get-SGAuthenticatedDomain -Confirm:$false -ErrorAction Stop)
+            $Out.Count | Should -Be 0
         }
     }
 
@@ -105,7 +114,7 @@ Describe 'Get-SGAuthenticatedDomain list paging' {
 
             $Out.Count | Should -Be 50
             $ListCalls = @(Get-SgtListCall)
-            @($ListCalls | ForEach-Object { [int][regex]::Match("$($_.Uri)", 'offset=(\d+)').Groups[1].Value }) | Should -Be @(0, 50)
+            @($ListCalls | ForEach-Object { [int][regex]::Match("$($_.Uri)", 'offset=(\d+)').Groups[1].Value }) | Should -Be @(0, 50, 0, 50)
         }
     }
 
@@ -119,7 +128,7 @@ Describe 'Get-SGAuthenticatedDomain list paging' {
             $Out.Count | Should -Be 50
             @($Out.Id | Select-Object -Unique).Count | Should -Be 50
             $ListCalls = @(Get-SgtListCall)
-            @($ListCalls | ForEach-Object { [int][regex]::Match("$($_.Uri)", 'offset=(\d+)').Groups[1].Value }) | Should -Be @(0, 50)
+            @($ListCalls | ForEach-Object { [int][regex]::Match("$($_.Uri)", 'offset=(\d+)').Groups[1].Value }) | Should -Be @(0, 50, 0, 50)
         }
     }
 
@@ -131,11 +140,37 @@ Describe 'Get-SGAuthenticatedDomain list paging' {
             $null = Get-SGAuthenticatedDomain -OnBehalfOf 'user-placeholder' -Confirm:$false
 
             $ListCalls = @(Get-SgtListCall)
-            $ListCalls.Count | Should -Be 2
-            foreach ($Call in $ListCalls) { $Call.Headers['on-behalf-of'] | Should -Be 'user-placeholder' }
+            $ListCalls.Count | Should -Be 4
+            # The first two calls are the DynamicParam's (it has never sent the header); the last two are the process block's pages.
+            foreach ($Call in $ListCalls[2..3]) { $Call.Headers['on-behalf-of'] | Should -Be 'user-placeholder' }
         }
     }
 
+    It 'Finds a domain on the second page by DomainName' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Fixture = $script:Fixture } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtPagedNetworkStub -Items @(New-SgtFixtureItem -Kind Domain -Count 51 -Path $Fixture) -Shape List
+
+            $Out = @(Get-SGAuthenticatedDomain -DomainName 'domain-51.example.com' -Confirm:$false)
+
+            $ListCalls = @(Get-SgtListCall)
+            @($ListCalls | ForEach-Object { [int][regex]::Match("$($_.Uri)", 'offset=(\d+)').Groups[1].Value }) | Should -Be @(0, 50)
+            $Last = @(Get-SgtNetworkCall)[0][-1]
+            "$($Last.Uri)" | Should -BeLike '*/whitelabel/domains/1051'
+            "$($Last.Uri)" | Should -Not -Match 'limit='
+            $Out.Count | Should -Be 1
+            $Out[0].Domain | Should -Be 'domain-51.example.com'
+        }
+    }
+
+    It 'Fails as before without a session' {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+            { Get-SGAuthenticatedDomain -DomainName 'x' -Confirm:$false } | Should -Throw -ExpectedMessage '*Connect-SendGrid*'
+            @(Get-SgtNetworkCall)[0].Count | Should -Be 0
+        }
+    }
     It 'Keeps the output shape' {
         InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Fixture = $script:Fixture } {
             $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
@@ -162,7 +197,7 @@ Describe 'Get-SGAuthenticatedDomain list paging' {
 
             $Out.Count | Should -Be 51
             foreach ($Object in $Out) { $Object.PSObject.TypeNames | Should -Not -Contain 'SendGridTools.Get.SGAuthenticatedDomain' }
-            @(Get-SgtListCall).Count | Should -Be 2
+            @(Get-SgtListCall).Count | Should -Be 4
         }
     }
 }
