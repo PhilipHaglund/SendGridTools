@@ -110,7 +110,7 @@ function Invoke-SendGrid {
                 }
             }
             catch {
-                throw $_.Exception.Message
+                throw $_
             }
 
             # Get unique properties.
@@ -229,7 +229,13 @@ function Invoke-SendGrid {
                 }
                 # An empty errors list is no error (D8); any other Errors value throws as before.
                 if (($PSObject | Get-Member -Name 'Errors' -MemberType 'NoteProperty') -and 0 -ne @($PSObject.Errors).Count) {
-                    throw $PSObject.Errors.Message
+                    # One message is thrown exactly as before; several are joined in order (D16).
+                    $ErrorText = $PSObject.Errors.Message
+                    $ErrorTexts = @($ErrorText | Where-Object { "$_" })
+                    if ($ErrorTexts.Count -gt 1) {
+                        $ErrorText = $ErrorTexts -join '; '
+                    }
+                    throw $ErrorText
                 }
                 else {
                     if (0 -eq @($PSObject.PSObject.Properties).Count) {

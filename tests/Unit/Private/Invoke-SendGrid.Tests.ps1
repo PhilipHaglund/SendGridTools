@@ -239,6 +239,130 @@ Describe 'Invoke-SendGrid keeps empty lists (D8)' {
     }
 }
 
+Describe 'Invoke-SendGrid keeps the error record (D15)' {
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Passes on the session''s error record when the transport throws' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Set-SgtNetworkStub -Throw ([System.InvalidOperationException]::new('sgt-test-transport-text', [System.TimeoutException]::new('sgt-test-inner-text')))
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            $Caught = $null
+            try { Invoke-SendGrid -Method Get -Namespace 'things' } catch { $Caught = $_ }
+
+            $Caught.Exception.Message | Should -BeExactly 'Unable to query SendGrid: sgt-test-transport-text'
+            $Caught.Exception | Should -BeOfType [System.Management.Automation.RuntimeException]
+            "$($Caught.ScriptStackTrace)" | Should -Match 'InvokeQuery'
+        }
+    }
+
+    It 'Keeps the text of a SendGrid error body' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Set-SgtNetworkStub -Throw (New-SgtErrorRecord -Message 'sgt-test-transport-text' -Details '{"errors":[{"field":null,"message":"sgt-test-api-text"}]}')
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            $Caught = $null
+            try { Invoke-SendGrid -Method Get -Namespace 'things' } catch { $Caught = $_ }
+
+            $Caught.Exception.Message | Should -BeExactly 'SendGrid Error: "sgt-test-api-text"'
+            "$($Caught.ScriptStackTrace)" | Should -Match 'InvokeQuery'
+        }
+    }
+
+    It 'Keeps the type and the inner exception of an exception from the session' {
+        InModuleScope SendGridTools {
+            $script:Session = & ([scriptblock]::Create('class SgtThrowingSession : SendGridSession { [PSCustomObject[]] InvokeQuery ([string]$WebRequestMethod, [string]$Endpoint) { throw [System.InvalidOperationException]::new(''sgt-test-session-text'', [System.TimeoutException]::new(''sgt-test-inner-text'')) } }; [SgtThrowingSession]::new()'))
+            $Caught = $null
+            try { Invoke-SendGrid -Method Get -Namespace 'things' } catch { $Caught = $_ }
+
+            $Caught.Exception | Should -BeOfType [System.InvalidOperationException]
+            $Caught.Exception.Message | Should -BeExactly 'sgt-test-session-text'
+            $Caught.Exception.InnerException | Should -BeOfType [System.TimeoutException]
+            $Caught.Exception.InnerException.Message | Should -BeExactly 'sgt-test-inner-text'
+            (Get-SgtNetworkCall).Count | Should -Be 0
+        }
+    }
+
+    It 'Gives a command the same message text as before' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Set-SgtNetworkStub -Throw ([System.InvalidOperationException]::new('sgt-test-transport-text', [System.TimeoutException]::new('sgt-test-inner-text')))
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            $Caught = $null
+            try { Remove-SGGlobalSuppression -EmailAddress 'one@example.com' -Confirm:$false } catch { $Caught = $_ }
+
+            $Caught.Exception.Message | Should -BeExactly 'Failed to remove email address "one@example.com" from global suppressions list. Unable to query SendGrid: sgt-test-transport-text'
+        }
+    }
+}
+
+Describe 'Invoke-SendGrid gives one text for errors (D16)' {
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Gives the text of one error as before' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Set-SgtNetworkStub -Response ('{"errors":[{"field":null,"message":"sgt-test-error-one"}]}' | ConvertFrom-Json)
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            $Caught = $null
+            try { Invoke-SendGrid -Method Get -Namespace 'things' } catch { $Caught = $_ }
+
+            $Caught.Exception.Message | Should -BeExactly 'sgt-test-error-one'
+        }
+    }
+
+    It 'Joins two errors in order with a semicolon and a space' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Set-SgtNetworkStub -Response ('{"errors":[{"field":null,"message":"sgt-test-error-one"},{"field":null,"message":"sgt-test-error-two"}]}' | ConvertFrom-Json)
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            $Caught = $null
+            try { Invoke-SendGrid -Method Get -Namespace 'things' } catch { $Caught = $_ }
+
+            $Caught.Exception.Message | Should -BeExactly 'sgt-test-error-one; sgt-test-error-two'
+            $Caught.Exception | Should -BeOfType [System.Management.Automation.RuntimeException]
+        }
+    }
+
+    It 'Joins three errors in order' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Set-SgtNetworkStub -Response ('{"errors":[{"field":null,"message":"sgt-test-error-one"},{"field":null,"message":"sgt-test-error-two"},{"field":null,"message":"sgt-test-error-three"}]}' | ConvertFrom-Json)
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            $Caught = $null
+            try { Invoke-SendGrid -Method Get -Namespace 'things' } catch { $Caught = $_ }
+
+            $Caught.Exception.Message | Should -BeExactly 'sgt-test-error-one; sgt-test-error-two; sgt-test-error-three'
+        }
+    }
+
+    It 'Throws as before for one error without a message' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Set-SgtNetworkStub -Response ('{"errors":[{"field":"sgt-test-field"}]}' | ConvertFrom-Json)
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            $Caught = $null
+            try { Invoke-SendGrid -Method Get -Namespace 'things' } catch { $Caught = $_ }
+
+            $Caught.Exception.Message | Should -BeExactly 'ScriptHalted'
+        }
+    }
+
+    It 'Gives a command the joined text' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Set-SgtNetworkStub -Response ('{"errors":[{"field":null,"message":"sgt-test-error-one"},{"field":null,"message":"sgt-test-error-two"}]}' | ConvertFrom-Json)
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            $Caught = $null
+            try { Remove-SGGlobalSuppression -EmailAddress 'one@example.com' -Confirm:$false } catch { $Caught = $_ }
+
+            $Caught.Exception.Message | Should -BeExactly 'Failed to remove email address "one@example.com" from global suppressions list. sgt-test-error-one; sgt-test-error-two'
+        }
+    }
+}
+
 Describe 'Network tripwire' {
     It 'Made no unmocked network call' {
         Assert-SgtNetworkTripwireActive
