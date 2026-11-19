@@ -76,9 +76,12 @@
                 ErrorAction   = 'Stop'
                 CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
             }
+            # The read asks no question of its own and runs under -WhatIf, so the command asks once and its What if line names the object (D50).
             $GetSplat = @{
                 UniqueId    = $Id
                 ErrorAction = 'Stop'
+                Confirm     = $false
+                WhatIf      = $false
             }
             if ($PSBoundParameters.OnBehalfOf) {
                 $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)

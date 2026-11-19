@@ -53,7 +53,7 @@
         [Alias('Email')]
         [MailAddress[]]$EmailAddress,
 
-        # Specifies whether to delete all emails on the bounces list.
+        # Specifies whether to delete all emails on the blocks list.
         [Parameter(
             ParameterSetName = 'DeleteAll',
             Mandatory,
@@ -88,12 +88,12 @@
             if ($PSBoundParameters.OnBehalfOf) {
                 $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
             }
-            if ($PSCmdlet.ShouldProcess('Remove all bounces from SendGrid')) {
+            if ($PSCmdlet.ShouldProcess('Remove all blocks from SendGrid')) {
                 try {
                     Invoke-SendGrid @InvokeSplat
                 }
                 catch {
-                    Write-Error ('Failed to remove all SendGrid bounces. {0}' -f $_.Exception.Message) -ErrorAction Stop
+                    Write-Error ('Failed to remove all SendGrid blocks. {0}' -f $_.Exception.Message) -ErrorAction Stop
                 }
             }
         }
@@ -101,19 +101,19 @@
             foreach ($Id in $EmailAddress) {
                 $InvokeSplat = @{
                     Method        = 'Delete'
-                    Namespace     = "suppression/blocks/$($Id.Address)"
+                    Namespace     = "suppression/blocks/$([uri]::EscapeDataString($Id.Address))"
                     ErrorAction   = 'Stop'
                     CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
                 }
                 if ($PSBoundParameters.OnBehalfOf) {
                     $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
                 }
-                if ($PSCmdlet.ShouldProcess(('Remove bounce with email address {0}' -f $Id.Address))) {
+                if ($PSCmdlet.ShouldProcess(('Remove block with email address {0}' -f $Id.Address))) {
                     try {
                         Invoke-SendGrid @InvokeSplat
                     }
                     catch {
-                        Write-Error ('Failed to remove SendGrid bounce "{0}". {1}' -f $Id.Address, $_.Exception.Message) -ErrorAction Stop
+                        Write-Error ('Failed to remove SendGrid block "{0}". {1}' -f $Id.Address, $_.Exception.Message) -ErrorAction Stop
                     }
                 }
             }

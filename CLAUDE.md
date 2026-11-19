@@ -12,14 +12,14 @@ Works in PowerShell 7 and Windows PowerShell 5.1.
 ./build.ps1 -Tasks test
 ```
 
-- Dependencies resolve with PSResourceGet into `output/RequiredModules` at exact versions pinned in `RequiredModules.psd1`. Nothing is installed globally and PSGallery trust is left untouched when the PSResourceGet bootstrap succeeds; on a failed download Resolve-Dependency.ps1 falls back to the legacy PowerShellGet path, which can install the NuGet provider for the current user and trust PSGallery.
+- Dependencies resolve with PSResourceGet into `output/RequiredModules` at exact versions pinned in `RequiredModules.psd1`. Nothing is installed globally and PSGallery trust is left untouched when the PSResourceGet bootstrap succeeds; a failed download, unpack or import of PSResourceGet stops Resolve-Dependency.ps1 with an error that names the module and the cause; there is no fallback to PowerShellGet.
 - Use the Pester in `output/RequiredModules` (Pester 5), never a globally installed Pester.
 - Tests live in `tests/QA/module.tests.ps1`: changelog guard, module import (also in a new pwsh and, on Windows, a new powershell.exe process), exported function count equals the files in `source/Public`, unit-test ratchet, PSScriptAnalyzer per function, comment-based help per exported function. `tests/QA/BuildConfiguration.Tests.ps1` pins the list of imported Sampler task files. `tests/Unit` holds unit tests with HTTP mocked; every unit test file except `tests/Unit/NetworkTripwire.Tests.ps1` (the tripwire's own test, which deliberately triggers it) enables the network tripwire in `tests/Unit/Support/NetworkTripwire.ps1`, checks it is active and asserts it recorded no call.
 - `tests/QA/module.tests.ps1` also holds the version cap: the built version must be at least 0.4.8 and below 1.0.0.
 - `tests/Workflow` tests the workflow scripts in `.github/scripts` and the steps of the workflow's publish path. They need PowerShell 7 and are skipped in Windows PowerShell 5.1.
 - Changelog guard: the root `CHANGELOG.md` must change since the merge base with `origin/main`. The commit decides, not the branch name. The test is skipped with a reason when HEAD is on `origin/main` and the run is not a tag run (`GITHUB_REF` under `refs/tags/`), and on a tag run on the tip of `origin/main`. A tag run on an older commit of `origin/main` fails.
 - Unit-test ratchet: `tests/QA/UnitTestBaseline.txt` lists exported functions that have no `<Name>.Tests.ps1`. The list may only shrink. A new public function needs a test.
-- Coverage: `CodeCoverageThreshold` in `build.yaml` equals the measured coverage, floored to a whole number (60 today: 60.43% in pwsh and 60.35% in Windows PowerShell 5.1, the lower floored). It may only be raised, as tests arrive.
+- Coverage: `CodeCoverageThreshold` in `build.yaml` equals the measured coverage, floored to a whole number (62 today: 62.76% in pwsh and 62.69% in Windows PowerShell 5.1, the lower floored). It may only be raised, as tests arrive.
 - PSScriptAnalyzer: fix findings in the code. Suppress only with `SuppressMessageAttribute` and a justification, and only when the repair would change the public surface or behaviour.
 - Help: every exported function needs SYNOPSIS, a DESCRIPTION over 40 characters, an example, and every parameter described in more than 25 characters.
 

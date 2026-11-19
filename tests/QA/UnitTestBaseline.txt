@@ -20,10 +20,7 @@ Get-SGSpamReport
 Get-SGSuppression
 Get-SGSuppressionGroup
 Get-SGTeammate
-New-SGAlert
 New-SGApiKey
 New-SGSuppressionGroup
 Remove-SGSubuser
 Send-SGMailMessage
-Set-SGAlert
-Set-SGAuthenticatedDomainToSubUser

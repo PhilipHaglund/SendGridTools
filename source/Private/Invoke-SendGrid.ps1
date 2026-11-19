@@ -214,20 +214,13 @@ function Invoke-SendGrid {
                         continue
                     }
 
-                    # Unix seconds under a time name become dates in both shells; a list becomes a list of dates only when every element is a whole number (D30, D31).
-                    if ($Property -match 'valid|created|updated|lastat|_at$') {
-                        $TimeItems = @($Object.$Property)
-                        $WholeNumbers = @($TimeItems | Where-Object { $_ -is [int] -or $_ -is [int64] })
-                        if ($WholeNumbers.Count -eq $TimeItems.Count) {
-                            if ($Object.$Property -is [array]) {
-                                $TimeValue = [object[]]@($TimeItems | ForEach-Object { [UnixTime]::FromUnixTime($_) })
-                            }
-                            else {
-                                $TimeValue = [UnixTime]::FromUnixTime($Object.$Property)
-                            }
-                            $PSObject | Add-Member -MemberType NoteProperty -Name (($Property | ConvertTo-TitleCase) -replace '[\s_-]+') -Value $TimeValue -Force
-                            continue
-                        }
+                    # Unix seconds under a time name become dates in both shells; a list becomes a list of dates only when every element is a whole number, and only within Int32 (D30, D31, D52). The rule gets SendGrid's own name.
+                    $SourceProperty = $Object.PSObject.Properties[$Property]
+                    $TimeName = if ($SourceProperty) { $SourceProperty.Name } else { $Property }
+                    $Time = ConvertFrom-SendGridUnixTime -Name $TimeName -Value $Object.$Property
+                    if ($Time.Converted) {
+                        $PSObject | Add-Member -MemberType NoteProperty -Name (($Property | ConvertTo-TitleCase) -replace '[\s_-]+') -Value $Time.Value -Force
+                        continue
                     }
 
                     # Switch based on the property type.

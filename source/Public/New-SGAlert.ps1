@@ -107,7 +107,7 @@
         }
         else {
             $ContentBody.Add('type', 'stats_notification')
-            $ContentBody.Add('frequency', $Frequency.ToLower())
+            $ContentBody.Add('frequency', $Frequency.ToLowerInvariant())
         }
 
         $InvokeSplat.Add('ContentBody', $ContentBody)

@@ -55,9 +55,12 @@
             ErrorAction   = 'Stop'
             CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
         }
+        # The read asks no question of its own and runs under -WhatIf, so the command asks once and its What if line names the object (D50).
         $GetSplat = @{
             UniqueId    = $UniqueId
             ErrorAction = 'Stop'
+            Confirm     = $false
+            WhatIf      = $false
         }
         $SGAuthenticatedDomain = Get-SGAuthenticatedDomain @GetSplat
         if ($PSCmdlet.ShouldProcess(('{0}.{1}' -f $SGAuthenticatedDomain.Subdomain, $SGAuthenticatedDomain.Domain))) {

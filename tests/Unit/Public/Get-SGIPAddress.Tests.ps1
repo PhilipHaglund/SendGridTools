@@ -114,13 +114,8 @@ Describe 'Get-SGIPAddress' {
             for ($i = 0; $i -lt $Reference.Count; $i++) {
                 foreach ($Property in $Reference[$i].PSObject.Properties) {
                     $Out[$i].PSObject.Properties.Name | Should -Contain $Property.Name
-                    # Invoke-SendGrid turns a whole number under a time name into a date (D30); the cursor reader returns it as SendGrid sends it.
-                    if ($Property.Value -is [datetime]) {
-                        [datetime]::new(1970, 1, 1, 0, 0, 0, 0).AddSeconds($Out[$i].($Property.Name)) | Should -Be $Property.Value
-                    }
-                    else {
-                        "$($Out[$i].($Property.Name))" | Should -Be "$($Property.Value)"
-                    }
+                    # Both readers turn a whole number within Int32 under a time name into a date (D30, D52).
+                    "$($Out[$i].($Property.Name))" | Should -Be "$($Property.Value)"
                 }
                 # Both readers keep an empty array (D8).
                 $Reference[$i].PSObject.Properties.Name | Should -Contain 'Pools'
@@ -189,8 +184,9 @@ Describe 'Get-SGIPAddress' {
         }
     }
 
-    It 'Returns AddedAt and UpdatedAt as Unix seconds, not dates' {
+    It 'Returns AddedAt and UpdatedAt as dates (D52)' {
         InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Fixture = $script:PageFixture } {
+            $Epoch = [datetime]::new(1970, 1, 1, 0, 0, 0, 0)
             $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
             $Item = New-IpItem -Path $Fixture -Count 1 -First 1
             $Item.updated_at = 1700000000
@@ -200,9 +196,25 @@ Describe 'Get-SGIPAddress' {
             $Out = @(Get-SGIPAddress -IncludeRegion)
 
             $Out.Count | Should -Be 1
-            $Out[0].UpdatedAt | Should -Not -BeOfType [datetime]
-            $Out[0].UpdatedAt | Should -Be 1700000000
-            $Out[0].AddedAt | Should -Be 1600000000
+            $Out[0].UpdatedAt | Should -BeOfType [datetime]
+            $Out[0].UpdatedAt | Should -Be $Epoch.AddSeconds(1700000000)
+            $Out[0].AddedAt | Should -BeOfType [datetime]
+            $Out[0].AddedAt | Should -Be $Epoch.AddSeconds(1600000000)
+        }
+    }
+
+    It 'Returns AddedAt as a number when it is outside Int32 (D52)' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Fixture = $script:PageFixture } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            $Item = New-IpItem -Path $Fixture -Count 1 -First 1
+            $Item.added_at = 3000000000
+            Set-SgtCursorNetworkStub -Page @(@{ Items = @($Item); AfterKey = $null })
+
+            $Out = @(Get-SGIPAddress -IncludeRegion)
+
+            $Out.Count | Should -Be 1
+            $Out[0].AddedAt | Should -Not -BeOfType [datetime]
+            $Out[0].AddedAt | Should -Be 3000000000
         }
     }
 
