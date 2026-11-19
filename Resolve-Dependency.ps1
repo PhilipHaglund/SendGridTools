@@ -357,7 +357,13 @@ if ($UsePSResourceGet)
             }
             catch
             {
-                # SGT-37: a failed unpack or import stops the bootstrap too, for the same reason.
+                # SGT-37: a failed unpack or import stops the bootstrap too, for the same reason. The zip is removed
+                # first when the rename got that far, so the next run does not fail on a leftover file.
+                if ($psResourceGetZipArchivePath -and (Test-Path -LiteralPath $psResourceGetZipArchivePath))
+                {
+                    Remove-Item -LiteralPath $psResourceGetZipArchivePath -Force -ErrorAction 'SilentlyContinue'
+                }
+
                 throw [System.InvalidOperationException]::new(('{0} could not be bootstrapped: the downloaded package could not be unpacked and imported, and the bootstrap does not revert to PowerShellGet. Error: {1}' -f $psResourceGetModuleName, $_.Exception.Message), $_.Exception)
             }
 
