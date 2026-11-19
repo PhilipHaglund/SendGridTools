@@ -90,7 +90,9 @@ function Invoke-SendGrid {
     }
     process {
         if ($PSCmdlet.ShouldProcess("$Method : $Namespace")) {
-            Write-Verbose "Starting process with method: $Method and namespace: $Namespace"
+            # The notes name the path only; the query can hold filter values (D33).
+            $NamespacePath = ($Namespace -split '\?', 2)[0]
+            Write-Verbose "Starting process with method: $Method and namespace: $NamespacePath"
             # Check if session is not a SendGridSession.
             if ($script:Session -isnot [SendGridSession]) {
                 throw 'You must call the Connect-SendGrid cmdlet before calling any other cmdlets.'
@@ -212,14 +214,26 @@ function Invoke-SendGrid {
                         continue
                     }
 
+                    # Unix seconds under a time name become dates in both shells; a list becomes a list of dates only when every element is a whole number (D30, D31).
+                    if ($Property -match 'valid|created|updated|lastat|_at$') {
+                        $TimeItems = @($Object.$Property)
+                        $WholeNumbers = @($TimeItems | Where-Object { $_ -is [int] -or $_ -is [int64] })
+                        if ($WholeNumbers.Count -eq $TimeItems.Count) {
+                            if ($Object.$Property -is [array]) {
+                                $TimeValue = [object[]]@($TimeItems | ForEach-Object { [UnixTime]::FromUnixTime($_) })
+                            }
+                            else {
+                                $TimeValue = [UnixTime]::FromUnixTime($Object.$Property)
+                            }
+                            $PSObject | Add-Member -MemberType NoteProperty -Name (($Property | ConvertTo-TitleCase) -replace '[\s_-]+') -Value $TimeValue -Force
+                            continue
+                        }
+                    }
+
                     # Switch based on the property type.
                     switch ($Object.$Property) {
-                        { $_ -is [int64] -and $Property -match 'valid|created|updated|lastat' } {
-                            $PSObject | Add-Member -MemberType NoteProperty -Name (($Property | ConvertTo-TitleCase) -replace '[\s_-]+') -Value ([UnixTime]::FromUnixTime($_))
-                            break
-                        }
                         { $_ -is [string] -and $Property -match '^date$' } {
-                            $PSObject | Add-Member -MemberType NoteProperty -Name (($Property | ConvertTo-TitleCase) -replace '[\s_-]+') -Value ([datetime]::Parse($_))
+                            $PSObject | Add-Member -MemberType NoteProperty -Name (($Property | ConvertTo-TitleCase) -replace '[\s_-]+') -Value ([datetime]::Parse($_, [System.Globalization.CultureInfo]::InvariantCulture))
                             break
                         }
                         Default {
@@ -238,16 +252,11 @@ function Invoke-SendGrid {
                     }
                     throw $ErrorText
                 }
-                else {
-                    if (0 -eq @($PSObject.PSObject.Properties).Count) {
-                        Write-Verbose -Message ('Successfully invoked "{0}" on "{1}".' -f $CallingCmdlet, $Namespace)
-                    }
-                    else {
-                        $PSObject
-                    }
+                elseif (0 -ne @($PSObject.PSObject.Properties).Count) {
+                    $PSObject
                 }
             }
-            Write-Verbose -Message ('Successfully invoked "{0}" on "{1}".' -f $CallingCmdlet, $Namespace)
+            Write-Verbose -Message ('Successfully invoked "{0}" on "{1}".' -f $CallingCmdlet, $NamespacePath)
         }
     }
 }

@@ -4,7 +4,7 @@
     The ConvertTo-TitleCase function converts a specified string to title case.
 
     .DESCRIPTION
-    The ConvertTo-TitleCase function converts a specified string to title case using the Method in (Get-Culture).TextInfo
+    The ConvertTo-TitleCase function converts a specified string to title case using the TextInfo of the invariant culture
     All input strings will be converted to lowercase, because uppercase are considered to be acronyms.
 
     .EXAMPLE
@@ -40,12 +40,12 @@
         [string[]]$InputObject
     )
     begin {
-        $TextInfo = (Get-Culture).TextInfo
+        $TextInfo = [System.Globalization.CultureInfo]::InvariantCulture.TextInfo
     }
     process {
         foreach ($String in $InputObject) {
             if ($PSCmdlet.ShouldProcess($String)) {
-                $TextInfo.ToTitleCase($String.ToLower())
+                $TextInfo.ToTitleCase($String.ToLowerInvariant())
             }
         }
     }

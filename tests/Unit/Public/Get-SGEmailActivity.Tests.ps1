@@ -47,8 +47,9 @@ Describe 'Get-SGEmailActivity verbose output and query (D18)' {
             $Calls.Count | Should -Be 1
             $Calls[0].Uri.OriginalString | Should -BeExactly 'https://api.sendgrid.com/v3/messages?limit=10&query=(to_email %3D %22one%40example.com%22)'
             @($Messages | Where-Object { $_ -ceq 'Filter Query: Property: ToEmail, Operator: =' }).Count | Should -Be 1
-            # Two notes of Invoke-SendGrid ("Starting process with method", "Successfully invoked") name the namespace with the query; it is outside D18's listed texts and is reported as a finding.
-            foreach ($Line in @($Messages | Where-Object { $_ -notlike 'Starting process with method:*' -and $_ -notlike 'Successfully invoked*' })) {
+            @($Messages | Where-Object { $_ -ceq 'Starting process with method: Get and namespace: messages' }).Count | Should -Be 1
+            @($Messages | Where-Object { $_ -ceq 'Successfully invoked "Get-SGEmailActivity" on "messages".' }).Count | Should -Be 1
+            foreach ($Line in $Messages) {
                 $Line | Should -Not -BeLike '*one@example.com*'
                 $Line | Should -Not -BeLike '*one%40example*'
                 $Line | Should -Not -BeLike '*query=*'
@@ -73,10 +74,12 @@ Describe 'Get-SGEmailActivity verbose output and query (D18)' {
             $Calls.Count | Should -Be 1
             $Calls[0].Uri.OriginalString | Should -BeExactly 'https://api.sendgrid.com/v3/messages?limit=10&query=(to_email%3D%22one%40example.com%22)'
             ($Messages -join "`n") | Should -Match 'Property: to_email, Operator: -eq'
-            # Two notes of Invoke-SendGrid ("Starting process with method", "Successfully invoked") name the namespace with the query; it is outside D18's listed texts and is reported as a finding.
-            foreach ($Line in @($Messages | Where-Object { $_ -notlike 'Starting process with method:*' -and $_ -notlike 'Successfully invoked*' })) {
+            @($Messages | Where-Object { $_ -ceq 'Starting process with method: Get and namespace: messages' }).Count | Should -Be 1
+            @($Messages | Where-Object { $_ -ceq 'Successfully invoked "Get-SGEmailActivity" on "messages".' }).Count | Should -Be 1
+            foreach ($Line in $Messages) {
                 $Line | Should -Not -BeLike '*one@example.com*'
                 $Line | Should -Not -BeLike '*one%40example*'
+                $Line | Should -Not -BeLike '*query=*'
             }
         }
     }
@@ -94,6 +97,66 @@ Describe 'Get-SGEmailActivity verbose output and query (D18)' {
             }
             $Result.Count | Should -Be 1
             $Result[0].MsgId | Should -Be 'sgt-test-message-id'
+        }
+    }
+}
+
+Describe 'Get-SGEmailActivity binds -Value for a template property without a call (D32)' {
+    BeforeEach {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ messages = @([pscustomobject]@{ msg_id = 'sgt-test-message-id'; status = 'delivered' }) })
+        }
+    }
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Sends the template id as the filter value and makes no other request' {
+        InModuleScope SendGridTools {
+            $Result = @(Get-SGEmailActivity -Property TemplateId -EQ -Value 'sgt-test-template-id')
+            $Calls = (Get-SgtNetworkCall)
+            $Calls.Count | Should -Be 1
+            $Calls[0].Uri.OriginalString | Should -BeExactly 'https://api.sendgrid.com/v3/messages?limit=10&query=(template_id %3D %22sgt-test-template-id%22)'
+            $Result.Count | Should -Be 1
+        }
+    }
+
+    It 'Sends both template ids for two values' {
+        InModuleScope SendGridTools {
+            $null = @(Get-SGEmailActivity -Property TemplateId -EQ -Value 'sgt-test-template-1', 'sgt-test-template-2')
+            $Calls = (Get-SgtNetworkCall)
+            $Calls.Count | Should -Be 1
+            $Calls[0].Uri.OriginalString | Should -BeExactly 'https://api.sendgrid.com/v3/messages?limit=10&query=(template_id IN (%22sgt-test-template-1%22,%22sgt-test-template-2%22))'
+        }
+    }
+
+    It 'Binds -Value for TemplateName and sends the value' {
+        InModuleScope SendGridTools {
+            $Result = @(Get-SGEmailActivity -Property TemplateName -EQ -Value 'sgt-test-template-name')
+            $Calls = (Get-SgtNetworkCall)
+            $Calls.Count | Should -Be 1
+            # The field name of the TemplateName filter is an existing gap and is not asserted.
+            $Calls[0].Uri.OriginalString | Should -BeLike 'https://api.sendgrid.com/v3/messages?limit=10&query=(*%22sgt-test-template-name%22)'
+        }
+    }
+
+    It 'Gives -Value for <Property> the type, set and position it has for ToEmail' -ForEach @(
+        @{ Property = 'TemplateId' }
+        @{ Property = 'TemplateName' }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ Property = $Property } {
+            $Parameter = (Get-Command -Name Get-SGEmailActivity -ArgumentList $Property).Parameters['Value']
+            $Parameter | Should -Not -BeNullOrEmpty
+            $Parameter.ParameterType | Should -Be ([string[]])
+            @($Parameter.ParameterSets.Keys) | Should -Be @('PropertySet')
+            $Parameter.ParameterSets['PropertySet'].Position | Should -Be 2
+            $Parameter.ParameterSets['PropertySet'].IsMandatory | Should -BeFalse
+            @($Parameter.Attributes | Where-Object { $_ -is [System.Management.Automation.ValidateSetAttribute] }).Count | Should -Be 0
+            (Get-SgtNetworkCall).Count | Should -Be 0
         }
     }
 }

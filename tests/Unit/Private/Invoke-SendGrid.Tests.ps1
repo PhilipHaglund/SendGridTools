@@ -1,11 +1,21 @@
 BeforeDiscovery {
     . (Join-Path -Path $PSScriptRoot -ChildPath '../Support/SessionHelpers.ps1')
     $script:Cases = @(Get-SgtOverloadCase)
+    $script:Cultures = @('en-US', 'sv-SE', 'en-GB', 'tr-TR', 'th-TH')
+    $script:CultureCases = @(foreach ($Culture in $script:Cultures) { @{ Culture = $Culture } })
+    $script:CultureDateCases = @(
+        foreach ($Culture in $script:Cultures) {
+            foreach ($Value in '2023-11-14', '11/14/2023') {
+                @{ Culture = $Culture; Value = $Value }
+            }
+        }
+    )
 }
 
 BeforeAll {
     . (Join-Path -Path $PSScriptRoot -ChildPath '../Support/NetworkTripwire.ps1')
     . (Join-Path -Path $PSScriptRoot -ChildPath '../Support/SessionHelpers.ps1')
+    . (Join-Path -Path $PSScriptRoot -ChildPath '../Support/PromptCountingHost.ps1')
     # Import once per run: in Windows PowerShell 5.1 a class stays bound to the first loaded module instance.
     if (-not (Get-Module -Name SendGridTools)) {
         Get-Module -Name SendGridTools -ListAvailable | Select-Object -First 1 | Import-Module -ErrorAction Stop
@@ -172,16 +182,10 @@ Describe 'Invoke-SendGrid keeps empty lists (D8)' {
             $Result[0].PSObject.Properties['StartDate'] | Should -Not -BeNullOrEmpty
             $Result[0].PSObject.Properties['StartDate'].Value | Should -BeNullOrEmpty
             $Result[0].PSObject.Properties['Count'].Value | Should -Be 3
-            if ($PSVersionTable.PSEdition -eq 'Core') {
-                $Result[0].Created | Should -BeOfType [datetime]
-                $Result[0].Created | Should -Be ([datetime]::new(1970, 1, 1, 0, 0, 0, 0).AddSeconds(1700000000))
-            }
-            else {
-                # Windows PowerShell 5.1 reads this number as Int32, which the int64 conversion does not match; it stays a number as before.
-                $Result[0].Created | Should -Be 1700000000
-            }
+            $Result[0].Created | Should -BeOfType [datetime]
+            $Result[0].Created | Should -Be ([datetime]::new(1970, 1, 1, 0, 0, 0, 0).AddSeconds(1700000000))
             $Result[0].Date | Should -BeOfType [datetime]
-            $Result[0].Date | Should -Be ([datetime]::Parse('2023-11-14'))
+            $Result[0].Date | Should -Be ([datetime]::Parse('2023-11-14', [System.Globalization.CultureInfo]::InvariantCulture))
         }
     }
 
@@ -414,6 +418,383 @@ Describe 'Invoke-SendGrid writes its note only with -Verbose (D19)' {
             $Without.Count | Should -Be 0
             @($With | Where-Object { $_.Message -ceq $Message }).Count | Should -BeGreaterThan 0
         }
+    }
+}
+
+Describe 'Invoke-SendGrid turns Unix seconds under a time name into dates (D30, D31)' {
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Gives a date for <Field> sent as <TypeName>' -ForEach @(
+        foreach ($TypeName in 'Int32', 'Int64') {
+            @{ Field = 'created'; OutputName = 'Created'; TypeName = $TypeName }
+            @{ Field = 'updated_at'; OutputName = 'UpdatedAt'; TypeName = $TypeName }
+            @{ Field = 'added_at'; OutputName = 'AddedAt'; TypeName = $TypeName }
+            @{ Field = 'assigned_at'; OutputName = 'AssignedAt'; TypeName = $TypeName }
+            @{ Field = 'last_validation_attempt_at'; OutputName = 'LastValidationAttemptAt'; TypeName = $TypeName }
+        }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Field = $Field; OutputName = $OutputName; TypeName = $TypeName } {
+            $Epoch = [datetime]::new(1970, 1, 1, 0, 0, 0, 0)
+            $Value = if ($TypeName -eq 'Int32') { [int]1700000000 } else { [int64]1700000000 }
+            $Answer = [pscustomobject]@{ name = 'sgt-test-name' }
+            $Answer | Add-Member -NotePropertyName $Field -NotePropertyValue $Value
+            Set-SgtNetworkStub -Response $Answer
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+
+            $Result = @(Invoke-SendGrid -Method Get -Namespace 'things')
+
+            $Result[0].$OutputName | Should -BeOfType [datetime]
+            $Result[0].$OutputName | Should -Be $Epoch.AddSeconds(1700000000)
+            $Result[0].$OutputName.Kind | Should -Be ([System.DateTimeKind]::Unspecified)
+        }
+    }
+
+    It 'Gives dates for an answer as the running shell parses it' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $Epoch = [datetime]::new(1970, 1, 1, 0, 0, 0, 0)
+            Set-SgtNetworkStub -Response ('{"created":1700000000,"updated_at":1700000001,"added_at":1700000002,"assigned_at":1700000003,"last_validation_attempt_at":1700000004,"valid":true}' | ConvertFrom-Json)
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+
+            $Result = @(Invoke-SendGrid -Method Get -Namespace 'things')
+
+            $Names = 'Created', 'UpdatedAt', 'AddedAt', 'AssignedAt', 'LastValidationAttemptAt'
+            for ($i = 0; $i -lt $Names.Count; $i++) {
+                $Result[0].($Names[$i]) | Should -BeOfType [datetime]
+                $Result[0].($Names[$i]) | Should -Be $Epoch.AddSeconds(1700000000 + $i)
+            }
+            $Result[0].Valid | Should -BeOfType [bool]
+            $Result[0].Valid | Should -BeTrue
+        }
+    }
+
+    It 'Gives the epoch start for zero' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $Epoch = [datetime]::new(1970, 1, 1, 0, 0, 0, 0)
+            Set-SgtNetworkStub -Response ('{"added_at":0,"assigned_at":0}' | ConvertFrom-Json)
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+
+            $Result = @(Invoke-SendGrid -Method Get -Namespace 'things')
+
+            $Result[0].AddedAt | Should -BeOfType [datetime]
+            $Result[0].AddedAt | Should -Be $Epoch
+            $Result[0].AssignedAt | Should -BeOfType [datetime]
+            $Result[0].AssignedAt | Should -Be $Epoch
+        }
+    }
+
+    It 'Leaves a Boolean, a decimal number, a text and an empty value as they are' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Set-SgtNetworkStub -Response ('{"created":1.5,"updated_at":null,"added_at":"sgt-test-text","assigned_at":false,"valid":true}' | ConvertFrom-Json)
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+
+            $Result = @(Invoke-SendGrid -Method Get -Namespace 'things')
+
+            $Result[0].Created | Should -Not -BeOfType [datetime]
+            $Result[0].Created | Should -Be 1.5
+            $Result[0].PSObject.Properties['UpdatedAt'] | Should -Not -BeNullOrEmpty
+            $Result[0].PSObject.Properties['UpdatedAt'].Value | Should -BeNullOrEmpty
+            $Result[0].AddedAt | Should -BeExactly 'sgt-test-text'
+            $Result[0].AssignedAt | Should -BeOfType [bool]
+            $Result[0].AssignedAt | Should -BeFalse
+            $Result[0].Valid | Should -BeOfType [bool]
+            $Result[0].Valid | Should -BeTrue
+        }
+    }
+
+    It 'Leaves a whole number under another name as it is' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Set-SgtNetworkStub -Response ('{"id":1001,"count":3,"user_id":1002,"at":1700000000,"format":1700000001}' | ConvertFrom-Json)
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+
+            $Result = @(Invoke-SendGrid -Method Get -Namespace 'things')
+
+            $Expected = [ordered]@{ Id = 1001; Count = 3; UserId = 1002; At = 1700000000; Format = 1700000001 }
+            foreach ($Name in $Expected.Keys) {
+                $Result[0].$Name | Should -Not -BeOfType [datetime]
+                $Result[0].$Name | Should -Be $Expected[$Name]
+            }
+        }
+    }
+
+    It 'Gives a list of dates in the same order for a list of <TypeName> numbers' -ForEach @(
+        @{ TypeName = 'Int32' }
+        @{ TypeName = 'Int64' }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; TypeName = $TypeName } {
+            $Epoch = [datetime]::new(1970, 1, 1, 0, 0, 0, 0)
+            $Type = [type]"System.$TypeName"
+            $Answer = [pscustomobject]@{
+                created  = @(1700000000, 1700000001, 1700000002 | ForEach-Object { [System.Convert]::ChangeType($_, $Type) })
+                added_at = @(1700000005, 1700000006 | ForEach-Object { [System.Convert]::ChangeType($_, $Type) })
+            }
+            Set-SgtNetworkStub -Response $Answer
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+
+            $Result = @(Invoke-SendGrid -Method Get -Namespace 'things')
+
+            $Value = $Result[0].PSObject.Properties['Created'].Value
+            ($Value -is [array]) | Should -BeTrue
+            $Value.Count | Should -Be 3
+            for ($i = 0; $i -lt 3; $i++) {
+                $Value[$i] | Should -BeOfType [datetime]
+                $Value[$i] | Should -Be $Epoch.AddSeconds(1700000000 + $i)
+            }
+            $Added = $Result[0].PSObject.Properties['AddedAt'].Value
+            ($Added -is [array]) | Should -BeTrue
+            $Added.Count | Should -Be 2
+            $Added[0] | Should -BeOfType [datetime]
+            $Added[0] | Should -Be $Epoch.AddSeconds(1700000005)
+            $Added[1] | Should -BeOfType [datetime]
+            $Added[1] | Should -Be $Epoch.AddSeconds(1700000006)
+        }
+    }
+
+    It 'Gives a list of dates for a list as the running shell parses it' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $Epoch = [datetime]::new(1970, 1, 1, 0, 0, 0, 0)
+            Set-SgtNetworkStub -Response ('{"updated_at":[1700000003,1700000004],"last_validation_attempt_at":[1700000009,1700000010],"valid":[true,false]}' | ConvertFrom-Json)
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+
+            $Result = @(Invoke-SendGrid -Method Get -Namespace 'things')
+
+            $Updated = $Result[0].PSObject.Properties['UpdatedAt'].Value
+            ($Updated -is [array]) | Should -BeTrue
+            $Updated.Count | Should -Be 2
+            $Updated[0] | Should -BeOfType [datetime]
+            $Updated[0] | Should -Be $Epoch.AddSeconds(1700000003)
+            $Updated[1] | Should -BeOfType [datetime]
+            $Updated[1] | Should -Be $Epoch.AddSeconds(1700000004)
+            $Last = $Result[0].PSObject.Properties['LastValidationAttemptAt'].Value
+            ($Last -is [array]) | Should -BeTrue
+            $Last.Count | Should -Be 2
+            $Last[0] | Should -BeOfType [datetime]
+            $Last[0] | Should -Be $Epoch.AddSeconds(1700000009)
+            $Last[1] | Should -BeOfType [datetime]
+            $Last[1] | Should -Be $Epoch.AddSeconds(1700000010)
+            $Valid = $Result[0].PSObject.Properties['Valid'].Value
+            ($Valid -is [array]) | Should -BeTrue
+            $Valid.Count | Should -Be 2
+            $Valid[0] | Should -BeOfType [bool]
+            $Valid[0] | Should -BeTrue
+            $Valid[1] | Should -BeOfType [bool]
+            $Valid[1] | Should -BeFalse
+        }
+    }
+
+    It 'Keeps a list of one number as a list of one date' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $Epoch = [datetime]::new(1970, 1, 1, 0, 0, 0, 0)
+            Set-SgtNetworkStub -Response ('{"updated_at":[1700000001]}' | ConvertFrom-Json)
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+
+            $Result = @(Invoke-SendGrid -Method Get -Namespace 'things')
+
+            $Value = $Result[0].PSObject.Properties['UpdatedAt'].Value
+            ($Value -is [array]) | Should -BeTrue
+            $Value.Count | Should -Be 1
+            $Value[0] | Should -BeOfType [datetime]
+            $Value[0] | Should -Be $Epoch.AddSeconds(1700000001)
+        }
+    }
+
+    It 'Leaves a list that mixes a number with a text or an empty value as it is' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Set-SgtNetworkStub -Response ('{"created":[1700000000,"sgt-test-text"],"added_at":[1700000002,null]}' | ConvertFrom-Json)
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+
+            $Result = @(Invoke-SendGrid -Method Get -Namespace 'things')
+
+            $Created = $Result[0].PSObject.Properties['Created'].Value
+            $Created.Count | Should -Be 2
+            $Created[0] | Should -Not -BeOfType [datetime]
+            $Created[0] | Should -Be 1700000000
+            $Created[1] | Should -BeExactly 'sgt-test-text'
+            $Added = $Result[0].PSObject.Properties['AddedAt'].Value
+            $Added.Count | Should -Be 2
+            $Added[0] | Should -Not -BeOfType [datetime]
+            $Added[0] | Should -Be 1700000002
+            $Added[1] | Should -BeNullOrEmpty
+        }
+    }
+
+    It 'Gives each object of a list its own date' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $Epoch = [datetime]::new(1970, 1, 1, 0, 0, 0, 0)
+            Set-SgtNetworkStub -Response ('[{"created":1700000000},{"created":1700000001}]' | ConvertFrom-Json)
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+
+            $Result = @(Invoke-SendGrid -Method Get -Namespace 'things')
+
+            $Result.Count | Should -Be 2
+            $Result[0].Created | Should -BeOfType [datetime]
+            $Result[0].Created | Should -Be $Epoch.AddSeconds(1700000000)
+            $Result[1].Created | Should -BeOfType [datetime]
+            $Result[1].Created | Should -Be $Epoch.AddSeconds(1700000001)
+        }
+    }
+}
+
+Describe 'Invoke-SendGrid leaves the query out of its verbose notes (D33)' {
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Names the path without the query in "Starting process" and "Successfully invoked"' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Set-SgtNetworkStub -Response ('{"name":"sgt-test-name"}' | ConvertFrom-Json)
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+
+            $SavedVerbose = $global:VerbosePreference
+            try {
+                $global:VerbosePreference = 'SilentlyContinue'
+                $VerbosePreference = 'SilentlyContinue'
+                $Records = @(& { Invoke-SendGrid -Method Get -Namespace 'things?limit=1&name=sgt-test-value' -CallingCmdlet 'sgt-test-caller' -Verbose } 4>&1 | Where-Object { $_ -is [System.Management.Automation.VerboseRecord] })
+            }
+            finally {
+                $global:VerbosePreference = $SavedVerbose
+            }
+            $Messages = @($Records | ForEach-Object { $_.Message })
+
+            @($Messages | Where-Object { $_ -ceq 'Starting process with method: Get and namespace: things' }).Count | Should -Be 1
+            @($Messages | Where-Object { $_ -ceq 'Successfully invoked "sgt-test-caller" on "things".' }).Count | Should -Be 1
+            foreach ($Message in @($Messages | Where-Object { $_ -notlike 'Performing the operation*' })) {
+                $Message | Should -Not -BeLike '*[?]*'
+                $Message | Should -Not -BeLike '*limit=*'
+                $Message | Should -Not -BeLike '*sgt-test-value*'
+            }
+            $Calls = @(Get-SgtNetworkCall)
+            $Calls.Count | Should -Be 1
+            $Calls[0].Uri.OriginalString | Should -BeExactly 'https://api.sendgrid.com/v3/things?limit=1&name=sgt-test-value'
+        }
+    }
+
+    It 'Writes "Successfully invoked" once for <Name>' -ForEach @(
+        @{ Name = 'an object with one property'; Json = '{"name":"sgt-test-name"}' }
+        @{ Name = 'an empty object'; Json = '{}' }
+        @{ Name = 'a list of two empty objects'; Json = '[{},{}]' }
+        @{ Name = 'no answer'; Json = $null }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Json = $Json } {
+            if ($null -eq $Json) {
+                Set-SgtNetworkStub -Response $null
+            }
+            else {
+                Set-SgtNetworkStub -Response ($Json | ConvertFrom-Json)
+            }
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+
+            $SavedVerbose = $global:VerbosePreference
+            try {
+                $global:VerbosePreference = 'SilentlyContinue'
+                $VerbosePreference = 'SilentlyContinue'
+                $Records = @(& { Invoke-SendGrid -Method Get -Namespace 'things?limit=1&name=sgt-test-value' -CallingCmdlet 'sgt-test-caller' -Verbose } 4>&1 | Where-Object { $_ -is [System.Management.Automation.VerboseRecord] })
+            }
+            finally {
+                $global:VerbosePreference = $SavedVerbose
+            }
+            $Messages = @($Records | ForEach-Object { $_.Message })
+
+            @($Messages | Where-Object { $_ -ceq 'Successfully invoked "sgt-test-caller" on "things".' }).Count | Should -Be 1
+            @($Messages | Where-Object { $_ -like 'Successfully invoked*' }).Count | Should -Be 1
+        }
+    }
+
+    It 'Keeps the ShouldProcess text with the query in the verbose stream' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Set-SgtNetworkStub -Response ('{"name":"sgt-test-name"}' | ConvertFrom-Json)
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+
+            $SavedVerbose = $global:VerbosePreference
+            try {
+                $global:VerbosePreference = 'SilentlyContinue'
+                $VerbosePreference = 'SilentlyContinue'
+                $Records = @(& { Invoke-SendGrid -Method Get -Namespace 'things?limit=1&name=sgt-test-value' -CallingCmdlet 'sgt-test-caller' -Verbose } 4>&1 | Where-Object { $_ -is [System.Management.Automation.VerboseRecord] })
+            }
+            finally {
+                $global:VerbosePreference = $SavedVerbose
+            }
+            $Messages = @($Records | ForEach-Object { $_.Message })
+
+            @($Messages | Where-Object { $_ -like '*"Invoke-SendGrid"*"Get : things?limit=1&name=sgt-test-value"*' }).Count | Should -Be 1
+        }
+    }
+
+    It 'Shows the same -WhatIf text as before' {
+        $Run = Invoke-SgtInCountingHost -Script 'Invoke-SendGrid -Method Get -Namespace ''things?limit=1&name=sgt-test-value'' -WhatIf'
+
+        $Run.HostLine.Count | Should -Be 1
+        $Run.HostLine[0] | Should -BeExactly 'What if: Performing the operation "Invoke-SendGrid" on target "Get : things?limit=1&name=sgt-test-value".'
+        $Run.PromptCount | Should -Be 0
+        $Run.NetworkCallCount | Should -Be 0
+        $Run.UnmockedCall | Should -BeNullOrEmpty
+    }
+}
+
+Describe 'Invoke-SendGrid reads the date field the same under every culture (D34)' {
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Reads <Value> as 14 November 2023 under <Culture>' -ForEach $script:CultureDateCases {
+        $Result = InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Culture = $Culture; Value = $Value } {
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ date = $Value; name = 'sgt-test-name' })
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            $SavedCulture = [System.Threading.Thread]::CurrentThread.CurrentCulture
+            try {
+                [System.Threading.Thread]::CurrentThread.CurrentCulture = [System.Globalization.CultureInfo]::GetCultureInfo($Culture)
+                @(Invoke-SendGrid -Method Get -Namespace 'things')
+            }
+            finally {
+                [System.Threading.Thread]::CurrentThread.CurrentCulture = $SavedCulture
+            }
+        }
+
+        $Result[0].Date | Should -BeOfType [datetime]
+        $Result[0].Date.ToString('yyyy-MM-dd', [System.Globalization.CultureInfo]::InvariantCulture) | Should -BeExactly '2023-11-14'
+    }
+}
+
+Describe 'Invoke-SendGrid names properties the same under every culture (D34)' {
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+        Remove-Variable -Name SgtTestCultureName -Scope Global -ErrorAction SilentlyContinue
+    }
+
+    It 'Names id, ip and is_enabled as under en-US under <Culture>' -ForEach $script:CultureCases {
+        $global:SgtTestCultureName = $Culture
+        # The module no longer calls Get-Culture. The mock stays: in Windows PowerShell 5.1 Get-Culture does not follow the thread culture, so only this mock turns the test red if (Get-Culture).TextInfo comes back.
+        Mock -CommandName Get-Culture -ModuleName SendGridTools -MockWith { [System.Globalization.CultureInfo]::GetCultureInfo($global:SgtTestCultureName) }
+        $Result = InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Culture = $Culture } {
+            Set-SgtNetworkStub -Response ('{"id":1001,"ip":"192.0.2.10","is_enabled":true}' | ConvertFrom-Json)
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            $SavedCulture = [System.Threading.Thread]::CurrentThread.CurrentCulture
+            try {
+                [System.Threading.Thread]::CurrentThread.CurrentCulture = [System.Globalization.CultureInfo]::GetCultureInfo($Culture)
+                @(Invoke-SendGrid -Method Get -Namespace 'things')
+            }
+            finally {
+                [System.Threading.Thread]::CurrentThread.CurrentCulture = $SavedCulture
+            }
+        }
+
+        (@($Result[0].PSObject.Properties.Name | Sort-Object) -join ',') | Should -BeExactly 'Id,Ip,IsEnabled'
+        $Result[0].Id | Should -Be 1001
+        $Result[0].Ip | Should -BeExactly '192.0.2.10'
+        $Result[0].IsEnabled | Should -BeTrue
     }
 }
 
