@@ -1,4 +1,4 @@
-function Remove-SGSubuser {
+﻿function Remove-SGSubuser {
     <#
     .SYNOPSIS
         Removes a specific Subuser within the current SendGrid instance.
