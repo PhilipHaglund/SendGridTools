@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-11-19
+
 ### Fixed
 
 - A property whose value is an empty list is kept in the output, with the empty list as its value, instead of being dropped; for example `Get-SGIPAddress` now returns `Pools` for an IP address in no pool. A response whose only properties are empty lists now returns an object instead of the verbose line "Successfully invoked". An empty `errors` list still raises no error.
@@ -139,7 +141,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - First release: connect to SendGrid, manage API keys, authenticated domains and branded links, and send mail with `Send-SGMailMessage`.
 
-[Unreleased]: https://github.com/PhilipHaglund/SendGridTools/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/PhilipHaglund/SendGridTools/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/PhilipHaglund/SendGridTools/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/PhilipHaglund/SendGridTools/compare/v0.4.8...v0.5.0
 [0.4.8]: https://github.com/PhilipHaglund/SendGridTools/compare/33c9a1ff5221e3612aa8357f7ecedfccfd5cc59f...v0.4.8
 [0.4.7]: https://github.com/PhilipHaglund/SendGridTools/commit/33c9a1ff5221e3612aa8357f7ecedfccfd5cc59f
