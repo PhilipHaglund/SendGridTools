@@ -99,7 +99,7 @@
                         Write-Verbose ('The alert with ID {0} is a stats_notification alert and does not require a percentage to be updated. Will be ignored' -f $AlertId)
                     }
                     elseif ($PSBoundParameters.Frequency) {
-                        $ContentBody.Add('frequency', $Frequency.ToLower())
+                        $ContentBody.Add('frequency', $Frequency.ToLowerInvariant())
                     }
                     elseif ($PSBoundParameters.EmailTo) {
                         # Fail safe
