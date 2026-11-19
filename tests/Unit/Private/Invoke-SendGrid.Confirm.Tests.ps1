@@ -58,7 +58,7 @@ Describe 'Invoke-SendGrid never asks (D20)' {
     }
 }
 
-Describe '-WhatIf on a writing command makes no call (D20)' {
+Describe '-WhatIf on a writing command makes no writing call (D20)' {
     AfterEach {
         InModuleScope SendGridTools {
             $script:Session = $null

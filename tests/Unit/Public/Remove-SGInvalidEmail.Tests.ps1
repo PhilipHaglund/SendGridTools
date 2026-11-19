@@ -24,7 +24,7 @@ Describe 'Remove-SGInvalidEmail request and error message' {
         }
     }
 
-    It 'Sends one Delete to suppression/invalid_emails/one@example.com for an address' {
+    It 'Sends one Delete to suppression/invalid_emails/one%40example.com for an address' {
         InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
             $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
             Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })

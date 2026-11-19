@@ -15,6 +15,7 @@ AfterAll {
     Uninstall-SgtSessionHelper
     Disable-SgtNetworkTripwire
 }
+
 Describe 'Set-SGAuthenticatedDomainToSubUser asks once (D50)' {
     BeforeAll {
         $script:Answer = '{"id":1001,"subdomain":"sgt-test-sub","domain":"example.com","valid":false}'
@@ -42,6 +43,7 @@ Describe 'Set-SGAuthenticatedDomainToSubUser asks once (D50)' {
         $Run.UnmockedCall | Should -BeNullOrEmpty
     }
 }
+
 Describe 'Network tripwire' {
     It 'Made no unmocked network call' {
         Assert-SgtNetworkTripwireActive
