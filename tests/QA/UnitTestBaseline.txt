@@ -26,4 +26,3 @@ New-SGSuppressionGroup
 Remove-SGSubuser
 Send-SGMailMessage
 Set-SGAlert
-Set-SGAuthenticatedDomainToSubUser

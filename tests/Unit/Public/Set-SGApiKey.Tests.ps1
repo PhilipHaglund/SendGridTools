@@ -1,6 +1,7 @@
 BeforeAll {
     . (Join-Path -Path $PSScriptRoot -ChildPath '../Support/NetworkTripwire.ps1')
     . (Join-Path -Path $PSScriptRoot -ChildPath '../Support/SessionHelpers.ps1')
+    . (Join-Path -Path $PSScriptRoot -ChildPath '../Support/PromptCountingHost.ps1')
     # Import once per run: in Windows PowerShell 5.1 a class stays bound to the first loaded module instance.
     if (-not (Get-Module -Name SendGridTools)) {
         Get-Module -Name SendGridTools -ListAvailable | Select-Object -First 1 | Import-Module -ErrorAction Stop
@@ -192,6 +193,34 @@ Describe 'Set-SGApiKey verbose output (D21)' {
             Should -Invoke Get-SGApiKey -Times 1 -Exactly
             Should -Invoke Invoke-SendGrid -Times 0 -Exactly
         }
+    }
+}
+
+Describe 'Set-SGApiKey asks once (D50)' {
+    BeforeAll {
+        $script:Answer = '{"api_key_id":"placeholder-id","name":"placeholder-name","scopes":["alerts.read"]}'
+    }
+
+    It 'Asks one question with -Confirm' {
+        $Run = Invoke-SgtInCountingHost -Script '$null = Set-SGApiKey -UniqueId ''placeholder-id'' -Scopes ''mail.send'' -Confirm' -AnswerJson $script:Answer
+
+        $Run.PromptCount | Should -Be 1
+        $Run.NetworkCallCount | Should -Be 2
+        $Run.Threw | Should -BeFalse
+        $Run.UnmockedCall | Should -BeNullOrEmpty
+    }
+
+    It 'Names the object in one What if line with -WhatIf' {
+        $Run = Invoke-SgtInCountingHost -Script '$null = Set-SGApiKey -UniqueId ''placeholder-id'' -Scopes ''mail.send'' -WhatIf' -AnswerJson $script:Answer
+
+        $WhatIf = @($Run.HostLine | Where-Object { $_ -like 'What if:*' })
+        $WhatIf.Count | Should -Be 1
+        $WhatIf[0] | Should -BeLike '*placeholder-id*'
+        @($Run.HostLine | Where-Object { $_ -like '*Get-SG*' }) | Should -BeNullOrEmpty
+        $Run.NetworkCallCount | Should -Be 1
+        $Run.PromptCount | Should -Be 0
+        $Run.Threw | Should -BeFalse
+        $Run.UnmockedCall | Should -BeNullOrEmpty
     }
 }
 
