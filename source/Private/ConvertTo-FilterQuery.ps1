@@ -89,7 +89,7 @@
                 $MultipleValues = foreach ($MValue in ($Value -split ',')) {
                     $ModifiedValue = $MValue.Trim() -replace '^''|"|''|"$'
                     $ParsedDate = [DateTime]::Parse($ModifiedValue, [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::AdjustToUniversal)
-                    '"{0:yyyy-MM-ddTHH:mm:ss.fffZ}"' -f [DateTime]::Parse($ParsedDate)
+                    '"{0}"' -f $ParsedDate.ToString('yyyy-MM-ddTHH:mm:ss.000Z', [System.Globalization.CultureInfo]::InvariantCulture)
                 }
                 if ($MultipleValues.Count -ne 2) {
                     throw 'The -Between operator requires two values separated by a comma.'
@@ -107,7 +107,7 @@
                 $MultipleValues = foreach ($MValue in ($Value -split ',')) {
                     $ModifiedValue = $MValue.Trim() -replace '^''|"|''|"$'
                     $ParsedDate = [DateTime]::Parse($ModifiedValue, [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::AdjustToUniversal)
-                    '"{0:yyyy-MM-ddTHH:mm:ss.fffZ}"' -f [DateTime]::Parse($ParsedDate)
+                    '"{0}"' -f $ParsedDate.ToString('yyyy-MM-ddTHH:mm:ss.000Z', [System.Globalization.CultureInfo]::InvariantCulture)
                 }
                 if ($MultipleValues.Count -ne 2) {
                     throw 'The -Between operator requires two values separated by a comma.'

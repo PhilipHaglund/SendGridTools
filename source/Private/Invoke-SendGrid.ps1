@@ -233,7 +233,7 @@ function Invoke-SendGrid {
                     # Switch based on the property type.
                     switch ($Object.$Property) {
                         { $_ -is [string] -and $Property -match '^date$' } {
-                            $PSObject | Add-Member -MemberType NoteProperty -Name (($Property | ConvertTo-TitleCase) -replace '[\s_-]+') -Value ([datetime]::Parse($_))
+                            $PSObject | Add-Member -MemberType NoteProperty -Name (($Property | ConvertTo-TitleCase) -replace '[\s_-]+') -Value ([datetime]::Parse($_, [System.Globalization.CultureInfo]::InvariantCulture))
                             break
                         }
                         Default {
