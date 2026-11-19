@@ -230,10 +230,10 @@ function Invoke-SendGrid {
                 }
                 # An empty errors list is no error (D8); any other Errors value throws as before.
                 if (($PSObject | Get-Member -Name 'Errors' -MemberType 'NoteProperty') -and 0 -ne @($PSObject.Errors).Count) {
-                    # One message is thrown exactly as before; several are joined in order (D16).
+                    # One entry is thrown exactly as before; with several, the messages are joined in order (D16).
                     $ErrorText = $PSObject.Errors.Message
                     $ErrorTexts = @($ErrorText | Where-Object { "$_" })
-                    if ($ErrorTexts.Count -gt 1) {
+                    if (@($PSObject.Errors).Count -gt 1 -and $ErrorTexts.Count -gt 0) {
                         $ErrorText = $ErrorTexts -join '; '
                     }
                     throw $ErrorText

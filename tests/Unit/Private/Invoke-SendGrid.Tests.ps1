@@ -351,6 +351,28 @@ Describe 'Invoke-SendGrid gives one text for errors (D16)' {
         }
     }
 
+    It 'Leaves out an entry without a message when several errors are joined' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Set-SgtNetworkStub -Response ('{"errors":[{"field":"sgt-test-field"},{"field":null,"message":"sgt-test-error-two"},{"field":null,"message":"sgt-test-error-three"}]}' | ConvertFrom-Json)
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            $Caught = $null
+            try { Invoke-SendGrid -Method Get -Namespace 'things' } catch { $Caught = $_ }
+
+            $Caught.Exception.Message | Should -BeExactly 'sgt-test-error-two; sgt-test-error-three'
+        }
+    }
+
+    It 'Gives the one message of several errors without a leading space' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Set-SgtNetworkStub -Response ('{"errors":[{"field":"sgt-test-field"},{"field":null,"message":"sgt-test-error-two"}]}' | ConvertFrom-Json)
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            $Caught = $null
+            try { Invoke-SendGrid -Method Get -Namespace 'things' } catch { $Caught = $_ }
+
+            $Caught.Exception.Message | Should -BeExactly 'sgt-test-error-two'
+        }
+    }
+
     It 'Gives a command the joined text' {
         InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
             Set-SgtNetworkStub -Response ('{"errors":[{"field":null,"message":"sgt-test-error-one"},{"field":null,"message":"sgt-test-error-two"}]}' | ConvertFrom-Json)
