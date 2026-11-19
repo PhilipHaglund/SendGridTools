@@ -9,7 +9,7 @@ BeforeAll {
     Assert-SgtNetworkTripwireActive
     Install-SgtSessionHelper
     $script:Cred = [pscredential]::new('apikey', (ConvertTo-SecureString -String 'test-key-not-real' -AsPlainText -Force))
-    # The DynamicParam block calls Get-SGIPAddress; answer it in module scope so it makes no recorded call.
+    # The IPAddress completer calls Get-SGIPAddress; answer it in module scope so a test can never reach the real command.
     Mock -CommandName Get-SGIPAddress -ModuleName SendGridTools -MockWith { [pscustomobject]@{ Ip = '192.0.2.10' }, [pscustomobject]@{ Ip = '192.0.2.11' } }
 }
 
@@ -223,7 +223,7 @@ Describe 'New-SGAuthenticatedDomain request' {
             $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
             Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
 
-            # -CustomSPF exists only with -DisableAutomaticSecurity, so binding fails. The error id is an ambiguity error today because Username and the dynamic IPAddress share position 2; assert the binding failure, not that id.
+            # -CustomSPF exists only with -DisableAutomaticSecurity, so binding fails; assert the binding failure, not a specific error id.
             { New-SGAuthenticatedDomain -Domain 'example.com' -CustomSPF -Confirm:$false } | Should -Throw -ExceptionType ([System.Management.Automation.ParameterBindingException])
 
             $Calls = Get-SgtNetworkCall
@@ -335,6 +335,147 @@ Describe 'New-SGAuthenticatedDomain request' {
             $Calls = Get-SgtNetworkCall
             $Calls.Count | Should -Be 0
         }
+    }
+}
+
+Describe 'New-SGAuthenticatedDomain binding' {
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Reads the syntax without calling Get-SGIPAddress' {
+        Mock -CommandName Get-SGIPAddress -ModuleName SendGridTools -MockWith { throw 'Get-SGIPAddress must not be called' }
+
+        $null = Get-Command -Name New-SGAuthenticatedDomain -Syntax
+
+        Should -Invoke Get-SGIPAddress -ModuleName SendGridTools -Times 0 -Exactly
+    }
+
+    It 'Binds and runs under WhatIf without calling Get-SGIPAddress and sends nothing' {
+        Mock -CommandName Get-SGIPAddress -ModuleName SendGridTools -MockWith { throw 'Get-SGIPAddress must not be called' }
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $null = New-SGAuthenticatedDomain -Domain 'example.com' -WhatIf
+
+            @(Get-SgtNetworkCall).Count | Should -Be 0
+        }
+
+        Should -Invoke Get-SGIPAddress -ModuleName SendGridTools -Times 0 -Exactly
+    }
+
+    It 'Sends both IP addresses in order without calling Get-SGIPAddress' {
+        Mock -CommandName Get-SGIPAddress -ModuleName SendGridTools -MockWith { throw 'Get-SGIPAddress must not be called' }
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $null = New-SGAuthenticatedDomain -Domain 'example.com' -IPAddress '192.0.2.10', '192.0.2.11' -Confirm:$false
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            @(($Calls[0].Body | ConvertFrom-Json).ips) | Should -Be @('192.0.2.10', '192.0.2.11')
+        }
+
+        Should -Invoke Get-SGIPAddress -ModuleName SendGridTools -Times 0 -Exactly
+    }
+
+    It 'Sends an address the account does not offer as it is given' {
+        Mock -CommandName Get-SGIPAddress -ModuleName SendGridTools -MockWith { throw 'Get-SGIPAddress must not be called' }
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $null = New-SGAuthenticatedDomain -Domain 'example.com' -IPAddress '198.51.100.7' -Confirm:$false
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            @(($Calls[0].Body | ConvertFrom-Json).ips) | Should -Be @('198.51.100.7')
+        }
+    }
+
+    It 'Sends no ips without IPAddress' {
+        Mock -CommandName Get-SGIPAddress -ModuleName SendGridTools -MockWith { throw 'Get-SGIPAddress must not be called' }
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $null = New-SGAuthenticatedDomain -Domain 'example.com' -Confirm:$false
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            ($Calls[0].Body | ConvertFrom-Json).PSObject.Properties.Name | Should -Not -Contain 'ips'
+        }
+    }
+
+    It 'Declares IPAddress as an ordinary string array parameter with a completer and no position' {
+        Mock -CommandName Get-SGIPAddress -ModuleName SendGridTools -MockWith { throw 'Get-SGIPAddress must not be called' }
+        $Parameter = (Get-Command -Name New-SGAuthenticatedDomain).Parameters['IPAddress']
+
+        $Parameter.ParameterType | Should -Be ([string[]])
+        @($Parameter.Attributes | Where-Object { $_ -is [System.Management.Automation.ValidateSetAttribute] }).Count | Should -Be 0
+        @($Parameter.Attributes | Where-Object { $_ -is [System.Management.Automation.ArgumentCompleterAttribute] }).Count | Should -Be 1
+        $ParameterAttributes = @($Parameter.Attributes | Where-Object { $_ -is [System.Management.Automation.ParameterAttribute] })
+        $ParameterAttributes.Count | Should -BeGreaterThan 0
+        foreach ($Attribute in $ParameterAttributes) {
+            $Attribute.Position | Should -Be ([int]::MinValue)
+        }
+    }
+
+    It 'Binds a third positional argument to Username and sends no ips' {
+        Mock -CommandName Get-SGIPAddress -ModuleName SendGridTools -MockWith { throw 'Get-SGIPAddress must not be called' }
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $null = New-SGAuthenticatedDomain 'example.com' 'email' 'subuser-placeholder' -Confirm:$false
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Sent = $Calls[0].Body | ConvertFrom-Json
+            $Sent.username | Should -Be 'subuser-placeholder'
+            $Sent.PSObject.Properties.Name | Should -Not -Contain 'ips'
+        }
+    }
+
+    It 'Completes the IP addresses of the account' {
+        Mock -CommandName Get-SGIPAddress -ModuleName SendGridTools -MockWith { [pscustomobject]@{ Ip = '192.0.2.10' }, [pscustomobject]@{ Ip = '192.0.2.11' } }
+        $Completer = (Get-Command -Name New-SGAuthenticatedDomain).Parameters['IPAddress'].Attributes |
+            Where-Object { $_ -is [System.Management.Automation.ArgumentCompleterAttribute] }
+
+        @(& $Completer.ScriptBlock 'New-SGAuthenticatedDomain' 'IPAddress' '' $null @{}) | Should -Be @('192.0.2.10', '192.0.2.11')
+        @(& $Completer.ScriptBlock 'New-SGAuthenticatedDomain' 'IPAddress' '192.0.2.1' $null @{}) | Should -Be @('192.0.2.10', '192.0.2.11')
+        @(& $Completer.ScriptBlock 'New-SGAuthenticatedDomain' 'IPAddress' '192.0.2.11' $null @{}) | Should -Be @('192.0.2.11')
+    }
+
+    It 'Completes nothing and does not throw when Get-SGIPAddress fails' {
+        Mock -CommandName Get-SGIPAddress -ModuleName SendGridTools -MockWith { throw 'Get-SGIPAddress failed' }
+        $Completer = (Get-Command -Name New-SGAuthenticatedDomain).Parameters['IPAddress'].Attributes |
+            Where-Object { $_ -is [System.Management.Automation.ArgumentCompleterAttribute] }
+
+        { $script:Completed = @(& $Completer.ScriptBlock 'New-SGAuthenticatedDomain' 'IPAddress' '' $null @{}) } | Should -Not -Throw
+        $script:Completed.Count | Should -Be 0
+    }
+
+    It 'Offers CustomSPF only with DisableAutomaticSecurity and sends it without calling Get-SGIPAddress' {
+        Mock -CommandName Get-SGIPAddress -ModuleName SendGridTools -MockWith { throw 'Get-SGIPAddress must not be called' }
+        (Get-Command -Name New-SGAuthenticatedDomain).Parameters.Keys | Should -Not -Contain 'CustomSPF'
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $null = New-SGAuthenticatedDomain -Domain 'example.com' -DisableAutomaticSecurity -CustomSPF -Confirm:$false
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            ($Calls[0].Body | ConvertFrom-Json).custom_spf | Should -BeTrue
+        }
+
+        Should -Invoke Get-SGIPAddress -ModuleName SendGridTools -Times 0 -Exactly
     }
 }
 

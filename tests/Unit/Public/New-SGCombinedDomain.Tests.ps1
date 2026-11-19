@@ -9,7 +9,7 @@ BeforeAll {
     Assert-SgtNetworkTripwireActive
     Install-SgtSessionHelper
     $script:Cred = [pscredential]::new('apikey', (ConvertTo-SecureString -String 'test-key-not-real' -AsPlainText -Force))
-    # The authenticated domain command has a DynamicParam block that calls Get-SGIPAddress; answer it in module scope.
+    # The IPAddress completer of the authenticated domain command calls Get-SGIPAddress; answer it in module scope.
     Mock -CommandName Get-SGIPAddress -ModuleName SendGridTools -MockWith { [pscustomobject]@{ Ip = '192.0.2.10' } }
 }
 
@@ -149,6 +149,18 @@ Describe 'New-SGCombinedDomain request' {
             ($Calls[0].Body | ConvertFrom-Json).custom_dkim_selector | Should -Be 'abc'
             "$($Calls[1].Uri)" | Should -BeLike '*/whitelabel/links'
         }
+    }
+
+    It 'Does not call Get-SGIPAddress' {
+        Mock -CommandName Get-SGIPAddress -ModuleName SendGridTools -MockWith { throw 'Get-SGIPAddress must not be called' }
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $null = New-SGCombinedDomain -Domain 'example.com' -Confirm:$false
+        }
+
+        Should -Invoke Get-SGIPAddress -ModuleName SendGridTools -Times 0 -Exactly
     }
 
     It 'Makes no call under WhatIf' {
