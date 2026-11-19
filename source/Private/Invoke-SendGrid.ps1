@@ -90,7 +90,9 @@ function Invoke-SendGrid {
     }
     process {
         if ($PSCmdlet.ShouldProcess("$Method : $Namespace")) {
-            Write-Verbose "Starting process with method: $Method and namespace: $Namespace"
+            # The notes name the path only; the query can hold filter values (D33).
+            $NamespacePath = ($Namespace -split '\?', 2)[0]
+            Write-Verbose "Starting process with method: $Method and namespace: $NamespacePath"
             # Check if session is not a SendGridSession.
             if ($script:Session -isnot [SendGridSession]) {
                 throw 'You must call the Connect-SendGrid cmdlet before calling any other cmdlets.'
@@ -250,16 +252,11 @@ function Invoke-SendGrid {
                     }
                     throw $ErrorText
                 }
-                else {
-                    if (0 -eq @($PSObject.PSObject.Properties).Count) {
-                        Write-Verbose -Message ('Successfully invoked "{0}" on "{1}".' -f $CallingCmdlet, $Namespace)
-                    }
-                    else {
-                        $PSObject
-                    }
+                elseif (0 -ne @($PSObject.PSObject.Properties).Count) {
+                    $PSObject
                 }
             }
-            Write-Verbose -Message ('Successfully invoked "{0}" on "{1}".' -f $CallingCmdlet, $Namespace)
+            Write-Verbose -Message ('Successfully invoked "{0}" on "{1}".' -f $CallingCmdlet, $NamespacePath)
         }
     }
 }
