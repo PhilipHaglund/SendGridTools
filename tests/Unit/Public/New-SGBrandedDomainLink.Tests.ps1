@@ -110,6 +110,7 @@ Describe 'New-SGBrandedDomainLink request' {
             $Calls.Count | Should -Be 1
             $Sent = $Calls[0].Body | ConvertFrom-Json
             $Sent.default | Should -BeTrue
+            @($Sent.PSObject.Properties.Name | Sort-Object) | Should -Be @('default', 'domain')
         }
     }
 
