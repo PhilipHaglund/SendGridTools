@@ -89,6 +89,7 @@
                 $MultipleValues = foreach ($MValue in ($Value -split ',')) {
                     $ModifiedValue = $MValue.Trim() -replace '^''|"|''|"$'
                     $ParsedDate = [DateTime]::Parse($ModifiedValue, [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::AdjustToUniversal)
+                    # Whole seconds on purpose: the query sent before this change dropped the fraction of a second, and the query must stay the same (D34).
                     '"{0}"' -f $ParsedDate.ToString('yyyy-MM-ddTHH:mm:ss.000Z', [System.Globalization.CultureInfo]::InvariantCulture)
                 }
                 if ($MultipleValues.Count -ne 2) {
@@ -107,6 +108,7 @@
                 $MultipleValues = foreach ($MValue in ($Value -split ',')) {
                     $ModifiedValue = $MValue.Trim() -replace '^''|"|''|"$'
                     $ParsedDate = [DateTime]::Parse($ModifiedValue, [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::AdjustToUniversal)
+                    # Whole seconds on purpose: the query sent before this change dropped the fraction of a second, and the query must stay the same (D34).
                     '"{0}"' -f $ParsedDate.ToString('yyyy-MM-ddTHH:mm:ss.000Z', [System.Globalization.CultureInfo]::InvariantCulture)
                 }
                 if ($MultipleValues.Count -ne 2) {
