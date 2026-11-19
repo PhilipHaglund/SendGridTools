@@ -159,6 +159,42 @@ Describe 'Set-SGApiKey ids from the pipeline' {
         }
     }
 }
+
+Describe 'Set-SGApiKey verbose output (D21)' {
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Names the current key in the verbose line' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Mock Get-SGApiKey { [pscustomobject]@{ Name = 'placeholder-name'; Scopes = @('alerts.read') } }
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ name = 'placeholder-name' })
+
+            $Records = Set-SGApiKey -UniqueId 'placeholder-id' -Scopes 'mail.send' -Confirm:$false -Verbose 4>&1
+            $Messages = @($Records | Where-Object { $_ -is [System.Management.Automation.VerboseRecord] } | ForEach-Object { $_.Message })
+
+            $Messages | Should -Contain 'Updating key placeholder-name'
+        }
+    }
+
+    It 'Reads the key before it asks, as before' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Mock Get-SGApiKey { [pscustomobject]@{ Name = 'placeholder-name'; Scopes = @('alerts.read') } }
+            Mock Invoke-SendGrid { }
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+
+            $null = Set-SGApiKey -UniqueId 'placeholder-id' -Scopes 'mail.send' -WhatIf
+
+            Should -Invoke Get-SGApiKey -Times 1 -Exactly
+            Should -Invoke Invoke-SendGrid -Times 0 -Exactly
+        }
+    }
+}
+
 Describe 'Network tripwire' {
     It 'Made no unmocked network call' {
         Assert-SgtNetworkTripwireActive

@@ -120,7 +120,7 @@
             }
             $CurrentKey = Get-SGApiKey @GetSplat
             if ($PSCmdlet.ShouldProcess($Id)) {
-                Write-Verbose -Message ('Updating key {0}' -f $SGApiKey.Name)
+                Write-Verbose -Message ('Updating key {0}' -f $CurrentKey.Name)
 
                 if ($PSBoundParameters.ContainsKey('Scopes')) {
                     [hashtable]$ContentBody = @{
