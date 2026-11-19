@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-11-19
+
 ### Fixed
 
 - `New-SGBrandedDomainLink -Default:$false` no longer asks for a default link and does not set one; before, the switch counted when it was given at all, also with `$false`. The question now goes through the same helper as in `New-SGAuthenticatedDomain`. With the switch set, or without it, the request is as before.
@@ -166,7 +168,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - First release: connect to SendGrid, manage API keys, authenticated domains and branded links, and send mail with `Send-SGMailMessage`.
 
-[Unreleased]: https://github.com/PhilipHaglund/SendGridTools/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/PhilipHaglund/SendGridTools/compare/v0.5.2...HEAD
+[0.5.2]: https://github.com/PhilipHaglund/SendGridTools/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/PhilipHaglund/SendGridTools/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/PhilipHaglund/SendGridTools/compare/v0.4.8...v0.5.0
 [0.4.8]: https://github.com/PhilipHaglund/SendGridTools/compare/33c9a1ff5221e3612aa8357f7ecedfccfd5cc59f...v0.4.8
