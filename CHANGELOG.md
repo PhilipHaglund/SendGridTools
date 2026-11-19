@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Get-SGEmailActivity -Filter` with `-Between` sends the same dates under every culture. Before, a culture that writes the day before the month, such as en-GB or tr-TR, swapped day and month or failed. Under en-US the query is unchanged.
 - A `date` field in an answer is read the same under every culture, for every command. Before, a culture with another calendar, such as th-TH, gave another year. Under en-US the dates are unchanged.
 - Property names in the output are the same under every culture, for every command. Before, the Turkish culture gave `id`, `ip` and `is_enabled` a dotted capital I and no value. Under en-US the names are unchanged.
+- The build's dependency resolution (`Resolve-Dependency.ps1`) stops with an error that names `Microsoft.PowerShell.PSResourceGet` and the cause when PSResourceGet cannot be downloaded, unpacked or imported. Before, it wrote a warning and went on with the legacy PowerShellGet path, which could install the NuGet package provider for the current user and mark `PSGallery` as trusted. When the PSResourceGet bootstrap succeeds the resolution is as before.
 
 ## [0.5.1] - 2026-11-19
 
