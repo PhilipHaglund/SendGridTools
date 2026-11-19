@@ -34,7 +34,7 @@ Describe 'Remove-SGBounce request and error message' {
             $Calls = Get-SgtNetworkCall
             $Calls.Count | Should -Be 1
             $Calls[0].Method | Should -Be 'Delete'
-            "$($Calls[0].Uri)" | Should -BeLike '*/suppression/bounces/one@example.com'
+            $Calls[0].Uri.AbsoluteUri | Should -BeLike '*/suppression/bounces/one%40example.com'
         }
     }
 
@@ -52,6 +52,33 @@ Describe 'Remove-SGBounce request and error message' {
 
             $Caught | Should -Not -BeNullOrEmpty
             $Caught.Exception.Message | Should -BeExactly 'Failed to remove SendGrid bounce "one@example.com". Unable to query SendGrid: sgt-test-transport-text'
+        }
+    }
+}
+
+Describe 'Remove-SGBounce encodes the address in the path (D51)' {
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Encodes <Address> in the path' -ForEach @(
+        @{ Address = 'a+b@example.com'; Expected = 'https://api.sendgrid.com/v3/suppression/bounces/a%2Bb%40example.com' }
+        @{ Address = 'one#tag@example.com'; Expected = 'https://api.sendgrid.com/v3/suppression/bounces/one%23tag%40example.com' }
+        @{ Address = 'one/tag@example.com'; Expected = 'https://api.sendgrid.com/v3/suppression/bounces/one%2Ftag%40example.com' }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Address = $Address; Expected = $Expected } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $null = Remove-SGBounce -EmailAddress $Address -Confirm:$false
+
+            $Calls = @(Get-SgtNetworkCall)
+            $Calls.Count | Should -Be 1
+            $Calls[0].Uri.AbsoluteUri | Should -BeExactly $Expected
+            $Calls[0].Uri.Segments.Count | Should -Be 5
         }
     }
 }
