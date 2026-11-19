@@ -442,8 +442,10 @@ jobs:
         #      be published, and only the tag step would then stop, after the publish:
         #      ReleaseTag.ps1 refuses a tag run whose version has no tag, since this workflow
         #      never creates a v<X.Y.Z> tag.
-        #   2. A stable tag on a commit that is not on main -- created in a checkout sitting on a
-        #      feature branch, say. That publishes unreviewed code as a full release.
+        #   2. A stable tag on a commit that is not main's tip. A commit that is not on main --
+        #      created in a checkout sitting on a feature branch, say -- publishes unreviewed code
+        #      as a full release. An older commit on main (GitHub compares it to main as
+        #      'behind') publishes a full release of code that main has since moved on from.
         #   3. A main run that computes a stable version, after a GitVersion.yml change for example.
         #      A full release comes from a tag and from nothing else.
         #

@@ -145,7 +145,7 @@ BeforeAll {
         #>
         param(
             [hashtable]$Environment = @{},
-            [string]$GhStatus = 'behind',
+            [string]$GhStatus = 'identical',
             [int]$GhExit = 0
         )
         $Variables = @{
