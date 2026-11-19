@@ -36,8 +36,6 @@
         To use this function, you must be connected to a SendGrid instance. Use the Connect-SendGrid function to establish a connection.
         There is a limit of 100 API Keys on your account. Omitting the Scopes field from your request will create a key with "Full Access" permissions by default.
     #>
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidShouldContinueWithoutForce', '', Justification = 'The ShouldContinue prompt only guards a deliberate request (Full Access key or -Default) and is not a -Force bypass; a boolean -Force parameter would add to the public surface and change behaviour, so the repair is deferred.')]
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '', Justification = 'CommandName, ParameterName, CommandAst and FakeBoundParameters are the fixed positional parameters PowerShell passes to an ArgumentCompleter script block; the signature is dictated by the engine and cannot be trimmed.')]
     [CmdletBinding(
         SupportsShouldProcess,
         DefaultParameterSetName = 'Scopes')]
@@ -61,13 +59,9 @@
         )]
         #[ValidateSet([SendGridScopes])] Removed to make it PowerShell 5.1 compatible
         [ArgumentCompleter({
-                param(
-                    [string]$CommandName,
-                    [string]$ParameterName,
-                    [string]$WordToComplete,
-                    $CommandAst,
-                    $FakeBoundParameters
-                )
+                # The engine passes five positional arguments (command name, parameter name, word to complete, command AST and
+                # fake bound parameters); the completer reads only the word to complete, so it declares no parameter it does not use.
+                $WordToComplete = $args[2]
                 $ReturnedValue = [SendGridScopes]::ValidScopes()
 
                 if ($WordToComplete) {

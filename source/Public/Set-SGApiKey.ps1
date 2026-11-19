@@ -31,7 +31,6 @@
 
         This command updates both the name and scopes of the API Key with the specified ID within the current SendGrid instance.
     #>
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '', Justification = 'CommandName, ParameterName, CommandAst and FakeBoundParameters are the fixed positional parameters PowerShell passes to an ArgumentCompleter script block; the signature is dictated by the engine and cannot be trimmed.')]
     [CmdletBinding(
         SupportsShouldProcess
     )]
@@ -61,13 +60,9 @@
         )]
         #[ValidateSet([SendGridScopes])] Removed to make it PowerShell 5.1 compatible
         [ArgumentCompleter({
-                param(
-                    [string]$CommandName,
-                    [string]$ParameterName,
-                    [string]$WordToComplete,
-                    $CommandAst,
-                    $FakeBoundParameters
-                )
+                # The engine passes five positional arguments (command name, parameter name, word to complete, command AST and
+                # fake bound parameters); the completer reads only the word to complete, so it declares no parameter it does not use.
+                $WordToComplete = $args[2]
                 $ReturnedValue = [SendGridScopes]::ValidScopes()
 
                 if ($WordToComplete) {

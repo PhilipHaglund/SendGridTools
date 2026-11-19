@@ -68,8 +68,6 @@
     .NOTES
         To use this function, you must be connected to a SendGrid instance. Use the Connect-SendGrid function to establish a connection.
     #>
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidShouldContinueWithoutForce', '', Justification = 'The ShouldContinue prompt, reached through Confirm-SendGridContinue, only asks before -Default replaces the current default domain and is not a -Force bypass; a -Force parameter would add to the public surface, so it waits for a later minor release.')]
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '', Justification = 'CommandName, ParameterName, CommandAst and FakeBoundParameters are the fixed positional parameters PowerShell passes to an ArgumentCompleter script block; the signature is dictated by the engine and cannot be trimmed.')]
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseLiteralInitializerForHashtable', '', Justification = '[hashtable]::new() creates a case-sensitive table while @{} is case-insensitive; the two are not interchangeable in general, so changing the initializer could change behaviour and is deferred.')]
     [CmdletBinding(
         SupportsShouldProcess
@@ -121,13 +119,9 @@
         # Specifies one or more IP addresses of the account to associate with the domain. Tab completion offers the addresses of the account.
         [Parameter()]
         [ArgumentCompleter({
-                param(
-                    [string]$CommandName,
-                    [string]$ParameterName,
-                    [string]$WordToComplete,
-                    $CommandAst,
-                    $FakeBoundParameters
-                )
+                # The engine passes five positional arguments (command name, parameter name, word to complete, command AST and
+                # fake bound parameters); the completer reads only the word to complete, so it declares no parameter it does not use.
+                $WordToComplete = $args[2]
                 try {
                     $ReturnedValue = (Get-SGIPAddress -ErrorAction Stop).Ip
                 }
