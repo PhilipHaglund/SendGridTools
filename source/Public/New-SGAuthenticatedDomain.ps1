@@ -42,6 +42,9 @@
     .PARAMETER IPAddress
         Specifies one or more IP addresses of the account to associate with the domain. Tab completion offers the addresses of the account; SendGrid decides whether an address belongs to the account.
 
+    .PARAMETER Force
+        Specifies that the question before -Default replaces the current default domain is not asked, so a script without a console can set a default domain. -Force does not change -WhatIf or -Confirm.
+
     .EXAMPLE
         PS C:\> New-SGAuthenticatedDomain -Domain 'example.com' -SendGridSubdomain 'email'
 
@@ -138,7 +141,11 @@
                 else {
                     $ReturnedValue
                 } })]
-        [string[]]$IPAddress
+        [string[]]$IPAddress,
+
+        # Specifies that the question before -Default replaces the current default domain is not asked. -WhatIf and -Confirm work as without it.
+        [Parameter()]
+        [switch]$Force
     )
     DynamicParam {
         $ParamDictionary = [System.Management.Automation.RuntimeDefinedParameterDictionary]::new()
@@ -207,7 +214,7 @@
     }
     process {
         if ($PSCmdlet.ShouldProcess($ProcessMessage)) {
-            if ($Default.IsPresent -and (Confirm-SendGridContinue -Cmdlet $PSCmdlet -Query $Domain -Caption 'Setting this domain as the default domain will remove the current default domain. Do you want to continue?')) {
+            if ($Default.IsPresent -and ($Force -or (Confirm-SendGridContinue -Cmdlet $PSCmdlet -Query $Domain -Caption 'Setting this domain as the default domain will remove the current default domain. Do you want to continue?'))) {
                 $ContentBody.Add('default', $true)
             }
             try {

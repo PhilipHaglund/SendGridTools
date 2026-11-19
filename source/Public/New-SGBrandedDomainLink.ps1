@@ -21,6 +21,9 @@
     .PARAMETER OnBehalfOf
         Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
 
+    .PARAMETER Force
+        Specifies that the question before -Default replaces the current default branded link is not asked, so a script without a console can set a default branded link. -Force does not change -WhatIf or -Confirm.
+
     .EXAMPLE
         PS C:\> New-SGBrandedDomainLink -Domain 'example.com' -SendGridSubDomain 'link'
 
@@ -59,7 +62,11 @@
 
         # Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
         [Parameter()]
-        [string]$OnBehalfOf
+        [string]$OnBehalfOf,
+
+        # Specifies that the question before -Default replaces the current default branded link is not asked. -WhatIf and -Confirm work as without it.
+        [Parameter()]
+        [switch]$Force
     )
 
     begin {
@@ -88,7 +95,7 @@
     }
     process {
         if ($PSCmdlet.ShouldProcess($ProcessMessage)) {
-            if ($Default.IsPresent -and (Confirm-SendGridContinue -Cmdlet $PSCmdlet -Query $Domain -Caption 'Setting this domain as the default domain will remove the current default domain. Do you want to continue?')) {
+            if ($Default.IsPresent -and ($Force -or (Confirm-SendGridContinue -Cmdlet $PSCmdlet -Query $Domain -Caption 'Setting this domain as the default domain will remove the current default domain. Do you want to continue?'))) {
                 $ContentBody.Add('default', $true)
             }
             try {
