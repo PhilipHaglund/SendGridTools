@@ -98,6 +98,25 @@ Describe 'New-SGAuthenticatedDomain request' {
         }
     }
 
+    It 'Sends the same body for the SubUser alias as for Username' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $null = New-SGAuthenticatedDomain -Domain 'example.com' -Username 'subuser-placeholder' -Confirm:$false
+            $null = New-SGAuthenticatedDomain -Domain 'example.com' -SubUser 'subuser-placeholder' -Confirm:$false
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 2
+            foreach ($Call in $Calls) {
+                $Sent = $Call.Body | ConvertFrom-Json
+                @($Sent.PSObject.Properties.Name | Sort-Object) | Should -Be @('automatic_security', 'domain', 'username')
+                $Sent.username | Should -Be 'subuser-placeholder'
+            }
+            $Calls[1].Body | Should -Be $Calls[0].Body
+        }
+    }
+
     It 'Sends automatic security as false when it is disabled' {
         InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
             $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
