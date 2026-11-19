@@ -363,6 +363,38 @@ Describe 'Invoke-SendGrid gives one text for errors (D16)' {
     }
 }
 
+Describe 'Invoke-SendGrid writes its note only with -Verbose (D19)' {
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Writes "Successfully invoked" for an empty object only with -Verbose' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{})
+            $Message = 'Successfully invoked "sgt-test-caller" on "things".'
+
+            # A module function reads the global preference, so set both and restore the global one.
+            $SavedVerbose = $global:VerbosePreference
+            try {
+                $global:VerbosePreference = 'SilentlyContinue'
+                $VerbosePreference = 'SilentlyContinue'
+                $Without = @(& { Invoke-SendGrid -Method Get -Namespace 'things' -CallingCmdlet 'sgt-test-caller' } 4>&1 | Where-Object { $_ -is [System.Management.Automation.VerboseRecord] })
+                $With = @(& { Invoke-SendGrid -Method Get -Namespace 'things' -CallingCmdlet 'sgt-test-caller' -Verbose } 4>&1 | Where-Object { $_ -is [System.Management.Automation.VerboseRecord] })
+            }
+            finally {
+                $global:VerbosePreference = $SavedVerbose
+            }
+
+            $Without.Count | Should -Be 0
+            @($With | Where-Object { $_.Message -ceq $Message }).Count | Should -BeGreaterThan 0
+        }
+    }
+}
+
 Describe 'Network tripwire' {
     It 'Made no unmocked network call' {
         Assert-SgtNetworkTripwireActive

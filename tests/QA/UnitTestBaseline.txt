@@ -10,7 +10,6 @@ Get-SGBounceByClassification
 Get-SGBouncePurgeSetting
 Get-SGBrandedDomainLink
 Get-SGDesign
-Get-SGEmailActivity
 Get-SGForwardBounceSetting
 Get-SGForwardSpamSetting
 Get-SGGlobalSuppression

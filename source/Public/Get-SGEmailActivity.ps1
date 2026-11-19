@@ -612,7 +612,7 @@
             }
 
             $null = $FilterQuery.Append(')')
-            Write-Verbose -Message ("Filter Query: $($FilterQuery.ToString())")
+            Write-Verbose -Message ('Filter Query: Property: {0}, Operator: {1}' -f $Property, $UsedOperator)
             $EncodedFilter = $FilterQuery.ToString()
         }
         #Generic List for Query Parameters
