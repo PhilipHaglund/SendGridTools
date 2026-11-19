@@ -208,6 +208,7 @@ Describe 'New-SGBrandedDomainLink verbose messages' {
         }
     }
 }
+
 Describe 'New-SGBrandedDomainLink -Force' {
     BeforeAll {
         . (Join-Path -Path $PSScriptRoot -ChildPath '../Support/PromptCountingHost.ps1')

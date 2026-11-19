@@ -535,6 +535,7 @@ Describe 'New-SGAuthenticatedDomain verbose messages' {
         }
     }
 }
+
 Describe 'New-SGAuthenticatedDomain -Force' {
     BeforeAll {
         . (Join-Path -Path $PSScriptRoot -ChildPath '../Support/PromptCountingHost.ps1')

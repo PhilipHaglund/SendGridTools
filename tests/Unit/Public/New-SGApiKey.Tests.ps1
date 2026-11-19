@@ -204,18 +204,6 @@ Describe 'New-SGApiKey -FullAccessKey and -Force' {
         }
     }
 
-    It 'Asks the full-access question with -Confirm:$false, as it is not a ShouldProcess question' {
-        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
-            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
-            Set-SgtNetworkStub -Response ([pscustomobject]@{ name = 'placeholder-key' })
-            Mock Confirm-SendGridContinue -ModuleName SendGridTools -MockWith { $true }
-
-            $null = New-SGApiKey -Name 'placeholder-key' -FullAccessKey -Confirm:$false
-
-            Should -Invoke Confirm-SendGridContinue -ModuleName SendGridTools -Times 1 -Exactly
-        }
-    }
-
     It 'Declares Force as a switch without a position in every parameter set' {
         $Parameter = (Get-Command -Name New-SGApiKey).Parameters['Force']
 

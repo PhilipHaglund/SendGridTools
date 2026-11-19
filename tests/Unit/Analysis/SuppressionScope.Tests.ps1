@@ -30,7 +30,7 @@ Describe 'Analyzer suppressions are narrow' {
         @($Found).Count | Should -Be 0
     }
 
-    It 'Has no function-wide suppression of those two rules in <Name>' -ForEach $script:AllFiles {
+    It 'Has no suppression of those two rules in <Name>' -ForEach $script:AllFiles {
         (Get-Content -LiteralPath $Path -Raw) | Should -Not -Match '(?is)SuppressMessage(Attribute)?\s*\(\s*[''"](PSReviewUnusedParameter|PSAvoidShouldContinueWithoutForce)[''"]'
     }
 
