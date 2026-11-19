@@ -66,7 +66,10 @@ BeforeAll {
         scalar (a key whose value is | or >, with an optional - or +) is content, not a comment,
         even when it starts with #, since GitHub expands an expression in it; such a line is read
         like any code line. A block holds every following line that is blank or indented deeper
-        than its key (for "- key: |" the key stands after the dash).
+        than its key (for "- key: |" the key stands after the dash). A line that is not a comment
+        and holds the word secrets is a finding too when some occurrence is not secrets.GITHUB_TOKEN
+        or secrets.GALLERYAPITOKEN, since toJSON(secrets), a computed index or a similar reference
+        hands the gallery key over without naming it.
         #>
         param([string]$Text)
         $Lines = $Text -split '\r?\n'
@@ -111,6 +114,11 @@ BeforeAll {
             }
             if (-not $InBlock -and $Line -match '^(\s*)(- )?[A-Za-z_][\w-]*:\s*[|>][-+]?\s*$') {
                 $BlockIndent = $Matches[1].Length + $(if ($Matches[2]) { 2 } else { 0 })
+            }
+            $SecretsWord = [regex]::Matches($Line, '(?i)\bsecrets\b').Count
+            $NamedSecret = [regex]::Matches($Line, '(?i)\bsecrets\s*\.\s*(GITHUB_TOKEN|GALLERYAPITOKEN)\b').Count
+            if ($SecretsWord -gt $NamedSecret) {
+                $Findings.Add(('line {0}: refers to secrets without naming GITHUB_TOKEN or GALLERYAPITOKEN' -f ($Index + 1)))
             }
             if ($Line -notmatch 'GALLERYAPITOKEN') { continue }
             $Number = $Index + 1
@@ -344,6 +352,11 @@ Describe 'build-and-test.yml' -Skip:$script:OnDesktop {
                 Case = 'a # line in a run block of build-and-test names it'
                 Old  = "        run: ./build.ps1 -Tasks build"
                 New  = "        run: |`n          # `${{ secrets.GALLERYAPITOKEN }}`n          ./build.ps1 -Tasks build"
+            }
+            @{
+                Case = 'a step of build-and-test hands it all the secrets'
+                Old  = "        run: ./build.ps1 -Tasks build"
+                New  = "        env:`n          ALL_SECRETS: `${{ toJSON(secrets) }}`n        run: ./build.ps1 -Tasks build"
             }
             @{
                 Case = 'the mapping is removed'
