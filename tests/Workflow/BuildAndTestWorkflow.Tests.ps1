@@ -62,7 +62,11 @@ BeforeAll {
         top-level key, the job (a two-space key under jobs:) and the step (a line that starts
         with six spaces and a dash; a four-space key of the job ends it). The secret is matched
         without regard to case, since GitHub expressions are. Each finding names the line number
-        and the reason. Nothing is returned when the text keeps the rule.
+        and the reason. Nothing is returned when the text keeps the rule. A line inside a block
+        scalar (a key whose value is | or >, with an optional - or +) is content, not a comment,
+        even when it starts with #, since GitHub expands an expression in it; such a line is read
+        like any code line. A block holds every following line that is blank or indented deeper
+        than its key (for "- key: |" the key stands after the dash).
         #>
         param([string]$Text)
         $Lines = $Text -split '\r?\n'
@@ -73,10 +77,20 @@ BeforeAll {
         $Job = ''
         $StepLine = 0
         $StepName = ''
+        $BlockIndent = -1
         for ($Index = 0; $Index -lt $Lines.Count; $Index++) {
             $Line = $Lines[$Index]
-            if ($Line -match '^\s*$' -or $Line -match '^\s*#') { continue }
-            if ($Line -match '^(\S[^:]*):') {
+            $InBlock = $false
+            if ($BlockIndent -ge 0) {
+                if ($Line -match '^\s*$') { continue }
+                if (($Line.Length - $Line.TrimStart().Length) -gt $BlockIndent) { $InBlock = $true }
+                else { $BlockIndent = -1 }
+            }
+            if (-not $InBlock -and ($Line -match '^\s*$' -or $Line -match '^\s*#')) { continue }
+            if ($InBlock) {
+                # Content of a block scalar: not a comment and not a key, so no structure is read from it.
+            }
+            elseif ($Line -match '^(\S[^:]*):') {
                 $TopKey = $Matches[1]
                 $Job = ''
                 $StepLine = 0
@@ -94,6 +108,9 @@ BeforeAll {
             elseif ($Line -match '^    \S') {
                 $StepLine = 0
                 $StepName = ''
+            }
+            if (-not $InBlock -and $Line -match '^(\s*)(- )?[A-Za-z_][\w-]*:\s*[|>][-+]?\s*$') {
+                $BlockIndent = $Matches[1].Length + $(if ($Matches[2]) { 2 } else { 0 })
             }
             if ($Line -notmatch 'GALLERYAPITOKEN') { continue }
             $Number = $Index + 1
@@ -322,6 +339,11 @@ Describe 'build-and-test.yml' -Skip:$script:OnDesktop {
                 After = '- name: Publish to the PowerShell Gallery'
                 Old   = "          `$ModuleName = 'SendGridTools'"
                 New   = "          `$ModuleName = 'SendGridTools'`n          Write-Host '`${{ secrets.galleryapitoken }}'"
+            }
+            @{
+                Case = 'a # line in a run block of build-and-test names it'
+                Old  = "        run: ./build.ps1 -Tasks build"
+                New  = "        run: |`n          # `${{ secrets.GALLERYAPITOKEN }}`n          ./build.ps1 -Tasks build"
             }
             @{
                 Case = 'the mapping is removed'
