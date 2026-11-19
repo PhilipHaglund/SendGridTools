@@ -47,8 +47,9 @@ Describe 'Get-SGEmailActivity verbose output and query (D18)' {
             $Calls.Count | Should -Be 1
             $Calls[0].Uri.OriginalString | Should -BeExactly 'https://api.sendgrid.com/v3/messages?limit=10&query=(to_email %3D %22one%40example.com%22)'
             @($Messages | Where-Object { $_ -ceq 'Filter Query: Property: ToEmail, Operator: =' }).Count | Should -Be 1
-            # Two notes of Invoke-SendGrid ("Starting process with method", "Successfully invoked") name the namespace with the query; it is outside D18's listed texts and is reported as a finding.
-            foreach ($Line in @($Messages | Where-Object { $_ -notlike 'Starting process with method:*' -and $_ -notlike 'Successfully invoked*' })) {
+            @($Messages | Where-Object { $_ -ceq 'Starting process with method: Get and namespace: messages' }).Count | Should -Be 1
+            @($Messages | Where-Object { $_ -ceq 'Successfully invoked "Get-SGEmailActivity" on "messages".' }).Count | Should -Be 1
+            foreach ($Line in $Messages) {
                 $Line | Should -Not -BeLike '*one@example.com*'
                 $Line | Should -Not -BeLike '*one%40example*'
                 $Line | Should -Not -BeLike '*query=*'
@@ -73,10 +74,12 @@ Describe 'Get-SGEmailActivity verbose output and query (D18)' {
             $Calls.Count | Should -Be 1
             $Calls[0].Uri.OriginalString | Should -BeExactly 'https://api.sendgrid.com/v3/messages?limit=10&query=(to_email%3D%22one%40example.com%22)'
             ($Messages -join "`n") | Should -Match 'Property: to_email, Operator: -eq'
-            # Two notes of Invoke-SendGrid ("Starting process with method", "Successfully invoked") name the namespace with the query; it is outside D18's listed texts and is reported as a finding.
-            foreach ($Line in @($Messages | Where-Object { $_ -notlike 'Starting process with method:*' -and $_ -notlike 'Successfully invoked*' })) {
+            @($Messages | Where-Object { $_ -ceq 'Starting process with method: Get and namespace: messages' }).Count | Should -Be 1
+            @($Messages | Where-Object { $_ -ceq 'Successfully invoked "Get-SGEmailActivity" on "messages".' }).Count | Should -Be 1
+            foreach ($Line in $Messages) {
                 $Line | Should -Not -BeLike '*one@example.com*'
                 $Line | Should -Not -BeLike '*one%40example*'
+                $Line | Should -Not -BeLike '*query=*'
             }
         }
     }
