@@ -180,9 +180,6 @@
         if ($PSBoundParameters.ContainsKey('CustomDkimSelector')) {
             $ContentBody.Add('custom_dkim_selector', $CustomDkimSelector)
         }
-        if ($PSBoundParameters.ContainsKey('SubUser')) {
-            $ContentBody.Add('username', $SubUser)
-        }
         if ($DisableAutomaticSecurity.IsPresent) {
             $ContentBody.Add('automatic_security', $false)
         }
