@@ -83,6 +83,105 @@ Describe 'Remove-SGSpamReport encodes the address in the path (D51)' {
     }
 }
 
+Describe 'Remove-SGSpamReport rejects an object without an address (D64)' {
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Throws and sends nothing for <Name>' -ForEach @(
+        @{ Name = 'an object without Email'; Value = ([pscustomobject]@{ Name = 'placeholder' }) }
+        @{ Name = 'an object with an empty Email'; Value = ([pscustomobject]@{ Email = '' }) }
+        @{ Name = 'an object with a null Email'; Value = ([pscustomobject]@{ Email = $null }) }
+        @{ Name = 'an object with a whitespace Email'; Value = ([pscustomobject]@{ Email = '  ' }) }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Value = $Value } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $Caught = $null
+            try {
+                $null = $Value | Remove-SGSpamReport -Confirm:$false -ErrorAction Continue
+            } catch {
+                $Caught = $_
+            }
+
+            $Caught | Should -Not -BeNullOrEmpty
+            $Caught.Exception.Message | Should -BeExactly 'InputObject has no Email property; pass an email address or an object with an Email property.'
+            (Get-SgtNetworkCall).Count | Should -Be 0
+        }
+    }
+
+    It 'Sends one Delete for a piped string' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $null = 'a+b@example.com' | Remove-SGSpamReport -Confirm:$false -ErrorAction Stop
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Calls[0].Method | Should -Be 'Delete'
+            $Calls[0].Uri.AbsoluteUri | Should -BeExactly 'https://api.sendgrid.com/v3/suppression/spam_reports/a%2Bb%40example.com'
+        }
+    }
+
+    It 'Sends one Delete for a piped object with Email' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $null = [pscustomobject]@{ Email = 'a+b@example.com' } | Remove-SGSpamReport -Confirm:$false -ErrorAction Stop
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Calls[0].Method | Should -Be 'Delete'
+            $Calls[0].Uri.AbsoluteUri | Should -BeExactly 'https://api.sendgrid.com/v3/suppression/spam_reports/a%2Bb%40example.com'
+        }
+    }
+
+    It 'Stops at the object without an address after sending the first Delete' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $Caught = $null
+            try {
+                $null = 'one@example.com', [pscustomobject]@{ Name = 'placeholder' }, 'two@example.com' | Remove-SGSpamReport -Confirm:$false -ErrorAction Continue
+            } catch {
+                $Caught = $_
+            }
+
+            $Caught | Should -Not -BeNullOrEmpty
+            $Caught.Exception.Message | Should -BeExactly 'InputObject has no Email property; pass an email address or an object with an Email property.'
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Calls[0].Method | Should -Be 'Delete'
+            $Calls[0].Uri.AbsoluteUri | Should -BeExactly 'https://api.sendgrid.com/v3/suppression/spam_reports/one%40example.com'
+        }
+    }
+
+    It 'Throws and sends nothing for a piped int' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $Caught = $null
+            try {
+                $null = 42 | Remove-SGSpamReport -Confirm:$false -ErrorAction Continue
+            } catch {
+                $Caught = $_
+            }
+
+            $Caught | Should -Not -BeNullOrEmpty
+            $Caught.Exception.Message | Should -BeExactly 'Failed to convert InputObject to an email address.'
+            (Get-SgtNetworkCall).Count | Should -Be 0
+        }
+    }
+}
+
 Describe 'Network tripwire' {
     It 'Made no unmocked network call' {
         Assert-SgtNetworkTripwireActive

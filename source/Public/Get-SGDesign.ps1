@@ -9,13 +9,13 @@
         This function does not return the pre-built Twilio SendGrid designs.
 
     .PARAMETER PageSize
-        Specifies the number of results to return. The default is 100.
+        Specifies the number of results to return. The value is sent only when the parameter is given with a value other than 0; without it SendGrid returns its default page size of 100.
 
     .PARAMETER PageToken
         Specifies the token corresponding to a specific page of results, as provided by metadata.
 
     .PARAMETER Summary
-        Set to false to return all fields. The default is true.
+        Sends summary=true when given, or summary=false with -Summary:$false to return all fields. Without the parameter no summary value is sent and SendGrid applies its default, which returns the summary fields.
 
     .EXAMPLE
         PS C:\> Get-SGDesign -PageSize 50 -PageToken 'token'
@@ -51,13 +51,13 @@
         [System.Collections.Generic.List[string]]$QueryParameters = [System.Collections.Generic.List[string]]::new()
 
         if ($PSBoundParameters.PageSize) {
-            $QueryParameters.Add("page_size=$($PageSize))")
+            $QueryParameters.Add("page_size=$($PageSize)")
         }
         if ($PSBoundParameters.PageToken) {
-            $QueryParameters.Add("page_token=$($PageToken)")
+            $QueryParameters.Add('page_token=' + [uri]::EscapeDataString($PageToken))
         }
-        if ($PSBoundParameters.Summary) {
-            $QueryParameters.Add("summary=$($Summary.IsPresent)")
+        if ($PSBoundParameters.ContainsKey('Summary')) {
+            $QueryParameters.Add('summary=' + ([string]$Summary.IsPresent).ToLowerInvariant())
         }
 
         if ($QueryParameters.Count) {

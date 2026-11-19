@@ -73,8 +73,15 @@
             foreach ($Object in $InputObject) {
                 switch ($Object) {
                     { $_ -is [string] } { $EmailAddress += $_; break }
-                    { $_ -is [System.Management.Automation.PSCustomObject] } { $EmailAddress += $_.Email; break }
-                    default { Write-Error ('Failed to convert InputObject to Id.') -ErrorAction Stop }
+                    { $_ -is [System.Management.Automation.PSCustomObject] } {
+                        $EmailProperty = $_.PSObject.Properties['Email']
+                        if ($null -eq $EmailProperty -or [string]::IsNullOrWhiteSpace([string]$EmailProperty.Value)) {
+                            Write-Error ('InputObject has no Email property; pass an email address or an object with an Email property.') -ErrorAction Stop
+                        }
+                        $EmailAddress += $EmailProperty.Value
+                        break
+                    }
+                    default { Write-Error ('Failed to convert InputObject to an email address.') -ErrorAction Stop }
                 }
             }
         }
