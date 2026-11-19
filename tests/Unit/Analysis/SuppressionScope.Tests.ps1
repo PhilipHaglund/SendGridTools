@@ -31,7 +31,7 @@ Describe 'Analyzer suppressions are narrow' {
     }
 
     It 'Has no function-wide suppression of those two rules in <Name>' -ForEach $script:AllFiles {
-        (Get-Content -LiteralPath $Path -Raw) | Should -Not -Match "SuppressMessageAttribute\('(PSReviewUnusedParameter|PSAvoidShouldContinueWithoutForce)'"
+        (Get-Content -LiteralPath $Path -Raw) | Should -Not -Match '(?is)SuppressMessage(Attribute)?\s*\(\s*[''"](PSReviewUnusedParameter|PSAvoidShouldContinueWithoutForce)[''"]'
     }
 
     # The analysed text is changed in memory only; the source file on disk is never written.

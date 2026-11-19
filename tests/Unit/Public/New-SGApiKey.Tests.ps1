@@ -166,7 +166,13 @@ Describe 'New-SGApiKey -FullAccessKey and -Force' {
         }
     }
 
-    It 'Sends the same body with -Force as with the answer yes as the answer yes with -Force' {
+    It 'Has an example in its help that uses -Force' {
+        $Text = [System.IO.File]::ReadAllText((Join-Path -Path $PSScriptRoot -ChildPath '../../../source/Public/New-SGApiKey.ps1'))
+        $Help = [regex]::Match($Text, '<#[\s\S]*?#>').Value
+        $Help | Should -Match '\.EXAMPLE\s+PS C:\\> [^\r\n]*-Force'
+    }
+
+    It 'Sends the same body with -Force as after the answer yes' {
         InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
             $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
             Set-SgtNetworkStub -Response ([pscustomobject]@{ name = 'placeholder-key' })

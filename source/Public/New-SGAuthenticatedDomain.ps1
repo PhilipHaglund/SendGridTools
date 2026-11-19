@@ -37,13 +37,18 @@
         Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
 
     .PARAMETER Default
-        Specifies if the domain should be the default one for the SendGrid instance.
+        Specifies if the domain should be the default one for the SendGrid instance. The current default is replaced, so a confirmation prompt is shown; use -Force to skip it.
 
     .PARAMETER IPAddress
         Specifies one or more IP addresses of the account to associate with the domain. Tab completion offers the addresses of the account; SendGrid decides whether an address belongs to the account.
 
     .PARAMETER Force
         Specifies that the question before -Default replaces the current default domain is not asked, so a script without a console can set a default domain. -Force does not change -WhatIf or -Confirm.
+
+    .EXAMPLE
+        PS C:\> New-SGAuthenticatedDomain -Domain 'example.com' -SendGridSubdomain 'email' -Default -Force
+
+        Adds the authenticated domain 'email.example.com' and makes it the default domain without asking first, for example in a script that runs without a console. -WhatIf still shows the domain without adding it.
 
     .EXAMPLE
         PS C:\> New-SGAuthenticatedDomain -Domain 'example.com' -SendGridSubdomain 'email'

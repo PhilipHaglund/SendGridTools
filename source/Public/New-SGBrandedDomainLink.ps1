@@ -16,13 +16,18 @@
         Specifies an optional subdomain to be used. Use when you don't want SendGrid to automatically generate a subdomain like url1234.
 
     .PARAMETER Default
-        Specifies that the new branded domain link becomes the default one for the SendGrid instance. The current default is replaced, so a confirmation prompt is shown.
+        Specifies that the new branded domain link becomes the default one for the SendGrid instance. The current default is replaced, so a confirmation prompt is shown. Use -Force to skip that prompt.
 
     .PARAMETER OnBehalfOf
         Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
 
     .PARAMETER Force
         Specifies that the question before -Default replaces the current default branded link is not asked, so a script without a console can set a default branded link. -Force does not change -WhatIf or -Confirm.
+
+    .EXAMPLE
+        PS C:\> New-SGBrandedDomainLink -Domain 'example.com' -SendGridSubDomain 'link' -Default -Force
+
+        Adds the branded link 'link.example.com' and makes it the default branded link without asking first, for example in a script that runs without a console. -WhatIf still shows the link without adding it.
 
     .EXAMPLE
         PS C:\> New-SGBrandedDomainLink -Domain 'example.com' -SendGridSubDomain 'link'

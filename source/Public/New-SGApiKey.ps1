@@ -32,6 +32,11 @@
 
         Creates a new full access API key with the name 'MyFullAccessKey'. This asks before the key is created; -WhatIf shows the key without asking or creating it.
 
+    .EXAMPLE
+        PS C:\> New-SGApiKey -Name 'MyFullAccessKey' -FullAccessKey -Force
+
+        Creates a full access API key named 'MyFullAccessKey' without asking first. Use -WhatIf to see the key that would be created, without creating it.
+
     .NOTES
         To use this function, you must be connected to a SendGrid instance. Use the Connect-SendGrid function to establish a connection.
         There is a limit of 100 API Keys on your account. Omitting the Scopes field from your request will create a key with "Full Access" permissions by default.
