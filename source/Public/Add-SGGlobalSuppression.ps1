@@ -59,7 +59,7 @@
                     Invoke-SendGrid @InvokeSplat
                 }
                 catch {
-                    Write-Error ('Failed to add email address "{0}" to the global suppressions list. {0}' -f $Email.Address, $_.Exception.Message) -ErrorAction Stop
+                    Write-Error ('Failed to add email address "{0}" to the global suppressions list. {1}' -f $Email.Address, $_.Exception.Message) -ErrorAction Stop
                 }
             }
         }

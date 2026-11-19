@@ -113,7 +113,7 @@
                         Invoke-SendGrid @InvokeSplat
                     }
                     catch {
-                        Write-Error ('Failed to remove SendGrid bounce "{0}". {0}' -f $Id.Address, $_.Exception.Message) -ErrorAction Stop
+                        Write-Error ('Failed to remove SendGrid bounce "{0}". {1}' -f $Id.Address, $_.Exception.Message) -ErrorAction Stop
                     }
                 }
             }

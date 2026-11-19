@@ -1,5 +1,4 @@
 Add-SGEmailAddressToSuppressionGroup
-Add-SGGlobalSuppression
 Disable-SGSubuser
 Disconnect-SendGrid
 Enable-SGSubuser
@@ -25,10 +24,6 @@ Get-SGTeammate
 New-SGAlert
 New-SGApiKey
 New-SGSuppressionGroup
-Remove-SGBlock
-Remove-SGBounce
-Remove-SGInvalidEmail
-Remove-SGSpamReport
 Remove-SGSubuser
 Send-SGMailMessage
 Set-SGAlert
