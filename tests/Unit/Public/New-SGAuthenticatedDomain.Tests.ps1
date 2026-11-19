@@ -362,7 +362,8 @@ Describe 'New-SGAuthenticatedDomain binding' {
 
             $null = New-SGAuthenticatedDomain -Domain 'example.com' -WhatIf
 
-            @(Get-SgtNetworkCall).Count | Should -Be 0
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 0
         }
 
         Should -Invoke Get-SGIPAddress -ModuleName SendGridTools -Times 0 -Exactly
@@ -443,7 +444,9 @@ Describe 'New-SGAuthenticatedDomain binding' {
     }
 
     It 'Completes the IP addresses of the account' {
+        # The completer script block is not bound to the module session state, so mock the command in both scopes.
         Mock -CommandName Get-SGIPAddress -ModuleName SendGridTools -MockWith { [pscustomobject]@{ Ip = '192.0.2.10' }, [pscustomobject]@{ Ip = '192.0.2.11' } }
+        Mock -CommandName Get-SGIPAddress -MockWith { [pscustomobject]@{ Ip = '192.0.2.10' }, [pscustomobject]@{ Ip = '192.0.2.11' } }
         $Completer = (Get-Command -Name New-SGAuthenticatedDomain).Parameters['IPAddress'].Attributes |
             Where-Object { $_ -is [System.Management.Automation.ArgumentCompleterAttribute] }
 
@@ -454,6 +457,7 @@ Describe 'New-SGAuthenticatedDomain binding' {
 
     It 'Completes nothing and does not throw when Get-SGIPAddress fails' {
         Mock -CommandName Get-SGIPAddress -ModuleName SendGridTools -MockWith { throw 'Get-SGIPAddress failed' }
+        Mock -CommandName Get-SGIPAddress -MockWith { throw 'Get-SGIPAddress failed' }
         $Completer = (Get-Command -Name New-SGAuthenticatedDomain).Parameters['IPAddress'].Attributes |
             Where-Object { $_ -is [System.Management.Automation.ArgumentCompleterAttribute] }
 
