@@ -44,8 +44,9 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  # A superseded pull-request run is cancelled; a run on main is never cut short, so every merged
-  # commit keeps a completed check.
+  # A superseded pull-request run is cancelled. A run on main is not cancelled while it runs, but a
+  # run on main that is still waiting in this group is replaced when a newer one arrives, so a merged
+  # commit whose run never started gets no completed check of its own.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
