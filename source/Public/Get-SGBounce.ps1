@@ -140,17 +140,11 @@
             $QueryParameters.Add("offset=$offset")
         }
 
-        if ($QueryParameters.Count -gt 0 -or $PSBoundParameters.EmailAddress) {
-            $InvokeSplat['Namespace'] += '?' + ($QueryParameters -join '&')
-        }
-
         if ($PSBoundParameters.EmailAddress) {
             foreach ($Email in $EmailAddress) {
+                $EmailQuery = @($QueryParameters) + ('email={0}' -f [uri]::EscapeDataString($Email.Address))
                 $EmailInvokeSplat = $InvokeSplat.Clone()
-                $EmailInvokeSplat['Namespace'] += "&email=$($Email.Address)"
-                if ($EmailInvokeSplat['Namespace'] -match ('\?\&email=')) {
-                    $EmailInvokeSplat['Namespace'] = $EmailInvokeSplat['Namespace'].Replace('?&email=', '?email=')
-                }
+                $EmailInvokeSplat['Namespace'] += '?' + ($EmailQuery -join '&')
                 try {
                     Invoke-SendGrid @EmailInvokeSplat
                 }
@@ -160,6 +154,9 @@
             }
         }
         else {
+            if ($QueryParameters.Count -gt 0) {
+                $InvokeSplat['Namespace'] += '?' + ($QueryParameters -join '&')
+            }
             try {
                 Invoke-SendGrid @InvokeSplat
             }
