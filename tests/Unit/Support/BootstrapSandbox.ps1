@@ -34,8 +34,19 @@ function Invoke-SgtBootstrapInSandbox {
 
     # A stderr line from the child under 2>&1 must not become a terminating error under a caller with Stop.
     $ErrorActionPreference = 'Continue'
-    $ChildOutput = @(& $ShellPath @ChildArguments 2>&1 | ForEach-Object -Process { "$_" })
-    $ExitCode = $LASTEXITCODE
+    # The child must not reach the network itself, so telemetry and the update check are off for it only.
+    $SavedTelemetry = [System.Environment]::GetEnvironmentVariable('POWERSHELL_TELEMETRY_OPTOUT')
+    $SavedUpdateCheck = [System.Environment]::GetEnvironmentVariable('POWERSHELL_UPDATECHECK')
+    try {
+        [System.Environment]::SetEnvironmentVariable('POWERSHELL_TELEMETRY_OPTOUT', '1')
+        [System.Environment]::SetEnvironmentVariable('POWERSHELL_UPDATECHECK', 'Off')
+        $ChildOutput = @(& $ShellPath @ChildArguments 2>&1 | ForEach-Object -Process { "$_" })
+        $ExitCode = $LASTEXITCODE
+    }
+    finally {
+        [System.Environment]::SetEnvironmentVariable('POWERSHELL_TELEMETRY_OPTOUT', $SavedTelemetry)
+        [System.Environment]::SetEnvironmentVariable('POWERSHELL_UPDATECHECK', $SavedUpdateCheck)
+    }
     $Marker = 'SGT-BOOTSTRAP-SANDBOX-RESULT:'
     $ResultLine = @($ChildOutput | Where-Object -FilterScript { $_.StartsWith($Marker) })
     if ($ExitCode -ne 0 -or $ResultLine.Count -ne 1) {
