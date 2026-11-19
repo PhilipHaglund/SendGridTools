@@ -446,7 +446,8 @@ jobs:
         #   2. A stable tag on a commit that is not main's tip. A commit that is not on main --
         #      created in a checkout sitting on a feature branch, say -- publishes unreviewed code
         #      as a full release. An older commit on main (GitHub compares it to main as
-        #      'behind') publishes a full release of code that main has since moved on from.
+        #      'behind') publishes a full release of code that main has since moved on from;
+        #      the changelog guard in the Test step of build-and-test stops this case earlier.
         #   3. A main run that computes a stable version, after a GitVersion.yml change for example.
         #      A full release comes from a tag and from nothing else.
         #
