@@ -506,6 +506,48 @@ Describe 'Invoke-SendGrid turns Unix seconds under a time name into dates (D30, 
         }
     }
 
+    It 'Leaves a number outside Int32 as a number and throws nothing (D52)' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Set-SgtNetworkStub -Response ('{"added_at":3000000000}' | ConvertFrom-Json)
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+
+            $Result = @(Invoke-SendGrid -Method Get -Namespace 'things')
+
+            $Result[0].AddedAt | Should -Not -BeOfType [datetime]
+            $Result[0].AddedAt | Should -Be 3000000000
+        }
+    }
+
+    It 'Leaves a list with a number outside Int32 as numbers and throws nothing (D52)' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Set-SgtNetworkStub -Response ('{"added_at":[1700000000,3000000000]}' | ConvertFrom-Json)
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+
+            $Result = @(Invoke-SendGrid -Method Get -Namespace 'things')
+
+            $Value = $Result[0].PSObject.Properties['AddedAt'].Value
+            ($Value -is [array]) | Should -BeTrue
+            $Value.Count | Should -Be 2
+            foreach ($Item in $Value) {
+                $Item | Should -Not -BeOfType [datetime]
+            }
+            $Value[0] | Should -Be 1700000000
+            $Value[1] | Should -Be 3000000000
+        }
+    }
+
+    It 'Gives a date for the Int32 limit 2147483647 (D52)' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Set-SgtNetworkStub -Response ('{"added_at":2147483647}' | ConvertFrom-Json)
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+
+            $Result = @(Invoke-SendGrid -Method Get -Namespace 'things')
+
+            $Result[0].AddedAt | Should -BeOfType [datetime]
+            $Result[0].AddedAt | Should -Be ([datetime]::new(1970, 1, 1, 0, 0, 0, 0).AddSeconds(2147483647))
+        }
+    }
+
     It 'Leaves a whole number under another name as it is' {
         InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
             Set-SgtNetworkStub -Response ('{"id":1001,"count":3,"user_id":1002,"at":1700000000,"format":1700000001}' | ConvertFrom-Json)

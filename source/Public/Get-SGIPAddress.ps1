@@ -13,7 +13,7 @@
     .PARAMETER IncludeRegion
         Reads the IP Address Management API (send_ips/ips with include_region=true) instead of /v3/ips, follows
         every page, and returns its objects, which have other properties than the default output, among them Region.
-        Time values such as AddedAt and UpdatedAt are Unix seconds, as SendGrid sends them.
+        Time values such as AddedAt and UpdatedAt are dates, as without -IncludeRegion.
 
     .EXAMPLE
         PS C:\> Get-SGIPAddress

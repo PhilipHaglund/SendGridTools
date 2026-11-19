@@ -10,7 +10,8 @@ function Invoke-SendGridCursorList {
         null or empty. It also stops, with a warning, when an after_key comes a second time and when MaxPage pages
         have been read and another after_key is given. Invoke-SendGrid is not used, because it drops _metadata.
         Each property name is written the way Invoke-SendGrid writes it (title case without underscores, for
-        example added_at becomes AddedAt); the values are returned as SendGrid sends them.
+        example added_at becomes AddedAt). A whole number within Int32 under a time name (such as added_at)
+        becomes a date, as in Invoke-SendGrid, and every other value is returned as SendGrid sends it.
 
     .PARAMETER Namespace
         The endpoint path below the base URL without a query string, for example send_ips/ips.
@@ -74,7 +75,7 @@ function Invoke-SendGridCursorList {
                 }
                 $Object = [ordered]@{}
                 foreach ($Property in ($Item.PSObject.Properties | Sort-Object -Property Name)) {
-                    $Object[(($Property.Name | ConvertTo-TitleCase) -replace '[\s_-]+')] = $Property.Value
+                    $Object[(($Property.Name | ConvertTo-TitleCase) -replace '[\s_-]+')] = (ConvertFrom-SendGridUnixTime -Name $Property.Name -Value $Property.Value).Value
                 }
                 [PSCustomObject]$Object
             }
