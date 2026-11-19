@@ -445,7 +445,7 @@ Describe 'Connect-SendGrid refresh with a given key (D9)' {
     It 'Writes the refreshed-with-key verbose line' {
         InModuleScope SendGridTools -Parameters @{ Old = $script:OldCred; New = $script:NewCred } {
             $script:Session = New-SgtTestSession -Credential $Old -AgeHours 0.5
-            $Streams = Connect-SendGrid -Credential $New 4>&1
+            $Streams = Connect-SendGrid -Credential $New -Verbose 4>&1
             $Messages = @($Streams | Where-Object { $_ -is [System.Management.Automation.VerboseRecord] } | ForEach-Object { $_.Message })
             $Messages | Should -Contain 'Existing connection to SendGrid refreshed with the given API key.'
             $Messages | Should -Not -Contain 'Existing connection to SendGrid refreshed.'
@@ -456,7 +456,7 @@ Describe 'Connect-SendGrid refresh with a given key (D9)' {
         InModuleScope SendGridTools -Parameters @{ Old = $script:OldCred } {
             $Existing = New-SgtTestSession -Credential $Old -AgeHours 0.5
             $script:Session = $Existing
-            $Streams = Connect-SendGrid 4>&1
+            $Streams = Connect-SendGrid -Verbose 4>&1
             $Messages = @($Streams | Where-Object { $_ -is [System.Management.Automation.VerboseRecord] } | ForEach-Object { $_.Message })
             [object]::ReferenceEquals($script:Session, $Existing) | Should -BeTrue
             $Calls = Get-SgtNetworkCall
@@ -505,6 +505,62 @@ Describe 'Connect-SendGrid refresh with a given key (D9)' {
             $Result = Get-SgtLeakText -Action { Connect-SendGrid -Credential $New -Verbose -Debug }
             $Result.Text | Should -Not -BeLike '*test-key-new-not-real*'
             $Result.Text | Should -Not -BeLike '*test-key-old-not-real*'
+        }
+    }
+}
+
+Describe 'Connect-SendGrid writes its notes only with -Verbose (D19)' {
+    BeforeAll {
+        $script:OldCred = [pscredential]::new('apikey', (ConvertTo-SecureString -String 'test-key-old-not-real' -AsPlainText -Force))
+        $script:NewCred = [pscredential]::new('apikey', (ConvertTo-SecureString -String 'test-key-new-not-real' -AsPlainText -Force))
+    }
+    BeforeEach {
+        Mock -ModuleName SendGridTools Get-Credential { throw 'Get-Credential must not be called' }
+        Mock -ModuleName SendGridTools Test-SendGridHostCanPrompt { $true }
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ scopes = @('scopes.read') })
+        }
+    }
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Writes the note for <Label> only with -Verbose' -ForEach @(
+        @{ Label = 'a new session'; Existing = $false; WithKey = $true; Message = 'Connection to SendGrid established.' }
+        @{ Label = 'a refresh with a key'; Existing = $true; WithKey = $true; Message = 'Existing connection to SendGrid refreshed with the given API key.' }
+        @{ Label = 'a refresh without a key'; Existing = $true; WithKey = $false; Message = 'Existing connection to SendGrid refreshed.' }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ Old = $script:OldCred; New = $script:NewCred; Existing = $Existing; WithKey = $WithKey; Message = $Message } {
+            $CallArgs = @{}
+            if ($WithKey) { $CallArgs['Credential'] = $New }
+            $Messages = @{}
+            # A module function reads the global preference, so set both and restore the global one.
+            $SavedVerbose = $global:VerbosePreference
+            try {
+                $global:VerbosePreference = 'SilentlyContinue'
+                $VerbosePreference = 'SilentlyContinue'
+                foreach ($Mode in 'Without', 'With') {
+                    $script:Session = $null
+                    if ($Existing) { $script:Session = New-SgtTestSession -Credential $Old -AgeHours 0.5 }
+                    if ($Mode -eq 'With') {
+                        $Streams = @(& { Connect-SendGrid @CallArgs -Verbose } 4>&1)
+                    }
+                    else {
+                        $Streams = @(& { Connect-SendGrid @CallArgs } 4>&1)
+                    }
+                    $Messages[$Mode] = @($Streams | Where-Object { $_ -is [System.Management.Automation.VerboseRecord] } | ForEach-Object { $_.Message })
+                }
+            }
+            finally {
+                $global:VerbosePreference = $SavedVerbose
+            }
+
+            @($Messages['Without'] | Where-Object { $_ -ceq $Message }).Count | Should -Be 0
+            @($Messages['With'] | Where-Object { $_ -ceq $Message }).Count | Should -Be 1
         }
     }
 }

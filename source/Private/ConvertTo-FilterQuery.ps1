@@ -140,7 +140,7 @@
         }
 
         if ($DateTime -eq $true) {
-            Write-Verbose -Message "DateTime: $Value"
+            Write-Verbose -Message "DateTime: $Property"
             $EncodedValue1 = [uri]::EscapeDataString($Value.Split(',')[0])
             $EncodedValue2 = [uri]::EscapeDataString($Value.Split(',')[1])
             $null = $QueryString.Append(($OperatorFormatStructure[$Operator.Replace('-', '')] -replace 'Property', $Property -replace 'Value1', $EncodedValue1 -replace 'Value2', $EncodedValue2))
@@ -150,7 +150,7 @@
             $null = $QueryString.Append(($OperatorFormatStructure[$Operator.Replace('-', '')] -replace 'Property', $Property -replace 'Value', $EncodedValue))
         }
 
-        Write-Verbose "Property: $Property, Operator: $Operator, Value: $EncodedValue$EncodedValue1$EncodedValue2"
+        Write-Verbose "Property: $Property, Operator: $Operator"
         if ($i -lt $LogicalOperatorsInOrder.Count) {
             $null = $QueryString.Append($OperatorFormatStructure[$($LogicalOperatorsInOrder[$i]).Replace('-', '')])
             Write-Verbose "Logical Operator: $($LogicalOperatorsInOrder[$i])"

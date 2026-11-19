@@ -171,16 +171,16 @@
                     else {
                         $script:Session.Connect((Get-Credential -Message 'Enter your ApiKey' -UserName 'apikey')) # Removed -Title 'Connect-SendGrid' to make it PowerShell 5.1 compatible
                     }
-                    Write-Verbose -Message 'Connection to SendGrid established.' -Verbose
+                    Write-Verbose -Message 'Connection to SendGrid established.'
                 }
                 elseif ($Credential) {
                     # A key given on a refresh replaces the stored key, is verified against scopes and restarts the lifetime (D9).
                     $script:Session.Connect($Credential)
-                    Write-Verbose -Message 'Existing connection to SendGrid refreshed with the given API key.' -Verbose
+                    Write-Verbose -Message 'Existing connection to SendGrid refreshed with the given API key.'
                 }
                 else {
                     $script:Session.Connect()
-                    Write-Verbose -Message 'Existing connection to SendGrid refreshed.' -Verbose
+                    Write-Verbose -Message 'Existing connection to SendGrid refreshed.'
                 }
             }
         }

@@ -26,7 +26,8 @@
     [Alias('ConvertTo-NameTitle')]
     [CmdletBinding(
         PositionalBinding,
-        SupportsShouldProcess
+        SupportsShouldProcess,
+        ConfirmImpact = 'None'
     )]
     param (
         # Specifies one or more objects to be convert to title case strings.

@@ -20,7 +20,8 @@ Invoke-SendGrid -Method GET -Namespace "mail/send"
 #>
 function Invoke-SendGrid {
     [CmdletBinding(
-        SupportsShouldProcess
+        SupportsShouldProcess,
+        ConfirmImpact = 'None'
     )]
     param (
         # The web request method.
@@ -110,7 +111,7 @@ function Invoke-SendGrid {
                 }
             }
             catch {
-                throw $_.Exception.Message
+                throw $_
             }
 
             # Get unique properties.
@@ -229,11 +230,17 @@ function Invoke-SendGrid {
                 }
                 # An empty errors list is no error (D8); any other Errors value throws as before.
                 if (($PSObject | Get-Member -Name 'Errors' -MemberType 'NoteProperty') -and 0 -ne @($PSObject.Errors).Count) {
-                    throw $PSObject.Errors.Message
+                    # One entry is thrown exactly as before; with several, the messages are joined in order (D16).
+                    $ErrorText = $PSObject.Errors.Message
+                    $ErrorTexts = @($ErrorText | Where-Object { "$_" })
+                    if (@($PSObject.Errors).Count -gt 1 -and $ErrorTexts.Count -gt 0) {
+                        $ErrorText = $ErrorTexts -join '; '
+                    }
+                    throw $ErrorText
                 }
                 else {
                     if (0 -eq @($PSObject.PSObject.Properties).Count) {
-                        Write-Verbose -Message ('Successfully invoked "{0}" on "{1}".' -f $CallingCmdlet, $Namespace) -Verbose
+                        Write-Verbose -Message ('Successfully invoked "{0}" on "{1}".' -f $CallingCmdlet, $Namespace)
                     }
                     else {
                         $PSObject

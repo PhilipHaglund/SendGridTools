@@ -107,7 +107,7 @@
                         Invoke-SendGrid @InvokeSplat
                     }
                     catch {
-                        Write-Error ('Failed to remove email address "{0}" from SendGrid spam report. {0}' -f $Id.Address, $_.Exception.Message) -ErrorAction Stop
+                        Write-Error ('Failed to remove email address "{0}" from SendGrid spam report. {1}' -f $Id.Address, $_.Exception.Message) -ErrorAction Stop
                     }
                 }
             }
