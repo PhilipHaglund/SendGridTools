@@ -35,6 +35,8 @@ Describe 'Sprint 4 step 2 measurements' {
         @{ Level = 'Remove-SGGlobalSuppression'; Name = 'an exception with an inner exception' }
         @{ Level = 'Remove-SGGlobalSuppression'; Name = 'an error record with a JSON errors body' }
         @{ Level = 'Remove-SGGlobalSuppression'; Name = 'an error record with a body that is not JSON' }
+        @{ Level = 'Invoke-SendGrid'; Name = 'a typed exception with an inner exception from the session' }
+        @{ Level = 'Remove-SGGlobalSuppression'; Name = 'a typed exception with an inner exception from the session' }
     ) {
         $Result = InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Level = $Level; Name = $Name } {
             $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
@@ -44,6 +46,11 @@ Describe 'Sprint 4 step 2 measurements' {
                 'an error record with a body that is not JSON' { New-SgtErrorRecord -Message 'sgt-test-transport-text' -Details '<html>sgt-test-gateway-text</html>' }
             }
             Set-SgtNetworkStub -Throw $Thrown
+            if ($Name -eq 'a typed exception with an inner exception from the session') {
+                # A session whose InvokeQuery throws a typed exception itself: the class is defined at run time, in module
+                # scope, where SendGridSession is known. The request never reaches the transport.
+                $script:Session = & ([scriptblock]::Create('class SgtMeasureThrowingSession : SendGridSession { [PSCustomObject[]] InvokeQuery ([string]$WebRequestMethod, [string]$Endpoint) { throw [System.InvalidOperationException]::new(''sgt-test-session-text'', [System.TimeoutException]::new(''sgt-test-inner-text'')) } }; [SgtMeasureThrowingSession]::new()'))
+            }
             $Caught = $null
             try {
                 if ($Level -eq 'Invoke-SendGrid') {
@@ -73,6 +80,8 @@ Describe 'Sprint 4 step 2 measurements' {
         @{ Level = 'Invoke-SendGrid'; Name = 'two errors'; Json = '{"errors":[{"field":null,"message":"sgt-test-error-one"},{"field":null,"message":"sgt-test-error-two"}]}' }
         @{ Level = 'Remove-SGGlobalSuppression'; Name = 'one error'; Json = '{"errors":[{"field":null,"message":"sgt-test-error-one"}]}' }
         @{ Level = 'Remove-SGGlobalSuppression'; Name = 'two errors'; Json = '{"errors":[{"field":null,"message":"sgt-test-error-one"},{"field":null,"message":"sgt-test-error-two"}]}' }
+        @{ Level = 'Invoke-SendGrid'; Name = 'one error without a message'; Json = '{"errors":[{"field":"sgt-test-field"}]}' }
+        @{ Level = 'Invoke-SendGrid'; Name = 'two errors, the first without a message'; Json = '{"errors":[{"field":"sgt-test-field"},{"field":null,"message":"sgt-test-error-two"}]}' }
     ) {
         $Result = InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Level = $Level; Json = $Json } {
             $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
