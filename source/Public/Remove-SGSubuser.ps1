@@ -1,4 +1,4 @@
-﻿function Remove-SGSubuser {
+function Remove-SGSubuser {
     <#
     .SYNOPSIS
         Removes a specific Subuser within the current SendGrid instance.
@@ -7,7 +7,7 @@
         Remove-SGSubuser removes a specific Subuser based on its username within the current SendGrid instance.
 
     .PARAMETER Username
-        Specifies the ID of the Subuser to remove.
+        Specifies the username of the Subuser to remove.
 
     .EXAMPLE
         PS C:\> Remove-SGSubuser -Username <username>
@@ -19,7 +19,7 @@
         ConfirmImpact = 'High'
     )]
     param (
-        # Specifies the ID of the Subuser to remove.
+        # Specifies the username of the Subuser to remove.
         [Parameter(
             Mandatory = $true,
             ValueFromPipeline,
@@ -32,12 +32,12 @@
     process {
         $InvokeSplat = @{
             Method        = 'Delete'
-            Namespace     = "subusers/$Username"
+            Namespace     = "subusers/$([uri]::EscapeDataString($Username))"
             ErrorAction   = 'Stop'
             CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
         }
 
-        if ($PSCmdlet.ShouldProcess(('{0}' -f 'Subuser'))) {
+        if ($PSCmdlet.ShouldProcess($Username)) {
             try {
                 Invoke-SendGrid @InvokeSplat
             }

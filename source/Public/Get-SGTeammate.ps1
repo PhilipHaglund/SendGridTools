@@ -50,9 +50,9 @@
         if ($PSBoundParameters.Username) {
             foreach ($User in $Username) {
                 $UserInvokeSplat = $InvokeSplat.Clone()
-                $UserInvokeSplat['Namespace'] = "teammates/$User"
+                $UserInvokeSplat['Namespace'] = "teammates/$([uri]::EscapeDataString($User))"
                 try {
-                    Invoke-SendGrid @EmailInvokeSplat
+                    Invoke-SendGrid @UserInvokeSplat
                 }
                 catch {
                     Write-Error ('Failed to retrieve SendGrid teammate. {0}' -f $_.Exception.Message) -ErrorAction Stop

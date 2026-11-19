@@ -8,7 +8,7 @@
         The Subuser is disabled with the provided username.
 
     .PARAMETER Username
-        Specifies the ID of a specific Subuser to enable. This parameter is mandatory.
+        Specifies the username of the Subuser to disable. This parameter is mandatory.
 
     .EXAMPLE
         PS C:\> Disable-SGSubuser -Username <username>
@@ -26,7 +26,7 @@
     )]
     param (
 
-        # Specifies the username for the Subuser to create.
+        # Specifies the username of the Subuser to disable. This parameter is mandatory.
         [Parameter(
             Mandatory,
             ValueFromPipelineByPropertyName,
@@ -37,7 +37,7 @@
     process {
         $InvokeSplat = @{
             Method        = 'Patch'
-            Namespace     = "subusers/$Username"
+            Namespace     = "subusers/$([uri]::EscapeDataString($Username))"
             ErrorAction   = 'Stop'
             ContentBody   = @{
                 disabled = $true
