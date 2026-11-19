@@ -174,6 +174,39 @@ Describe 'New-SGBrandedDomainLink request' {
     }
 }
 
+Describe 'New-SGBrandedDomainLink verbose messages' {
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Writes no verbose record for <Label> without -Verbose and writes it with -Verbose' -ForEach @(
+        @{ Label = 'the note with a subdomain'; CallArgs = @{ Domain = 'example.com'; SendGridSubDomain = 'link' }; Message = 'SendGrid will not generate a custom subdomain. Domain to be used: example.com' }
+        @{ Label = 'the note without a subdomain'; CallArgs = @{ Domain = 'example.com' }; Message = 'SendGrid will automatically generate a custom branded subdomain for you. Example:url1234.example.com' }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; CallArgs = $CallArgs; Message = $Message } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            # A module function reads the global preference, so set both and restore the global one.
+            $SavedVerbose = $global:VerbosePreference
+            try {
+                $global:VerbosePreference = 'SilentlyContinue'
+                $VerbosePreference = 'SilentlyContinue'
+                $Without = @(& { New-SGBrandedDomainLink @CallArgs -Confirm:$false } 4>&1 | Where-Object { $_ -is [System.Management.Automation.VerboseRecord] })
+                $With = @(& { New-SGBrandedDomainLink @CallArgs -Confirm:$false -Verbose } 4>&1 | Where-Object { $_ -is [System.Management.Automation.VerboseRecord] })
+            }
+            finally {
+                $global:VerbosePreference = $SavedVerbose
+            }
+
+            @($Without | Where-Object { $_.Message -eq $Message }).Count | Should -Be 0
+            @($With | Where-Object { $_.Message -eq $Message }).Count | Should -Be 1
+        }
+    }
+}
 Describe 'Network tripwire' {
     It 'Made no unmocked network call' {
         Assert-SgtNetworkTripwireActive

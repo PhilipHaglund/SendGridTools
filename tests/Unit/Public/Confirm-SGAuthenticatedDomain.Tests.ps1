@@ -63,6 +63,39 @@ Describe 'Confirm-SGAuthenticatedDomain ids from the pipeline' {
         }
     }
 }
+Describe 'Confirm-SGAuthenticatedDomain verbose messages' {
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Writes no verbose record for <Label> without -Verbose and writes it with -Verbose' -ForEach @(
+        @{ Label = 'the already-validated note'; CallArgs = @{ UniqueId = '1001' }; Message = 'Authenticated Domain already validated!' }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; CallArgs = $CallArgs; Message = $Message } {
+            Mock Get-SGAuthenticatedDomain { [pscustomobject]@{ Valid = $true; Subdomain = 'em0001'; Domain = 'domain-1.example.com' } }
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            # A module function reads the global preference, so set both and restore the global one.
+            $SavedVerbose = $global:VerbosePreference
+            try {
+                $global:VerbosePreference = 'SilentlyContinue'
+                $VerbosePreference = 'SilentlyContinue'
+                $Without = @(& { Confirm-SGAuthenticatedDomain @CallArgs -Confirm:$false } 4>&1 | Where-Object { $_ -is [System.Management.Automation.VerboseRecord] })
+                $With = @(& { Confirm-SGAuthenticatedDomain @CallArgs -Confirm:$false -Verbose } 4>&1 | Where-Object { $_ -is [System.Management.Automation.VerboseRecord] })
+            }
+            finally {
+                $global:VerbosePreference = $SavedVerbose
+            }
+
+            @($Without | Where-Object { $_.Message -eq $Message }).Count | Should -Be 0
+            @($With | Where-Object { $_.Message -eq $Message }).Count | Should -Be 1
+        }
+    }
+}
 Describe 'Network tripwire' {
     It 'Made no unmocked network call' {
         Assert-SgtNetworkTripwireActive
