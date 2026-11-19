@@ -46,11 +46,6 @@
         Specifies that the question before -Default replaces the current default domain is not asked, so a script without a console can set a default domain. -Force does not change -WhatIf or -Confirm.
 
     .EXAMPLE
-        PS C:\> New-SGAuthenticatedDomain -Domain 'example.com' -SendGridSubdomain 'email' -Default -Force
-
-        Adds the authenticated domain 'email.example.com' and makes it the default domain without asking first, for example in a script that runs without a console. -WhatIf still shows the domain without adding it.
-
-    .EXAMPLE
         PS C:\> New-SGAuthenticatedDomain -Domain 'example.com' -SendGridSubdomain 'email'
 
         Adds a new authenticated domain 'example.com' with the subdomain 'email' using the specified API key.
@@ -69,6 +64,11 @@
         PS C:\> New-SGAuthenticatedDomain -Domain 'example.com' -SendGridSubdomain 'email' -DisableAutomaticSecurity -CustomSPF
 
         Adds a new authenticated domain 'example.com' with the subdomain 'email', disables automatic security, and uses a custom SPF record with the specified API key.
+
+    .EXAMPLE
+        PS C:\> New-SGAuthenticatedDomain -Domain 'example.com' -SendGridSubdomain 'email' -Default -Force
+
+        Adds the authenticated domain 'email.example.com' and makes it the default domain without asking first, for example in a script that runs without a console. -WhatIf still shows the domain without adding it.
 
     .NOTES
         To use this function, you must be connected to a SendGrid instance. Use the Connect-SendGrid function to establish a connection.

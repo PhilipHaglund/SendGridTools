@@ -25,11 +25,6 @@
         Specifies that the question before -Default replaces the current default branded link is not asked, so a script without a console can set a default branded link. -Force does not change -WhatIf or -Confirm.
 
     .EXAMPLE
-        PS C:\> New-SGBrandedDomainLink -Domain 'example.com' -SendGridSubDomain 'link' -Default -Force
-
-        Adds the branded link 'link.example.com' and makes it the default branded link without asking first, for example in a script that runs without a console. -WhatIf still shows the link without adding it.
-
-    .EXAMPLE
         PS C:\> New-SGBrandedDomainLink -Domain 'example.com' -SendGridSubDomain 'link'
 
         Adds a new branded link 'link.example.com', which is the subdomain 'link' on the domain 'example.com'.
@@ -38,6 +33,11 @@
         PS C:\> New-SGBrandedDomainLink -Domain 'sub.example.com'
 
         Adds a new branded domain link for the domain 'sub.example.com', which itself contains a subdomain, and lets SendGrid generate the link subdomain. Passing a domain that includes a subdomain is not recommended, as the Domain parameter help describes.
+
+    .EXAMPLE
+        PS C:\> New-SGBrandedDomainLink -Domain 'example.com' -SendGridSubDomain 'link' -Default -Force
+
+        Adds the branded link 'link.example.com' and makes it the default branded link without asking first, for example in a script that runs without a console. -WhatIf still shows the link without adding it.
 
     .NOTES
         To use this function, you must be connected to a SendGrid instance. Use the Connect-SendGrid function to establish a connection.
