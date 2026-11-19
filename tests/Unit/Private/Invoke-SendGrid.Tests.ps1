@@ -6,6 +6,7 @@ BeforeDiscovery {
 BeforeAll {
     . (Join-Path -Path $PSScriptRoot -ChildPath '../Support/NetworkTripwire.ps1')
     . (Join-Path -Path $PSScriptRoot -ChildPath '../Support/SessionHelpers.ps1')
+    . (Join-Path -Path $PSScriptRoot -ChildPath '../Support/PromptCountingHost.ps1')
     # Import once per run: in Windows PowerShell 5.1 a class stays bound to the first loaded module instance.
     if (-not (Get-Module -Name SendGridTools)) {
         Get-Module -Name SendGridTools -ListAvailable | Select-Object -First 1 | Import-Module -ErrorAction Stop
@@ -626,6 +627,105 @@ Describe 'Invoke-SendGrid turns Unix seconds under a time name into dates (D30, 
             $Result[1].Created | Should -BeOfType [datetime]
             $Result[1].Created | Should -Be $Epoch.AddSeconds(1700000001)
         }
+    }
+}
+
+Describe 'Invoke-SendGrid leaves the query out of its verbose notes (D33)' {
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Names the path without the query in "Starting process" and "Successfully invoked"' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Set-SgtNetworkStub -Response ('{"name":"sgt-test-name"}' | ConvertFrom-Json)
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+
+            $SavedVerbose = $global:VerbosePreference
+            try {
+                $global:VerbosePreference = 'SilentlyContinue'
+                $VerbosePreference = 'SilentlyContinue'
+                $Records = @(& { Invoke-SendGrid -Method Get -Namespace 'things?limit=1&name=sgt-test-value' -CallingCmdlet 'sgt-test-caller' -Verbose } 4>&1 | Where-Object { $_ -is [System.Management.Automation.VerboseRecord] })
+            }
+            finally {
+                $global:VerbosePreference = $SavedVerbose
+            }
+            $Messages = @($Records | ForEach-Object { $_.Message })
+
+            @($Messages | Where-Object { $_ -ceq 'Starting process with method: Get and namespace: things' }).Count | Should -Be 1
+            @($Messages | Where-Object { $_ -ceq 'Successfully invoked "sgt-test-caller" on "things".' }).Count | Should -Be 1
+            foreach ($Message in @($Messages | Where-Object { $_ -notlike 'Performing the operation*' })) {
+                $Message | Should -Not -BeLike '*[?]*'
+                $Message | Should -Not -BeLike '*limit=*'
+                $Message | Should -Not -BeLike '*sgt-test-value*'
+            }
+            $Calls = @(Get-SgtNetworkCall)
+            $Calls.Count | Should -Be 1
+            $Calls[0].Uri.OriginalString | Should -BeExactly 'https://api.sendgrid.com/v3/things?limit=1&name=sgt-test-value'
+        }
+    }
+
+    It 'Writes "Successfully invoked" once for <Name>' -ForEach @(
+        @{ Name = 'an object with one property'; Json = '{"name":"sgt-test-name"}' }
+        @{ Name = 'an empty object'; Json = '{}' }
+        @{ Name = 'a list of two empty objects'; Json = '[{},{}]' }
+        @{ Name = 'no answer'; Json = $null }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Json = $Json } {
+            if ($null -eq $Json) {
+                Set-SgtNetworkStub -Response $null
+            }
+            else {
+                Set-SgtNetworkStub -Response ($Json | ConvertFrom-Json)
+            }
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+
+            $SavedVerbose = $global:VerbosePreference
+            try {
+                $global:VerbosePreference = 'SilentlyContinue'
+                $VerbosePreference = 'SilentlyContinue'
+                $Records = @(& { Invoke-SendGrid -Method Get -Namespace 'things?limit=1&name=sgt-test-value' -CallingCmdlet 'sgt-test-caller' -Verbose } 4>&1 | Where-Object { $_ -is [System.Management.Automation.VerboseRecord] })
+            }
+            finally {
+                $global:VerbosePreference = $SavedVerbose
+            }
+            $Messages = @($Records | ForEach-Object { $_.Message })
+
+            @($Messages | Where-Object { $_ -ceq 'Successfully invoked "sgt-test-caller" on "things".' }).Count | Should -Be 1
+            @($Messages | Where-Object { $_ -like 'Successfully invoked*' }).Count | Should -Be 1
+        }
+    }
+
+    It 'Keeps the ShouldProcess text with the query in the verbose stream' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            Set-SgtNetworkStub -Response ('{"name":"sgt-test-name"}' | ConvertFrom-Json)
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+
+            $SavedVerbose = $global:VerbosePreference
+            try {
+                $global:VerbosePreference = 'SilentlyContinue'
+                $VerbosePreference = 'SilentlyContinue'
+                $Records = @(& { Invoke-SendGrid -Method Get -Namespace 'things?limit=1&name=sgt-test-value' -CallingCmdlet 'sgt-test-caller' -Verbose } 4>&1 | Where-Object { $_ -is [System.Management.Automation.VerboseRecord] })
+            }
+            finally {
+                $global:VerbosePreference = $SavedVerbose
+            }
+            $Messages = @($Records | ForEach-Object { $_.Message })
+
+            @($Messages | Where-Object { $_ -like '*"Invoke-SendGrid"*"Get : things?limit=1&name=sgt-test-value"*' }).Count | Should -Be 1
+        }
+    }
+
+    It 'Shows the same -WhatIf text as before' {
+        $Run = Invoke-SgtInCountingHost -Script 'Invoke-SendGrid -Method Get -Namespace ''things?limit=1&name=sgt-test-value'' -WhatIf'
+
+        $Run.HostLine.Count | Should -Be 1
+        $Run.HostLine[0] | Should -BeExactly 'What if: Performing the operation "Invoke-SendGrid" on target "Get : things?limit=1&name=sgt-test-value".'
+        $Run.PromptCount | Should -Be 0
+        $Run.NetworkCallCount | Should -Be 0
+        $Run.UnmockedCall | Should -BeNullOrEmpty
     }
 }
 
