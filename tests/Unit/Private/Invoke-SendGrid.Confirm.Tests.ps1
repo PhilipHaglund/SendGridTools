@@ -93,6 +93,53 @@ Describe '-WhatIf on a writing command makes no call (D20)' {
     }
 }
 
+Describe 'A request with an answer asks nothing more (D20)' {
+    It 'Invoke-SendGrid does not ask while it reads an answer (ConfirmPreference <Level>)' -ForEach @(
+        @{ Level = 'Low' }
+        @{ Level = 'Medium' }
+    ) {
+        $Script = ('$ConfirmPreference = ''{0}''; $null = Invoke-SendGrid -Method Get -Namespace ''things''' -f $Level)
+
+        $Result = Invoke-SgtInCountingHost -Script $Script -AnswerJson '{"first_name":"sgt-test-one","second_name":"sgt-test-two"}'
+
+        $Result.PromptCount | Should -Be 0
+        $Result.Threw | Should -BeFalse
+        $Result.NetworkCallCount | Should -Be 1
+        $Result.UnmockedCall | Should -BeNullOrEmpty
+    }
+
+    It '<Command> -Confirm asks once when the request gets an answer' -ForEach @(
+        @{ Command = 'Add-SGGlobalSuppression'; Json = '{"recipient_emails":["one@example.com"]}'; Target = 'Add email address one@example.com to the global suppressions list.' }
+        @{ Command = 'Remove-SGGlobalSuppression'; Json = '{"name":"sgt-test-name"}'; Target = 'Remove email address one@example.com from global suppressions list.' }
+    ) {
+        $Result = Invoke-SgtInCountingHost -Script ('$null = {0} -EmailAddress ''one@example.com'' -Confirm' -f $Command) -AnswerJson $Json
+
+        $Result.PromptCount | Should -Be 1
+        $Result.Prompt[0] | Should -BeLike "*$Target*"
+        $Result.Threw | Should -BeFalse
+        $Result.NetworkCallCount | Should -Be 1
+        $Result.UnmockedCall | Should -BeNullOrEmpty
+    }
+
+    It 'Returns the answer with title-cased property names when it does not ask' {
+        $Script = '$ConfirmPreference = ''Low''; (Invoke-SendGrid -Method Get -Namespace ''things'').PSObject.Properties.Name -join '','''
+
+        $Result = Invoke-SgtInCountingHost -Script $Script -AnswerJson '{"first_name":"sgt-test-one","second_name":"sgt-test-two"}'
+
+        $Result.Output | Should -Contain 'FirstName,SecondName'
+        $Result.PromptCount | Should -Be 0
+    }
+
+    It 'Still sends nothing under -WhatIf with a session and an answer' {
+        $Result = Invoke-SgtInCountingHost -Script '$null = Add-SGGlobalSuppression -EmailAddress ''one@example.com'' -WhatIf' -AnswerJson '{"recipient_emails":["one@example.com"]}'
+
+        $Result.PromptCount | Should -Be 0
+        $Result.NetworkCallCount | Should -Be 0
+        $Result.HostLine.Count | Should -Be 1
+        $Result.Threw | Should -BeFalse
+    }
+}
+
 Describe 'Network tripwire' {
     It 'Made no unmocked network call' {
         Assert-SgtNetworkTripwireActive
