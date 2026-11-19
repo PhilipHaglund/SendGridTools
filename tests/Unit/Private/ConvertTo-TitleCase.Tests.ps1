@@ -41,6 +41,7 @@ Describe 'ConvertTo-TitleCase uses the invariant culture (D34)' {
 
     It 'Gives <Expected> for <Text> under <Culture>' -ForEach $script:TitleCases {
         $global:SgtTestCultureName = $Culture
+        # The module no longer calls Get-Culture. The mock stays: in Windows PowerShell 5.1 Get-Culture does not follow the thread culture, so only this mock turns the test red if (Get-Culture).TextInfo comes back.
         Mock -CommandName Get-Culture -ModuleName SendGridTools -MockWith { [System.Globalization.CultureInfo]::GetCultureInfo($global:SgtTestCultureName) }
         $Result = InModuleScope SendGridTools -Parameters @{ Culture = $Culture; Text = $Text } {
             $SavedCulture = [System.Threading.Thread]::CurrentThread.CurrentCulture

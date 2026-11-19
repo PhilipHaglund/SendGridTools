@@ -185,7 +185,7 @@ Describe 'Invoke-SendGrid keeps empty lists (D8)' {
             $Result[0].Created | Should -BeOfType [datetime]
             $Result[0].Created | Should -Be ([datetime]::new(1970, 1, 1, 0, 0, 0, 0).AddSeconds(1700000000))
             $Result[0].Date | Should -BeOfType [datetime]
-            $Result[0].Date | Should -Be ([datetime]::Parse('2023-11-14'))
+            $Result[0].Date | Should -Be ([datetime]::Parse('2023-11-14', [System.Globalization.CultureInfo]::InvariantCulture))
         }
     }
 
@@ -776,6 +776,7 @@ Describe 'Invoke-SendGrid names properties the same under every culture (D34)' {
 
     It 'Names id, ip and is_enabled as under en-US under <Culture>' -ForEach $script:CultureCases {
         $global:SgtTestCultureName = $Culture
+        # The module no longer calls Get-Culture. The mock stays: in Windows PowerShell 5.1 Get-Culture does not follow the thread culture, so only this mock turns the test red if (Get-Culture).TextInfo comes back.
         Mock -CommandName Get-Culture -ModuleName SendGridTools -MockWith { [System.Globalization.CultureInfo]::GetCultureInfo($global:SgtTestCultureName) }
         $Result = InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Culture = $Culture } {
             Set-SgtNetworkStub -Response ('{"id":1001,"ip":"192.0.2.10","is_enabled":true}' | ConvertFrom-Json)

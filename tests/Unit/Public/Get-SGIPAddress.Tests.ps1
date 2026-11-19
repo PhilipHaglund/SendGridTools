@@ -115,7 +115,10 @@ Describe 'Get-SGIPAddress' {
                 foreach ($Property in $Reference[$i].PSObject.Properties) {
                     $Out[$i].PSObject.Properties.Name | Should -Contain $Property.Name
                     # Invoke-SendGrid turns a whole number under a time name into a date (D30); the cursor reader returns it as SendGrid sends it.
-                    if ($Property.Value -isnot [datetime]) {
+                    if ($Property.Value -is [datetime]) {
+                        [datetime]::new(1970, 1, 1, 0, 0, 0, 0).AddSeconds($Out[$i].($Property.Name)) | Should -Be $Property.Value
+                    }
+                    else {
                         "$($Out[$i].($Property.Name))" | Should -Be "$($Property.Value)"
                     }
                 }
@@ -129,6 +132,7 @@ Describe 'Get-SGIPAddress' {
 
     It 'Names the properties of -IncludeRegion the same under the Turkish culture (D34)' {
         $global:SgtTestCultureName = 'tr-TR'
+        # The module no longer calls Get-Culture. The mock stays: in Windows PowerShell 5.1 Get-Culture does not follow the thread culture, so only this mock turns the test red if (Get-Culture).TextInfo comes back.
         Mock -CommandName Get-Culture -ModuleName SendGridTools -MockWith { [System.Globalization.CultureInfo]::GetCultureInfo($global:SgtTestCultureName) }
         $Out = InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Fixture = $script:PageFixture } {
             $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0

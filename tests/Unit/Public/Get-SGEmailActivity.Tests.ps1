@@ -135,13 +135,11 @@ Describe 'Get-SGEmailActivity binds -Value for a template property without a cal
     }
 
     It 'Binds -Value for TemplateName and sends the value' {
-        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
-            { $null = Get-SGEmailActivity -Property TemplateName -EQ -Value 'sgt-test-template-name' } | Should -Not -Throw
-            Reset-SgtNetworkStub
-            Set-SgtNetworkStub -Response ([pscustomobject]@{ messages = @([pscustomobject]@{ msg_id = 'sgt-test-message-id'; status = 'delivered' }) })
-            $null = @(Get-SGEmailActivity -Property TemplateName -EQ -Value 'sgt-test-template-name')
+        InModuleScope SendGridTools {
+            $Result = @(Get-SGEmailActivity -Property TemplateName -EQ -Value 'sgt-test-template-name')
             $Calls = (Get-SgtNetworkCall)
             $Calls.Count | Should -Be 1
+            # The field name of the TemplateName filter is an existing gap and is not asserted.
             $Calls[0].Uri.OriginalString | Should -BeLike 'https://api.sendgrid.com/v3/messages?limit=10&query=(*%22sgt-test-template-name%22)'
         }
     }
@@ -156,6 +154,7 @@ Describe 'Get-SGEmailActivity binds -Value for a template property without a cal
             $Parameter.ParameterType | Should -Be ([string[]])
             @($Parameter.ParameterSets.Keys) | Should -Be @('PropertySet')
             $Parameter.ParameterSets['PropertySet'].Position | Should -Be 2
+            $Parameter.ParameterSets['PropertySet'].IsMandatory | Should -BeFalse
             @($Parameter.Attributes | Where-Object { $_ -is [System.Management.Automation.ValidateSetAttribute] }).Count | Should -Be 0
             (Get-SgtNetworkCall).Count | Should -Be 0
         }
