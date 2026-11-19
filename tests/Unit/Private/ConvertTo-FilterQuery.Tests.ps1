@@ -1,3 +1,29 @@
+BeforeDiscovery {
+    $script:Cultures = @('en-US', 'sv-SE', 'en-GB', 'tr-TR', 'th-TH')
+    $script:CultureFilterCases = @(
+        foreach ($Culture in $script:Cultures) {
+            @{
+                Culture  = $Culture
+                Name     = 'two times with a zone and milliseconds'
+                Filter   = 'LastEventTime -between "2024-06-30T00:00:00Z","2024-07-02T23:59:59.999Z"'
+                Expected = '(last_event_time+BETWEEN+TIMESTAMP+%222024-06-30T00%3A00%3A00.000Z%22+AND+TIMESTAMP+%222024-07-02T23%3A59%3A59.000Z%22)'
+            }
+            @{
+                Culture  = $Culture
+                Name     = 'two dates whose day and month can change places'
+                Filter   = 'Date -between "2024-03-04","2024-05-06"'
+                Expected = '(last_event_time+BETWEEN+TIMESTAMP+%222024-03-04T00%3A00%3A00.000Z%22+AND+TIMESTAMP+%222024-05-06T00%3A00%3A00.000Z%22)'
+            }
+            @{
+                Culture  = $Culture
+                Name     = 'two times with an offset'
+                Filter   = 'Timestamp -between "2024-06-30T02:00:00+02:00","2024-07-01T00:00:00+00:00"'
+                Expected = '(last_event_time+BETWEEN+TIMESTAMP+%222024-06-30T00%3A00%3A00.000Z%22+AND+TIMESTAMP+%222024-07-01T00%3A00%3A00.000Z%22)'
+            }
+        }
+    )
+}
+
 BeforeAll {
     . (Join-Path -Path $PSScriptRoot -ChildPath '../Support/NetworkTripwire.ps1')
     . (Join-Path -Path $PSScriptRoot -ChildPath '../Support/SessionHelpers.ps1')
@@ -56,6 +82,23 @@ Describe 'ConvertTo-FilterQuery verbose output (D18)' {
             $Verbose | Should -Match 'Property: last_event_time, Operator: -between'
             $Verbose | Should -Not -Match '2024'
         }
+    }
+}
+
+Describe 'ConvertTo-FilterQuery gives the same dates under every culture (D34)' {
+    It 'Gives the en-US query under <Culture> for <Name>' -ForEach $script:CultureFilterCases {
+        $Query = InModuleScope SendGridTools -Parameters @{ Culture = $Culture; Filter = $Filter } {
+            $SavedCulture = [System.Threading.Thread]::CurrentThread.CurrentCulture
+            try {
+                [System.Threading.Thread]::CurrentThread.CurrentCulture = [System.Globalization.CultureInfo]::GetCultureInfo($Culture)
+                ConvertTo-FilterQuery -Filter $Filter
+            }
+            finally {
+                [System.Threading.Thread]::CurrentThread.CurrentCulture = $SavedCulture
+            }
+        }
+
+        $Query | Should -BeExactly $Expected
     }
 }
 

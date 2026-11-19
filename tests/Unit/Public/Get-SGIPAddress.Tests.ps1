@@ -45,6 +45,7 @@ Describe 'Get-SGIPAddress' {
             $script:Session = $null
             Reset-SgtNetworkStub
         }
+        Remove-Variable -Name SgtTestCultureName -Scope Global -ErrorAction SilentlyContinue
     }
 
     It 'Fixtures match the recorded structure' {
@@ -123,6 +124,28 @@ Describe 'Get-SGIPAddress' {
                 $Out[$i].PSObject.Properties.Name | Should -Contain 'Pools'
                 @($Out[$i].Pools).Count | Should -Be 0
             }
+        }
+    }
+
+    It 'Names the properties of -IncludeRegion the same under the Turkish culture (D34)' {
+        $global:SgtTestCultureName = 'tr-TR'
+        Mock -CommandName Get-Culture -ModuleName SendGridTools -MockWith { [System.Globalization.CultureInfo]::GetCultureInfo($global:SgtTestCultureName) }
+        $Out = InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Fixture = $script:PageFixture } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response (Get-Content -LiteralPath $Fixture -Raw | ConvertFrom-Json)
+            $SavedCulture = [System.Threading.Thread]::CurrentThread.CurrentCulture
+            try {
+                [System.Threading.Thread]::CurrentThread.CurrentCulture = [System.Globalization.CultureInfo]::GetCultureInfo('tr-TR')
+                @(Get-SGIPAddress -IncludeRegion)
+            }
+            finally {
+                [System.Threading.Thread]::CurrentThread.CurrentCulture = $SavedCulture
+            }
+        }
+
+        $Out.Count | Should -Be 2
+        foreach ($Object in $Out) {
+            (@($Object.PSObject.Properties.Name | Sort-Object) -join ',') | Should -BeExactly 'AddedAt,Ip,IsAutoWarmup,IsEnabled,IsLeased,IsParentAssigned,Pools,Region,UpdatedAt'
         }
     }
 

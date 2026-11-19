@@ -1,6 +1,15 @@
 BeforeDiscovery {
     . (Join-Path -Path $PSScriptRoot -ChildPath '../Support/SessionHelpers.ps1')
     $script:Cases = @(Get-SgtOverloadCase)
+    $script:Cultures = @('en-US', 'sv-SE', 'en-GB', 'tr-TR', 'th-TH')
+    $script:CultureCases = @(foreach ($Culture in $script:Cultures) { @{ Culture = $Culture } })
+    $script:CultureDateCases = @(
+        foreach ($Culture in $script:Cultures) {
+            foreach ($Value in '2023-11-14', '11/14/2023') {
+                @{ Culture = $Culture; Value = $Value }
+            }
+        }
+    )
 }
 
 BeforeAll {
@@ -726,6 +735,65 @@ Describe 'Invoke-SendGrid leaves the query out of its verbose notes (D33)' {
         $Run.PromptCount | Should -Be 0
         $Run.NetworkCallCount | Should -Be 0
         $Run.UnmockedCall | Should -BeNullOrEmpty
+    }
+}
+
+Describe 'Invoke-SendGrid reads the date field the same under every culture (D34)' {
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Reads <Value> as 14 November 2023 under <Culture>' -ForEach $script:CultureDateCases {
+        $Result = InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Culture = $Culture; Value = $Value } {
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ date = $Value; name = 'sgt-test-name' })
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            $SavedCulture = [System.Threading.Thread]::CurrentThread.CurrentCulture
+            try {
+                [System.Threading.Thread]::CurrentThread.CurrentCulture = [System.Globalization.CultureInfo]::GetCultureInfo($Culture)
+                @(Invoke-SendGrid -Method Get -Namespace 'things')
+            }
+            finally {
+                [System.Threading.Thread]::CurrentThread.CurrentCulture = $SavedCulture
+            }
+        }
+
+        $Result[0].Date | Should -BeOfType [datetime]
+        $Result[0].Date.ToString('yyyy-MM-dd', [System.Globalization.CultureInfo]::InvariantCulture) | Should -BeExactly '2023-11-14'
+    }
+}
+
+Describe 'Invoke-SendGrid names properties the same under every culture (D34)' {
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+        Remove-Variable -Name SgtTestCultureName -Scope Global -ErrorAction SilentlyContinue
+    }
+
+    It 'Names id, ip and is_enabled as under en-US under <Culture>' -ForEach $script:CultureCases {
+        $global:SgtTestCultureName = $Culture
+        Mock -CommandName Get-Culture -ModuleName SendGridTools -MockWith { [System.Globalization.CultureInfo]::GetCultureInfo($global:SgtTestCultureName) }
+        $Result = InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Culture = $Culture } {
+            Set-SgtNetworkStub -Response ('{"id":1001,"ip":"192.0.2.10","is_enabled":true}' | ConvertFrom-Json)
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            $SavedCulture = [System.Threading.Thread]::CurrentThread.CurrentCulture
+            try {
+                [System.Threading.Thread]::CurrentThread.CurrentCulture = [System.Globalization.CultureInfo]::GetCultureInfo($Culture)
+                @(Invoke-SendGrid -Method Get -Namespace 'things')
+            }
+            finally {
+                [System.Threading.Thread]::CurrentThread.CurrentCulture = $SavedCulture
+            }
+        }
+
+        (@($Result[0].PSObject.Properties.Name | Sort-Object) -join ',') | Should -BeExactly 'Id,Ip,IsEnabled'
+        $Result[0].Id | Should -Be 1001
+        $Result[0].Ip | Should -BeExactly '192.0.2.10'
+        $Result[0].IsEnabled | Should -BeTrue
     }
 }
 
