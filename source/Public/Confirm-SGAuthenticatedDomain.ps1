@@ -93,7 +93,7 @@
             if ($PSCmdlet.ShouldProcess(('{0}.{1}' -f $SGAuthenticatedDomain.Subdomain, $SGAuthenticatedDomain.Domain))) {
 
                 if ($SGAuthenticatedDomain.Valid -eq $true) {
-                    Write-Verbose -Message ('Authenticated Domain already validated!') -Verbose
+                    Write-Verbose -Message ('Authenticated Domain already validated!')
                 }
                 else {
                     try {

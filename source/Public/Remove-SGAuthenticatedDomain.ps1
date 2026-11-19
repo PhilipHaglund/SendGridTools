@@ -87,7 +87,7 @@
             }
             $SGAuthenticatedDomain = Get-SGAuthenticatedDomain @GetSplat -ShowDNS
 
-            Write-Verbose -Message ("Don't forget to remove DNS records.") -Verbose
+            Write-Verbose -Message ("Don't forget to remove DNS records.")
             $SGAuthenticatedDomain
 
             if ($PSCmdlet.ShouldProcess(('{0}.{1}({2})' -f $SGAuthenticatedDomain.Subdomain, $SGAuthenticatedDomain.Domain,$Id))) {

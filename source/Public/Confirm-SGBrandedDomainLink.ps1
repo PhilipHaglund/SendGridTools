@@ -88,7 +88,7 @@
             if ($PSCmdlet.ShouldProcess(('{0}.{1}' -f $SGBrandedDomainLink.Subdomain, $SGBrandedDomainLink.Domain))) {
 
                 if ($SGBrandedDomainLink.Valid -eq $true) {
-                    Write-Verbose -Message ('Branded Link Domain already validated!') -Verbose
+                    Write-Verbose -Message ('Branded Link Domain already validated!')
                 }
                 else {
                     try {
