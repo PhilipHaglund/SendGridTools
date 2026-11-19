@@ -258,11 +258,6 @@
                 $ValueAttributeCollection = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
                 $ValueAttributeCollection.Add($ValueParamAttribute)
 
-                # Add ValidateSet to the parameter
-                $script:Templates = Get-SGTemplate
-                $StatusValidateSet = [System.Management.Automation.ValidateSetAttribute]::new($Templates.TemplateId)
-                $ValueAttributeCollection.Add($StatusValidateSet)
-
                 # Create the actual Value parameter
                 $ValueParam = [System.Management.Automation.RuntimeDefinedParameter]::new('Value', [string[]], $ValueAttributeCollection)
 
@@ -278,11 +273,6 @@
                 # Add the parameter attributes to an attribute collection
                 $ValueAttributeCollection = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
                 $ValueAttributeCollection.Add($ValueParamAttribute)
-
-                # Add ValidateSet to the parameter
-                $script:Templates = Get-SGTemplate
-                $StatusValidateSet = [System.Management.Automation.ValidateSetAttribute]::new([string[]]$Templates.TemplateName)
-                $ValueAttributeCollection.Add($StatusValidateSet)
 
                 # Create the actual Value parameter
                 $ValueParam = [System.Management.Automation.RuntimeDefinedParameter]::new('Value', [string[]], $ValueAttributeCollection)
