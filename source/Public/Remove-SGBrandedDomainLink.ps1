@@ -63,7 +63,7 @@
             foreach ($Object in $InputObject) {
                 switch ($Object) {
                     { $_ -is [string] } { $UniqueId += $_; break }
-                    { $_ -is [int] } { $UniqueId += $_; break }
+                    { $_ -is [int] -or $_ -is [long] } { $UniqueId += $_; break }
                     { $_ -is [System.Management.Automation.PSCustomObject] } { $UniqueId += $_.Id; break }
                     default { Write-Error ('Failed to convert InputObject to Id.') -ErrorAction Stop }
                 }
