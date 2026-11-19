@@ -81,14 +81,17 @@ Describe '-WhatIf on a writing command makes no call (D20)' {
         }
     }
 
-    It 'Set-SGApiKey -WhatIf sends nothing, also for the read it does first' {
+    It 'Set-SGApiKey -WhatIf sends only the read it does first (D50)' {
         InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
             $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
             Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
 
             $null = Set-SGApiKey -UniqueId 'placeholder-id' -Scopes 'mail.send' -WhatIf
 
-            (Get-SgtNetworkCall).Count | Should -Be 0
+            $Calls = @(Get-SgtNetworkCall)
+            $Calls.Count | Should -Be 1
+            $Calls[0].Method | Should -Be 'Get'
+            @($Calls | Where-Object { $_.Method -eq 'Put' }).Count | Should -Be 0
         }
     }
 }
