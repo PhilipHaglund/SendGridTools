@@ -64,7 +64,7 @@
             foreach ($Object in $InputObject) {
                 switch ($Object) {
                     { $_ -is [string] } { $UniqueId += $_; break }
-                    { $_ -is [int] } { $UniqueId += $_; break }
+                    { $_ -is [int] -or $_ -is [long] } { $UniqueId += $_; break }
                     { $_ -is [System.Management.Automation.PSCustomObject] } { $UniqueId += $_.Id; break }
                     default { Write-Error ('Failed to convert InputObject to Id.') -ErrorAction Stop }
                 }
@@ -87,7 +87,7 @@
             }
             $SGAuthenticatedDomain = Get-SGAuthenticatedDomain @GetSplat -ShowDNS
 
-            Write-Verbose -Message ("Don't forget to remove DNS records.") -Verbose
+            Write-Verbose -Message ("Don't forget to remove DNS records.")
             $SGAuthenticatedDomain
 
             if ($PSCmdlet.ShouldProcess(('{0}.{1}({2})' -f $SGAuthenticatedDomain.Subdomain, $SGAuthenticatedDomain.Domain,$Id))) {

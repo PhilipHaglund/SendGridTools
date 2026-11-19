@@ -39,6 +39,9 @@
     .PARAMETER Default
         Specifies if the domain should be the default one for the SendGrid instance.
 
+    .PARAMETER IPAddress
+        Specifies one or more IP addresses of the account to associate with the domain. Tab completion offers the addresses of the account; SendGrid decides whether an address belongs to the account.
+
     .EXAMPLE
         PS C:\> New-SGAuthenticatedDomain -Domain 'example.com' -SendGridSubdomain 'email'
 
@@ -62,7 +65,8 @@
     .NOTES
         To use this function, you must be connected to a SendGrid instance. Use the Connect-SendGrid function to establish a connection.
     #>
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidShouldContinueWithoutForce', '', Justification = 'The ShouldContinue prompt only guards a deliberate request (Full Access key or -Default) and is not a -Force bypass; a boolean -Force parameter would add to the public surface and change behaviour, so the repair is deferred.')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidShouldContinueWithoutForce', '', Justification = 'The ShouldContinue prompt, reached through Confirm-SendGridContinue, only asks before -Default replaces the current default domain and is not a -Force bypass; a -Force parameter would add to the public surface, so it waits for a later minor release.')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '', Justification = 'CommandName, ParameterName, CommandAst and FakeBoundParameters are the fixed positional parameters PowerShell passes to an ArgumentCompleter script block; the signature is dictated by the engine and cannot be trimmed.')]
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseLiteralInitializerForHashtable', '', Justification = '[hashtable]::new() creates a case-sensitive table while @{} is case-insensitive; the two are not interchangeable in general, so changing the initializer could change behaviour and is deferred.')]
     [CmdletBinding(
         SupportsShouldProcess
@@ -109,29 +113,35 @@
 
         # Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
         [Parameter()]
-        [string]$OnBehalfOf
+        [string]$OnBehalfOf,
+
+        # Specifies one or more IP addresses of the account to associate with the domain. Tab completion offers the addresses of the account.
+        [Parameter()]
+        [ArgumentCompleter({
+                param(
+                    [string]$CommandName,
+                    [string]$ParameterName,
+                    [string]$WordToComplete,
+                    $CommandAst,
+                    $FakeBoundParameters
+                )
+                try {
+                    $ReturnedValue = (Get-SGIPAddress -ErrorAction Stop).Ip
+                }
+                catch {
+                    return
+                }
+
+                if ($WordToComplete) {
+                    $ReturnedValue | Where-Object { $_ -like "$WordToComplete*" }
+                }
+                else {
+                    $ReturnedValue
+                } })]
+        [string[]]$IPAddress
     )
     DynamicParam {
         $ParamDictionary = [System.Management.Automation.RuntimeDefinedParameterDictionary]::new()
-        $IPAddressParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
-        $IPAddressParamAttribute.Position = 2
-        $IPAddressParamAttribute.ParameterSetName = $PSCmdlet.ParameterSetName
-
-        # Add the parameter attributes to an attribute collection
-        $IPAddressAttributeCollection = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
-        $IPAddressAttributeCollection.Add($IPAddressParamAttribute)
-
-        # Add ValidateSet to the parameter
-        $script:IPAddresses = Get-SGIPAddress
-        $StatusValidateSet = [System.Management.Automation.ValidateSetAttribute]::new([string[]]$IPAddresses.Ip)
-        $IPAddressAttributeCollection.Add($StatusValidateSet)
-
-        # Create the actual IPAddress parameter
-        $IPAddressParam = [System.Management.Automation.RuntimeDefinedParameter]::new('IPAddress', [string[]], $IPAddressAttributeCollection)
-
-        # Push the parameter(s) into a parameter dictionary
-        $ParamDictionary.Add('IPAddress', $IPAddressParam)
-
         if ($DisableAutomaticSecurity) {
             # Specify whether to use a custom SPF or allow SendGrid to manage your SPF. This option is only available to authenticated domains set up for manual security.
             $CustomSPFParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
@@ -157,21 +167,18 @@
         $ContentBody.Add('domain', $Domain)
 
         if ($PSBoundParameters.ContainsKey('SendGridSubdomain')) {
-            Write-Verbose -Message ("SendGrid will not generate a custom subdomain. Domain to be used: $Domain") -Verbose
+            Write-Verbose -Message ("SendGrid will not generate a custom subdomain. Domain to be used: $Domain")
             $ContentBody.Add('subdomain', $SendGridSubdomain)
             $ProcessMessage = "$SendGridSubdomain.$Domain"
 
         }
         else {
-            Write-Verbose -Message ("SendGrid will automatically generate a custom subdomain for you. Example:em1234.$Domain") -Verbose
+            Write-Verbose -Message ("SendGrid will automatically generate a custom subdomain for you. Example:em1234.$Domain")
             $ProcessMessage = $Domain
         }
 
         if ($PSBoundParameters.ContainsKey('CustomDkimSelector')) {
             $ContentBody.Add('custom_dkim_selector', $CustomDkimSelector)
-        }
-        if ($PSBoundParameters.ContainsKey('SubUser')) {
-            $ContentBody.Add('username', $SubUser)
         }
         if ($DisableAutomaticSecurity.IsPresent) {
             $ContentBody.Add('automatic_security', $false)

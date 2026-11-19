@@ -34,7 +34,7 @@
     .NOTES
         To use this function, you must be connected to a SendGrid instance. Use the Connect-SendGrid function to establish a connection.
     #>
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidShouldContinueWithoutForce', '', Justification = 'The ShouldContinue prompt only guards a deliberate request (Full Access key or -Default) and is not a -Force bypass; a boolean -Force parameter would add to the public surface and change behaviour, so the repair is deferred.')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidShouldContinueWithoutForce', '', Justification = 'The ShouldContinue prompt, reached through Confirm-SendGridContinue, only asks before -Default replaces the current default domain and is not a -Force bypass; a -Force parameter would add to the public surface, so it waits for a later minor release.')]
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseLiteralInitializerForHashtable', '', Justification = '[hashtable]::new() creates a case-sensitive table while @{} is case-insensitive; the two are not interchangeable in general, so changing the initializer could change behaviour and is deferred.')]
     [CmdletBinding(SupportsShouldProcess)]
     param (
@@ -67,13 +67,13 @@
 
         $ContentBody.Add('domain', $Domain)
         if ($PSBoundParameters.ContainsKey('SendGridSubdomain')) {
-            Write-Verbose -Message ("SendGrid will not generate a custom subdomain. Domain to be used: $Domain") -Verbose
+            Write-Verbose -Message ("SendGrid will not generate a custom subdomain. Domain to be used: $Domain")
             $ContentBody.Add('subdomain', $SendGridSubDomain)
             $ProcessMessage = "$SendGridSubDomain.$Domain"
 
         }
         else {
-            Write-Verbose -Message ("SendGrid will automatically generate a custom branded subdomain for you. Example:url1234.$Domain") -Verbose
+            Write-Verbose -Message ("SendGrid will automatically generate a custom branded subdomain for you. Example:url1234.$Domain")
             $ProcessMessage = $Domain
         }
         $InvokeSplat = @{
@@ -88,7 +88,7 @@
     }
     process {
         if ($PSCmdlet.ShouldProcess($ProcessMessage)) {
-            if ($PSBoundParameters.ContainsKey('Default') -and $PSCmdlet.ShouldContinue($Domain, 'Setting this domain as the default domain will remove the current default domain. Do you want to continue?')) {
+            if ($Default.IsPresent -and (Confirm-SendGridContinue -Cmdlet $PSCmdlet -Query $Domain -Caption 'Setting this domain as the default domain will remove the current default domain. Do you want to continue?')) {
                 $ContentBody.Add('default', $true)
             }
             try {

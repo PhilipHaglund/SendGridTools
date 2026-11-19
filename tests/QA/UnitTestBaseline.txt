@@ -1,7 +1,5 @@
 Add-SGEmailAddressToSuppressionGroup
 Add-SGGlobalSuppression
-Confirm-SGAuthenticatedDomain
-Confirm-SGBrandedDomainLink
 Disable-SGSubuser
 Disconnect-SendGrid
 Enable-SGSubuser
@@ -27,15 +25,11 @@ Get-SGTeammate
 New-SGAlert
 New-SGApiKey
 New-SGSuppressionGroup
-Remove-SGApiKey
-Remove-SGAuthenticatedDomain
 Remove-SGBlock
 Remove-SGBounce
-Remove-SGBrandedDomainLink
 Remove-SGInvalidEmail
 Remove-SGSpamReport
 Remove-SGSubuser
 Send-SGMailMessage
 Set-SGAlert
 Set-SGAuthenticatedDomainToSubUser
-Set-SGBrandedDomainLink
