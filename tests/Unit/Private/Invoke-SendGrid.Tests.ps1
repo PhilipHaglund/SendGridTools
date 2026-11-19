@@ -172,14 +172,8 @@ Describe 'Invoke-SendGrid keeps empty lists (D8)' {
             $Result[0].PSObject.Properties['StartDate'] | Should -Not -BeNullOrEmpty
             $Result[0].PSObject.Properties['StartDate'].Value | Should -BeNullOrEmpty
             $Result[0].PSObject.Properties['Count'].Value | Should -Be 3
-            if ($PSVersionTable.PSEdition -eq 'Core') {
-                $Result[0].Created | Should -BeOfType [datetime]
-                $Result[0].Created | Should -Be ([datetime]::new(1970, 1, 1, 0, 0, 0, 0).AddSeconds(1700000000))
-            }
-            else {
-                # Windows PowerShell 5.1 reads this number as Int32, which the int64 conversion does not match; it stays a number as before.
-                $Result[0].Created | Should -Be 1700000000
-            }
+            $Result[0].Created | Should -BeOfType [datetime]
+            $Result[0].Created | Should -Be ([datetime]::new(1970, 1, 1, 0, 0, 0, 0).AddSeconds(1700000000))
             $Result[0].Date | Should -BeOfType [datetime]
             $Result[0].Date | Should -Be ([datetime]::Parse('2023-11-14'))
         }

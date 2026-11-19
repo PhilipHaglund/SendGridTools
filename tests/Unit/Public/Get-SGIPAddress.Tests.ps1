@@ -113,7 +113,10 @@ Describe 'Get-SGIPAddress' {
             for ($i = 0; $i -lt $Reference.Count; $i++) {
                 foreach ($Property in $Reference[$i].PSObject.Properties) {
                     $Out[$i].PSObject.Properties.Name | Should -Contain $Property.Name
-                    "$($Out[$i].($Property.Name))" | Should -Be "$($Property.Value)"
+                    # Invoke-SendGrid turns a whole number under a time name into a date (D30); the cursor reader returns it as SendGrid sends it.
+                    if ($Property.Value -isnot [datetime]) {
+                        "$($Out[$i].($Property.Name))" | Should -Be "$($Property.Value)"
+                    }
                 }
                 # Both readers keep an empty array (D8).
                 $Reference[$i].PSObject.Properties.Name | Should -Contain 'Pools'
