@@ -11,6 +11,5 @@ Get-SGMailSetting
 Get-SGPermissionScopes
 Get-SGSuppression
 Get-SGSuppressionGroup
-New-SGApiKey
 New-SGSuppressionGroup
 Send-SGMailMessage
