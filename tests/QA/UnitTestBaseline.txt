@@ -5,7 +5,6 @@ Get-SGAlert
 Get-SGBounceByClassification
 Get-SGBouncePurgeSetting
 Get-SGBrandedDomainLink
-Get-SGDesign
 Get-SGForwardBounceSetting
 Get-SGForwardSpamSetting
 Get-SGMailSetting
