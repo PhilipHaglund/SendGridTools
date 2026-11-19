@@ -138,6 +138,26 @@ Describe 'Sprint 4 step 3 measurements' {
         $Result | Should -Not -BeNullOrEmpty
     }
 
+    # Get-SGIPAddress reads ips through Invoke-SendGrid and send_ips/ips through Invoke-SendGridCursorList, so the
+    # same kind of field is measured through the command for both readers.
+    It 'D30: the time-named properties in the output of <Name>' -ForEach @(
+        @{ Name = 'Get-SGIPAddress (ips)'; IncludeRegion = $false; Json = '[{"ip":"192.0.2.10","assigned_at":1700000003,"pools":[],"warmup":false}]' }
+        @{ Name = 'Get-SGIPAddress -IncludeRegion (send_ips/ips)'; IncludeRegion = $true; Json = '{"result":[{"ip":"192.0.2.10","added_at":1700000002,"updated_at":1700000001,"region":"us"}],"_metadata":{"next_params":{"after_key":null}}}' }
+    ) {
+        $Run = InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Json = $Json; IncludeRegion = $IncludeRegion } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ($Json | ConvertFrom-Json)
+            $Out = $null
+            $Caught = $null
+            try { $Out = @(Get-SGIPAddress -IncludeRegion:$IncludeRegion) } catch { $Caught = $_ }
+            @{ Out = $Out; Caught = $Caught }
+        }
+        $TimeNamed = { param($MemberName) $MemberName -match 'valid|created|updated|lastat' -or $MemberName -cmatch 'At$' }
+        $Result = if ($Run.Caught) { Format-SgtMeasuredError -ErrorRecord $Run.Caught } else { 'objects {0}; first object: {1}' -f @($Run.Out).Count, (Format-SgtMeasuredObject -Object @($Run.Out)[0] -Where $TimeNamed) }
+        Write-Host ('MEASURE D30 [{0} {1}] {2}: {3}' -f $PSVersionTable.PSEdition, $PSVersionTable.PSVersion, $Name, $Result)
+        $Result | Should -Not -BeNullOrEmpty
+    }
+
     It 'D32: what binding -Value gives for -Property <Property>' -ForEach @(
         @{ Property = 'TemplateId' }
         @{ Property = 'TemplateName' }
