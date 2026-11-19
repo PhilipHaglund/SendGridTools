@@ -20,7 +20,8 @@ Invoke-SendGrid -Method GET -Namespace "mail/send"
 #>
 function Invoke-SendGrid {
     [CmdletBinding(
-        SupportsShouldProcess
+        SupportsShouldProcess,
+        ConfirmImpact = 'None'
     )]
     param (
         # The web request method.
