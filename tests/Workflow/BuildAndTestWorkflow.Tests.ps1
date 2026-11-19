@@ -51,6 +51,110 @@ BeforeAll {
         @($Text -split '\r?\n' | Where-Object { $_ -notmatch '^\s*#' })
     }
 
+    function Get-GalleryTokenFinding {
+        <#
+        .SYNOPSIS
+        Returns one text per breach of the rule that only the publish step gets the gallery key.
+        .DESCRIPTION
+        The rule: every line that is not a comment and names GALLERYAPITOKEN lies in the job
+        publish, inside the one step that maps the secret to an environment variable under that
+        step's env:, and exactly one step does so. The text is read line by line, tracking the
+        top-level key, the job (a two-space key under jobs:) and the step (a line that starts
+        with six spaces and a dash; a four-space key of the job ends it). The secret is matched
+        without regard to case, since GitHub expressions are. Each finding names the line number
+        and the reason. Nothing is returned when the text keeps the rule. A line inside a block
+        scalar (a key whose value is | or >, with an optional - or +) is content, not a comment,
+        even when it starts with #, since GitHub expands an expression in it; such a line is read
+        like any code line. A block holds every following line that is blank or indented deeper
+        than its key (for "- key: |" the key stands after the dash). A line that is not a comment
+        and holds the word secrets is a finding too when some occurrence is not secrets.GITHUB_TOKEN
+        or secrets.GALLERYAPITOKEN, since toJSON(secrets), a computed index or a similar reference
+        hands the gallery key over without naming it.
+        #>
+        param([string]$Text)
+        $Lines = $Text -split '\r?\n'
+        $Findings = [System.Collections.Generic.List[string]]::new()
+        $Mappings = [System.Collections.Generic.List[object]]::new()
+        $Names = [System.Collections.Generic.List[object]]::new()
+        $TopKey = ''
+        $Job = ''
+        $StepLine = 0
+        $StepName = ''
+        $BlockIndent = -1
+        for ($Index = 0; $Index -lt $Lines.Count; $Index++) {
+            $Line = $Lines[$Index]
+            $InBlock = $false
+            if ($BlockIndent -ge 0) {
+                if ($Line -match '^\s*$') { continue }
+                if (($Line.Length - $Line.TrimStart().Length) -gt $BlockIndent) { $InBlock = $true }
+                else { $BlockIndent = -1 }
+            }
+            if (-not $InBlock -and ($Line -match '^\s*$' -or $Line -match '^\s*#')) { continue }
+            if ($InBlock) {
+                # Content of a block scalar: not a comment and not a key, so no structure is read from it.
+            }
+            elseif ($Line -match '^(\S[^:]*):') {
+                $TopKey = $Matches[1]
+                $Job = ''
+                $StepLine = 0
+                $StepName = ''
+            }
+            elseif ($TopKey -eq 'jobs' -and $Line -match '^  ([A-Za-z][\w-]*):\s*$') {
+                $Job = $Matches[1]
+                $StepLine = 0
+                $StepName = ''
+            }
+            elseif ($Line -match '^      - ') {
+                $StepLine = $Index + 1
+                $StepName = if ($Line -match '^      - name:\s*(.+?)\s*$') { $Matches[1] } else { '' }
+            }
+            elseif ($Line -match '^    \S') {
+                $StepLine = 0
+                $StepName = ''
+            }
+            if (-not $InBlock -and $Line -match '^(\s*)(- )?[A-Za-z_][\w-]*:\s*[|>][-+]?\s*$') {
+                $BlockIndent = $Matches[1].Length + $(if ($Matches[2]) { 2 } else { 0 })
+            }
+            $SecretsWord = [regex]::Matches($Line, '(?i)\bsecrets\b').Count
+            $NamedSecret = [regex]::Matches($Line, '(?i)\bsecrets\s*\.\s*(GITHUB_TOKEN|GALLERYAPITOKEN)\b').Count
+            if ($SecretsWord -gt $NamedSecret) {
+                $Findings.Add(('line {0}: refers to secrets without naming GITHUB_TOKEN or GALLERYAPITOKEN' -f ($Index + 1)))
+            }
+            if ($Line -notmatch 'GALLERYAPITOKEN') { continue }
+            $Number = $Index + 1
+            $Entry = [PSCustomObject]@{ Number = $Number; Job = $Job; StepLine = $StepLine; StepName = $StepName }
+            $Names.Add($Entry)
+            if ($Job -ne 'publish') {
+                $Findings.Add(('line {0}: names GALLERYAPITOKEN outside the job publish (job: {1})' -f $Number, $(if ($Job) { $Job } else { 'none' })))
+            }
+            if ($Line -match "secrets\s*(\.\s*GALLERYAPITOKEN\b|\[\s*['""]GALLERYAPITOKEN['""]\s*\])") {
+                $Mappings.Add($Entry)
+                $Indent = $Line.Length - $Line.TrimStart().Length
+                $Parent = $null
+                for ($Back = $Index - 1; $Back -ge 0; $Back--) {
+                    $Earlier = $Lines[$Back]
+                    if ($Earlier -match '^\s*$' -or $Earlier -match '^\s*#') { continue }
+                    if (($Earlier.Length - $Earlier.TrimStart().Length) -lt $Indent) { $Parent = $Earlier; break }
+                }
+                $IsEnvEntry = $Line -match '^\s+[A-Za-z_][A-Za-z0-9_]*:\s*\$\{\{\s*secrets\.GALLERYAPITOKEN\s*\}\}\s*$'
+                if (-not $IsEnvEntry -or $null -eq $Parent -or $Parent -notmatch '^\s+env:\s*$' -or $StepLine -eq 0) {
+                    $Findings.Add(('line {0}: maps GALLERYAPITOKEN other than as an entry under the env: of a step' -f $Number))
+                }
+            }
+        }
+        if ($Mappings.Count -ne 1) {
+            $Findings.Add(('file: {0} lines map GALLERYAPITOKEN, exactly one is allowed' -f $Mappings.Count))
+        }
+        else {
+            foreach ($Entry in $Names) {
+                if ($Entry.StepLine -ne $Mappings[0].StepLine) {
+                    $Findings.Add(('line {0}: names GALLERYAPITOKEN in a step other than the one that maps it (the step at line {1})' -f $Entry.Number, $Mappings[0].StepLine))
+                }
+            }
+        }
+        $Findings.ToArray()
+    }
+
     function Invoke-RefusalStep {
         <#
         .SYNOPSIS
@@ -66,7 +170,7 @@ BeforeAll {
         #>
         param(
             [hashtable]$Environment = @{},
-            [string]$GhStatus = 'behind',
+            [string]$GhStatus = 'identical',
             [int]$GhExit = 0
         )
         $Variables = @{
@@ -205,6 +309,76 @@ Describe 'build-and-test.yml' -Skip:$script:OnDesktop {
             $Secret | Should -BeGreaterOrEqual 0
             $Refuse | Should -BeLessThan $Publish
             $Refuse | Should -BeLessThan $Secret
+        }
+
+        It 'gives GALLERYAPITOKEN to one step only, the publish step, through its env' {
+            Get-GalleryTokenFinding -Text $script:WorkflowText | Should -BeNullOrEmpty
+            # A text that is empty or has the step renamed would find nothing too, so the one
+            # mapping line is looked for in the publish step as well.
+            $Mapping = '(?m)^\s+[A-Za-z_][A-Za-z0-9_]*:\s*\$\{\{\s*secrets\.GALLERYAPITOKEN\s*\}\}\s*$'
+            [regex]::Matches((Get-CodeLine -Text $script:WorkflowText) -join "`n", $Mapping).Count | Should -Be 1
+            $PublishJob = Get-JobText -Text $script:WorkflowText -Job 'publish'
+            $Start = $PublishJob.IndexOf('- name: Publish to the PowerShell Gallery')
+            $Start | Should -BeGreaterOrEqual 0
+            $Rest = $PublishJob.Substring($Start + 1)
+            $Next = $Rest.IndexOf("`n      - name:")
+            $Step = if ($Next -ge 0) { $Rest.Substring(0, $Next) } else { $Rest }
+            [regex]::Matches((Get-CodeLine -Text $Step) -join "`n", $Mapping).Count | Should -Be 1
+        }
+
+        It 'fails a copy of the file where <Case>' -ForEach @(
+            @{
+                Case = 'the refusal step also maps the secret'
+                Old  = '          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}'
+                New  = "          GH_TOKEN: `${{ secrets.GITHUB_TOKEN }}`n          GALLERY_API_TOKEN: `${{ secrets.GALLERYAPITOKEN }}"
+            }
+            @{
+                Case = 'the job package gets it at job level'
+                Old  = "  package:`n"
+                New  = "  package:`n    env:`n      GALLERY_API_TOKEN: `${{ secrets.GALLERYAPITOKEN }}`n"
+            }
+            @{
+                Case = 'a step of build-and-test gets it through its own env'
+                Old  = "      - name: Build`n        shell: pwsh`n        run: ./build.ps1 -Tasks build"
+                New  = "      - name: Build`n        shell: pwsh`n        env:`n          GALLERY_API_TOKEN: `${{ secrets.GALLERYAPITOKEN }}`n        run: ./build.ps1 -Tasks build"
+            }
+            @{
+                Case  = 'the publish step interpolates it in lower case'
+                After = '- name: Publish to the PowerShell Gallery'
+                Old   = "          `$ModuleName = 'SendGridTools'"
+                New   = "          `$ModuleName = 'SendGridTools'`n          Write-Host '`${{ secrets.galleryapitoken }}'"
+            }
+            @{
+                Case = 'a # line in a run block of build-and-test names it'
+                Old  = "        run: ./build.ps1 -Tasks build"
+                New  = "        run: |`n          # `${{ secrets.GALLERYAPITOKEN }}`n          ./build.ps1 -Tasks build"
+            }
+            @{
+                Case = 'a step of build-and-test hands it all the secrets'
+                Old  = "        run: ./build.ps1 -Tasks build"
+                New  = "        env:`n          ALL_SECRETS: `${{ toJSON(secrets) }}`n        run: ./build.ps1 -Tasks build"
+            }
+            @{
+                Case = 'the mapping is removed'
+                Old  = 'GALLERY_API_TOKEN: ${{ secrets.GALLERYAPITOKEN }}'
+                New  = "GALLERY_API_TOKEN: ''"
+            }
+        ) {
+            $Original = $script:WorkflowText
+            $Eol = if ($Original.Contains("`r`n")) { "`r`n" } else { "`n" }
+            $Old = $Old -replace "`n", $Eol
+            $New = $New -replace "`n", $Eol
+            $From = 0
+            if ($After) { $From = $Original.IndexOf($After) }
+            $From | Should -BeGreaterOrEqual 0
+            $At = $Original.IndexOf($Old, $From, [System.StringComparison]::Ordinal)
+            $At | Should -BeGreaterOrEqual 0 -Because 'the text to change must exist in the real file'
+            $Changed = $Original.Substring(0, $At) + $New + $Original.Substring($At + $Old.Length)
+            $Copy = Join-Path -Path $TestDrive -ChildPath 'build-and-test.copy.yml'
+            [System.IO.File]::WriteAllText($Copy, $Changed)
+            $ReadBack = [System.IO.File]::ReadAllText($Copy)
+            $ReadBack | Should -Not -BeExactly $Original
+            @(Get-GalleryTokenFinding -Text $ReadBack).Count | Should -BeGreaterThan 0
         }
 
         It 'holds PowerShell that parses in the refusal step' {

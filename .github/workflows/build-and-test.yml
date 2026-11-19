@@ -44,8 +44,9 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  # A superseded pull-request run is cancelled; a run on main is never cut short, so every merged
-  # commit keeps a completed check.
+  # A superseded pull-request run is cancelled. A run on main is not cancelled while it runs, but a
+  # run on main that is still waiting in this group is replaced when a newer one arrives, so a merged
+  # commit whose run never started gets no completed check of its own.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -442,8 +443,11 @@ jobs:
         #      be published, and only the tag step would then stop, after the publish:
         #      ReleaseTag.ps1 refuses a tag run whose version has no tag, since this workflow
         #      never creates a v<X.Y.Z> tag.
-        #   2. A stable tag on a commit that is not on main -- created in a checkout sitting on a
-        #      feature branch, say. That publishes unreviewed code as a full release.
+        #   2. A stable tag on a commit that is not main's tip. A commit that is not on main --
+        #      created in a checkout sitting on a feature branch, say -- publishes unreviewed code
+        #      as a full release. An older commit on main (GitHub compares it to main as
+        #      'behind') publishes a full release of code that main has since moved on from;
+        #      the changelog guard in the Test step of build-and-test stops this case earlier.
         #   3. A main run that computes a stable version, after a GitVersion.yml change for example.
         #      A full release comes from a tag and from nothing else.
         #

@@ -319,37 +319,53 @@ if ($UsePSResourceGet)
         }
         catch
         {
-            Write-Warning -Message ('{0} could not be bootstrapped. Reverting to PowerShellGet. Error: {1}' -f $psResourceGetModuleName, $_.Exception.Message)
+            # SGT-37: a failed download stops the bootstrap. It never reverts to PowerShellGet, which would install the
+            # NuGet package provider and mark the gallery as trusted, a path this project has turned off.
+            throw [System.InvalidOperationException]::new(('{0} could not be bootstrapped: the download failed, and the bootstrap does not revert to PowerShellGet. Error: {1}' -f $psResourceGetModuleName, $_.Exception.Message), $_.Exception)
         }
 
         $UsePSResourceGet = $false
 
         if ($psResourceGetDownloaded)
         {
-            # On Windows PowerShell the command Expand-Archive do not like .nupkg as a zip archive extension.
-            $zipFileName = ((Split-Path -Path $invokeWebRequestParameters.OutFile -Leaf) -replace 'nupkg', 'zip')
+            try
+            {
+                # On Windows PowerShell the command Expand-Archive do not like .nupkg as a zip archive extension.
+                $zipFileName = ((Split-Path -Path $invokeWebRequestParameters.OutFile -Leaf) -replace 'nupkg', 'zip')
 
-            $renameItemParameters = @{
-                Path    = $invokeWebRequestParameters.OutFile
-                NewName = $zipFileName
-                Force   = $true
+                $renameItemParameters = @{
+                    Path    = $invokeWebRequestParameters.OutFile
+                    NewName = $zipFileName
+                    Force   = $true
+                }
+
+                Rename-Item @renameItemParameters -ErrorAction 'Stop'
+
+                $psResourceGetZipArchivePath = Join-Path -Path (Split-Path -Path $invokeWebRequestParameters.OutFile -Parent) -ChildPath $zipFileName
+
+                $expandArchiveParameters = @{
+                    Path            = $psResourceGetZipArchivePath
+                    DestinationPath = "$PSDependTarget/$psResourceGetModuleName"
+                    Force           = $true
+                }
+
+                Microsoft.PowerShell.Archive\Expand-Archive @expandArchiveParameters -ErrorAction 'Stop'
+
+                Remove-Item -Path $psResourceGetZipArchivePath
+
+                Import-Module -Name $expandArchiveParameters.DestinationPath -Force -ErrorAction 'Stop'
             }
+            catch
+            {
+                # SGT-37: a failed unpack or import stops the bootstrap too, for the same reason. The zip is removed
+                # first when the rename got that far, so the next run does not fail on a leftover file.
+                if ($psResourceGetZipArchivePath -and (Test-Path -LiteralPath $psResourceGetZipArchivePath))
+                {
+                    Remove-Item -LiteralPath $psResourceGetZipArchivePath -Force -ErrorAction 'SilentlyContinue'
+                }
 
-            Rename-Item @renameItemParameters
-
-            $psResourceGetZipArchivePath = Join-Path -Path (Split-Path -Path $invokeWebRequestParameters.OutFile -Parent) -ChildPath $zipFileName
-
-            $expandArchiveParameters = @{
-                Path            = $psResourceGetZipArchivePath
-                DestinationPath = "$PSDependTarget/$psResourceGetModuleName"
-                Force           = $true
+                throw [System.InvalidOperationException]::new(('{0} could not be bootstrapped: the downloaded package could not be unpacked and imported, and the bootstrap does not revert to PowerShellGet. Error: {1}' -f $psResourceGetModuleName, $_.Exception.Message), $_.Exception)
             }
-
-            Microsoft.PowerShell.Archive\Expand-Archive @expandArchiveParameters
-
-            Remove-Item -Path $psResourceGetZipArchivePath
-
-            Import-Module -Name $expandArchiveParameters.DestinationPath -Force
 
             # Successfully bootstrapped PSResourceGet, so let's use it.
             $UsePSResourceGet = $true
