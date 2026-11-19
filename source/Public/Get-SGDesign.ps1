@@ -9,7 +9,7 @@
         This function does not return the pre-built Twilio SendGrid designs.
 
     .PARAMETER PageSize
-        Specifies the number of results to return. The value is sent only when the parameter is given; without it SendGrid returns its default page size of 100.
+        Specifies the number of results to return. The value is sent only when the parameter is given with a value other than 0; without it SendGrid returns its default page size of 100.
 
     .PARAMETER PageToken
         Specifies the token corresponding to a specific page of results, as provided by metadata.

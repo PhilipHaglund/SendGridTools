@@ -144,6 +144,7 @@ Describe 'Remove-SGBlock rejects an object without an address (D64)' {
         @{ Name = 'an object without Email'; Value = ([pscustomobject]@{ Name = 'placeholder' }) }
         @{ Name = 'an object with an empty Email'; Value = ([pscustomobject]@{ Email = '' }) }
         @{ Name = 'an object with a null Email'; Value = ([pscustomobject]@{ Email = $null }) }
+        @{ Name = 'an object with a whitespace Email'; Value = ([pscustomobject]@{ Email = '  ' }) }
     ) {
         InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Value = $Value } {
             $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
@@ -151,7 +152,7 @@ Describe 'Remove-SGBlock rejects an object without an address (D64)' {
 
             $Caught = $null
             try {
-                $null = $Value | Remove-SGBlock -Confirm:$false -ErrorAction Stop
+                $null = $Value | Remove-SGBlock -Confirm:$false -ErrorAction Continue
             } catch {
                 $Caught = $_
             }
@@ -172,7 +173,7 @@ Describe 'Remove-SGBlock rejects an object without an address (D64)' {
             $Calls = Get-SgtNetworkCall
             $Calls.Count | Should -Be 1
             $Calls[0].Method | Should -Be 'Delete'
-            $Calls[0].Uri.AbsoluteUri | Should -BeLike '*/blocks/a%2Bb%40example.com'
+            $Calls[0].Uri.AbsoluteUri | Should -BeExactly 'https://api.sendgrid.com/v3/suppression/blocks/a%2Bb%40example.com'
         }
     }
 
@@ -186,7 +187,28 @@ Describe 'Remove-SGBlock rejects an object without an address (D64)' {
             $Calls = Get-SgtNetworkCall
             $Calls.Count | Should -Be 1
             $Calls[0].Method | Should -Be 'Delete'
-            $Calls[0].Uri.AbsoluteUri | Should -BeLike '*/blocks/a%2Bb%40example.com'
+            $Calls[0].Uri.AbsoluteUri | Should -BeExactly 'https://api.sendgrid.com/v3/suppression/blocks/a%2Bb%40example.com'
+        }
+    }
+
+    It 'Stops at the object without an address after sending the first Delete' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $Caught = $null
+            try {
+                $null = 'one@example.com', [pscustomobject]@{ Name = 'placeholder' }, 'two@example.com' | Remove-SGBlock -Confirm:$false -ErrorAction Continue
+            } catch {
+                $Caught = $_
+            }
+
+            $Caught | Should -Not -BeNullOrEmpty
+            $Caught.Exception.Message | Should -BeExactly 'InputObject has no Email property; pass an email address or an object with an Email property.'
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Calls[0].Method | Should -Be 'Delete'
+            $Calls[0].Uri.AbsoluteUri | Should -BeExactly 'https://api.sendgrid.com/v3/suppression/blocks/one%40example.com'
         }
     }
 
@@ -197,7 +219,7 @@ Describe 'Remove-SGBlock rejects an object without an address (D64)' {
 
             $Caught = $null
             try {
-                $null = 42 | Remove-SGBlock -Confirm:$false -ErrorAction Stop
+                $null = 42 | Remove-SGBlock -Confirm:$false -ErrorAction Continue
             } catch {
                 $Caught = $_
             }
