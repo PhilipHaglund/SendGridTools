@@ -11,14 +11,17 @@
 # every later test once that runspace is gone (measured). The network tripwire is enabled in the child before
 # the module is imported there, and its record of unmocked calls comes back with the result.
 #
-# The script runs in the SendGridTools module scope of the child, with no session, so a request stops at the
-# connect-first error before any class method or transport call.
+# The script runs in the SendGridTools module scope of the child. Without -AnswerJson the module has no session
+# there, so a request stops at the connect-first error before any class method or transport call. With
+# -AnswerJson the module gets a connected test session and the tripwire's stub answers every request with that
+# JSON, so the questions asked while an answer is read are counted too.
 
 function Invoke-SgtInCountingHost {
     # Runs -Script (text) in the SendGridTools module scope of a child process with the counting host.
     # Returns PromptCount, Prompt, HostLine, Output, Threw, ThrownType, ThrownMessage, UnmockedCall and NetworkCallCount.
     param(
-        [Parameter(Mandatory)][string]$Script
+        [Parameter(Mandatory)][string]$Script,
+        [string]$AnswerJson
     )
     $Loaded = Get-Module -Name SendGridTools
     if (-not $Loaded) {
@@ -32,10 +35,14 @@ function Invoke-SgtInCountingHost {
     $ShellName = if ($PSVersionTable.PSEdition -eq 'Desktop') { 'powershell.exe' } elseif ($env:OS -eq 'Windows_NT') { 'pwsh.exe' } else { 'pwsh' }
     $ShellPath = Join-Path -Path $PSHOME -ChildPath $ShellName
     $ScriptBase64 = [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($Script))
+    $ChildArguments = @('-NoProfile', '-NonInteractive', '-File', $ChildPath, '-TripwirePath', $TripwirePath, '-ManifestPath', $ManifestPath, '-ScriptBase64', $ScriptBase64)
+    if ($AnswerJson) {
+        $ChildArguments += @('-AnswerJsonBase64', [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($AnswerJson)))
+    }
 
     # A stderr line from the child under 2>&1 must not become a terminating error under a caller with Stop.
     $ErrorActionPreference = 'Continue'
-    $ChildOutput = @(& $ShellPath -NoProfile -NonInteractive -File $ChildPath -TripwirePath $TripwirePath -ManifestPath $ManifestPath -ScriptBase64 $ScriptBase64 2>&1 | ForEach-Object -Process { "$_" })
+    $ChildOutput = @(& $ShellPath @ChildArguments 2>&1 | ForEach-Object -Process { "$_" })
     $ExitCode = $LASTEXITCODE
     $Marker = 'SGT-COUNTING-HOST-RESULT:'
     $ResultLine = @($ChildOutput | Where-Object -FilterScript { $_.StartsWith($Marker) })

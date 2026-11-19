@@ -4,11 +4,16 @@
 # is read, and any other kind of prompt throws. The network tripwire is enabled in that runspace before the
 # module is imported there. The result goes to stdout as one marked line of serialised text.
 #
+# Without -AnswerJsonBase64 the module has no session, so a request stops at the connect-first error. With it,
+# the module gets a connected test session and the tripwire's stub answers every request with that JSON,
+# parsed by ConvertFrom-Json in this shell.
+#
 # This process imports the module in that one runspace only, and nowhere else.
 param(
     [Parameter(Mandatory)][string]$TripwirePath,
     [Parameter(Mandatory)][string]$ManifestPath,
-    [Parameter(Mandatory)][string]$ScriptBase64
+    [Parameter(Mandatory)][string]$ScriptBase64,
+    [string]$AnswerJsonBase64
 )
 $ErrorActionPreference = 'Stop'
 
@@ -101,6 +106,7 @@ namespace SgtTest
 '@
 
 $Script = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($ScriptBase64))
+$AnswerJson = if ($AnswerJsonBase64) { [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($AnswerJsonBase64)) } else { $null }
 $CountingHost = [SgtTest.CountingHost]::new()
 $Runspace = [runspacefactory]::CreateRunspace($CountingHost)
 $Shell = $null
@@ -109,11 +115,22 @@ try {
     $Shell = [powershell]::Create()
     $Shell.Runspace = $Runspace
     $null = $Shell.AddScript({
-            param($TripwirePath, $ManifestPath, $Script)
+            param($TripwirePath, $ManifestPath, $Script, $AnswerJson)
             . $TripwirePath
             Enable-SgtNetworkTripwire
             Assert-SgtNetworkTripwireActive
             $Module = Import-Module -Name $ManifestPath -PassThru -ErrorAction Stop
+            if ($AnswerJson) {
+                & $Module {
+                    $Session = [SendGridSession]::new()
+                    $Session._Credential = [pscredential]::new('apikey', (ConvertTo-SecureString -String 'test-key-not-real' -AsPlainText -Force))
+                    $Session._Connected = $true
+                    $Session._CreateDateTime = Get-Date
+                    $script:Session = $Session
+                }
+                $global:SgtStubValue = $AnswerJson | ConvertFrom-Json
+                $global:SgtNetworkStub = { $global:SgtStubValue }
+            }
             $Thrown = $null
             $Output = try { & $Module ([scriptblock]::Create($Script)) } catch { $Thrown = $_ }
             [pscustomobject]@{
@@ -124,7 +141,7 @@ try {
                 UnmockedCall     = [string[]]@(Get-SgtUnmockedNetworkCall)
                 NetworkCallCount = [int]$global:SgtNetworkCall.Count
             }
-        }).AddArgument($TripwirePath).AddArgument($ManifestPath).AddArgument($Script)
+        }).AddArgument($TripwirePath).AddArgument($ManifestPath).AddArgument($Script).AddArgument($AnswerJson)
     $Inner = @($Shell.Invoke())
     if ($Shell.Streams.Error.Count -gt 0) {
         throw ('The counting-host runspace reported an error: {0}' -f $Shell.Streams.Error[0])

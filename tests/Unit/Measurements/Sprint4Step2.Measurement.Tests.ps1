@@ -109,8 +109,10 @@ Describe 'Sprint 4 step 2 measurements' {
         $Result | Should -Not -BeNullOrEmpty
     }
 
-    # D20 is measured in a second runspace whose host counts the choice prompts and answers Yes at once; no console
-    # is read. The module has no session there, so a request stops at the connect-first error after ShouldProcess.
+    # D20 is measured in a new process whose host counts the choice prompts and answers Yes at once; no console is
+    # read. Without an answer the module has no session there, so a request stops at the connect-first error after
+    # ShouldProcess. With an answer it has a test session and the stub gives that answer to every request, so the
+    # questions asked while the answer is read are counted too.
     It 'D20: how many times the host is asked for <Name>' -ForEach @(
         @{ Name = 'Invoke-SendGrid with ConfirmPreference Low at the caller'; Script = '$ConfirmPreference = ''Low''; Invoke-SendGrid -Method Get -Namespace ''things''' }
         @{ Name = 'Invoke-SendGrid with ConfirmPreference Medium at the caller'; Script = '$ConfirmPreference = ''Medium''; Invoke-SendGrid -Method Get -Namespace ''things''' }
@@ -119,8 +121,15 @@ Describe 'Sprint 4 step 2 measurements' {
         @{ Name = 'Remove-SGGlobalSuppression -Confirm'; Script = 'Remove-SGGlobalSuppression -EmailAddress ''one@example.com'' -Confirm' }
         @{ Name = 'Remove-SGGlobalSuppression -WhatIf'; Script = 'Remove-SGGlobalSuppression -EmailAddress ''one@example.com'' -WhatIf' }
         @{ Name = 'Add-SGGlobalSuppression -Confirm'; Script = 'Add-SGGlobalSuppression -EmailAddress ''one@example.com'' -Confirm' }
+        @{ Name = 'Invoke-SendGrid with ConfirmPreference Low, a session and an answer with two properties'; Script = '$ConfirmPreference = ''Low''; $null = Invoke-SendGrid -Method Get -Namespace ''things'''; Answer = '{"first_name":"sgt-test-one","second_name":"sgt-test-two"}' }
+        @{ Name = 'Add-SGGlobalSuppression -Confirm with a session and an answer with one property'; Script = '$null = Add-SGGlobalSuppression -EmailAddress ''one@example.com'' -Confirm'; Answer = '{"recipient_emails":["one@example.com"]}' }
+        @{ Name = 'Remove-SGGlobalSuppression -Confirm with a session and an answer with one property'; Script = '$null = Remove-SGGlobalSuppression -EmailAddress ''one@example.com'' -Confirm'; Answer = '{"name":"sgt-test-name"}' }
+        @{ Name = 'Set-SGApiKey -Confirm with a session and an answer with three properties (it reads the key first)'; Script = '$null = Set-SGApiKey -UniqueId ''placeholder-id'' -Scopes ''mail.send'' -Confirm'; Answer = '{"api_key_id":"placeholder-id","name":"placeholder-name","scopes":["alerts.read"]}' }
+        @{ Name = 'Add-SGGlobalSuppression -WhatIf with a session and an answer with one property'; Script = '$null = Add-SGGlobalSuppression -EmailAddress ''one@example.com'' -WhatIf'; Answer = '{"recipient_emails":["one@example.com"]}' }
     ) {
-        $Run = Invoke-SgtInCountingHost -Script $Script
+        $HostParams = @{ Script = $Script }
+        if ($Answer) { $HostParams['AnswerJson'] = $Answer }
+        $Run = Invoke-SgtInCountingHost @HostParams
         $Result = 'prompts {0}; host lines {1}; threw {2}; error type {3}; error message "{4}"; calls {5}; unmocked calls {6}' -f $Run.PromptCount, $Run.HostLine.Count, $Run.Threw, $(if ($Run.ThrownType) { $Run.ThrownType } else { 'none' }), $Run.ThrownMessage, $Run.NetworkCallCount, $Run.UnmockedCall.Count
         Write-Host ('MEASURE D20 [{0} {1}] {2}: {3}' -f $PSVersionTable.PSEdition, $PSVersionTable.PSVersion, $Name, $Result)
         $Run.UnmockedCall | Should -BeNullOrEmpty
