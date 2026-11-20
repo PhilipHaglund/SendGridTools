@@ -147,7 +147,7 @@
             $Target = Resolve-SendGridBaseUri @ResolveParams
         }
         catch {
-            Write-Error -Message ('Unable to connect to SendGrid. Error detail: {0}' -f $_.Exception.Message) -ErrorAction Stop
+            Write-Error -Exception (ConvertTo-SendGridCommandException -Message ('Unable to connect to SendGrid. Error detail: {0}' -f $_.Exception.Message) -ErrorRecord $_) -ErrorAction Stop
         }
 
         # A new session is built when forced, when none exists, or when -Region/-BaseUri names another host than the session's.
@@ -189,7 +189,7 @@
                 Write-Verbose -Message 'Encountered an error while connecting to SendGrid. Cleaning up...'
             }
             Remove-Variable -Name Session -Scope Script
-            Write-Error -Message ('Unable to connect to SendGrid. Error detail: {0}' -f $_.Exception.Message) -ErrorAction Stop
+            Write-Error -Exception (ConvertTo-SendGridCommandException -Message ('Unable to connect to SendGrid. Error detail: {0}' -f $_.Exception.Message) -ErrorRecord $_) -ErrorAction Stop
         }
     }
 }

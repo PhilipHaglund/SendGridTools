@@ -69,7 +69,7 @@
                 Invoke-SendGrid @InvokeSplat
             }
             catch {
-                Write-Error ('Failed to update SendGrid forward bounce settings. {0}' -f $_.Exception.Message) -ErrorAction Stop
+                Write-Error -Exception (ConvertTo-SendGridCommandException -Message ('Failed to update SendGrid forward bounce settings. {0}' -f $_.Exception.Message) -ErrorRecord $_) -ErrorAction Stop
             }
         }
     }

@@ -100,7 +100,7 @@
                     Invoke-SendGrid @InvokeSplat
                 }
                 catch {
-                    Write-Error ('Failed to remove all SendGrid blocks. {0}' -f $_.Exception.Message) -ErrorAction Stop
+                    Write-Error -Exception (ConvertTo-SendGridCommandException -Message ('Failed to remove all SendGrid blocks. {0}' -f $_.Exception.Message) -ErrorRecord $_) -ErrorAction Stop
                 }
             }
         }
@@ -120,7 +120,7 @@
                         Invoke-SendGrid @InvokeSplat
                     }
                     catch {
-                        Write-Error ('Failed to remove SendGrid block "{0}". {1}' -f $Id.Address, $_.Exception.Message) -ErrorAction Stop
+                        Write-Error -Exception (ConvertTo-SendGridCommandException -Message ('Failed to remove SendGrid block "{0}". {1}' -f $Id.Address, $_.Exception.Message) -ErrorRecord $_) -ErrorAction Stop
                     }
                 }
             }

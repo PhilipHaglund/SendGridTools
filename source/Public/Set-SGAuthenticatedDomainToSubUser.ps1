@@ -72,7 +72,7 @@
                 Invoke-SendGrid @InvokeSplat
             }
             catch {
-                Write-Error ('Failed to assign authenticated domain. {0}' -f $_.Exception.Message) -ErrorAction Stop
+                Write-Error -Exception (ConvertTo-SendGridCommandException -Message ('Failed to assign authenticated domain. {0}' -f $_.Exception.Message) -ErrorRecord $_) -ErrorAction Stop
             }
         }
     }

@@ -74,10 +74,11 @@ class SendGridSession {
                 $this._CreateDateTime = Get-Date # Used to refresh "session lifetime"
             }
             catch {
-                $Refusal = Get-SendGridRedirectRefusal -ErrorRecord $_ -RequestUri $this.EndpointURL
+                $RequestUri = $this.EndpointURL
+                $Refusal = Get-SendGridRedirectRefusal -ErrorRecord $_ -RequestUri $RequestUri
                 $this._Connected = $false
                 if ($Refusal) { throw $Refusal }
-                throw ('Unable to connect to SendGrid. {0}' -f $_.Exception.Message)
+                throw (ConvertTo-SendGridException -ErrorRecord $_ -Context Connect -RequestUri $RequestUri)
             }
         }
         else {
@@ -108,10 +109,11 @@ class SendGridSession {
             $this._CreateDateTime = Get-Date
         }
         catch {
-            $Refusal = Get-SendGridRedirectRefusal -ErrorRecord $_ -RequestUri $this.EndpointURL
+            $RequestUri = $this.EndpointURL
+            $Refusal = Get-SendGridRedirectRefusal -ErrorRecord $_ -RequestUri $RequestUri
             $this._Connected = $false
             if ($Refusal) { throw $Refusal }
-            throw ('Unable to connect to SendGrid. {0}' -f $_.Exception.Message)
+            throw (ConvertTo-SendGridException -ErrorRecord $_ -Context Connect -RequestUri $RequestUri)
         }
     }
 
@@ -170,15 +172,11 @@ class SendGridSession {
                 return $Query
             }
             catch {
-                $Refusal = Get-SendGridRedirectRefusal -ErrorRecord $_ -RequestUri $this.EndpointURL
+                $RequestUri = $this.EndpointURL
+                $Refusal = Get-SendGridRedirectRefusal -ErrorRecord $_ -RequestUri $RequestUri
                 $this.BuildEndpointURL($null)
                 if ($Refusal) { throw $Refusal }
-                if ($null -ne $_.ErrorDetails.Message) {
-                    throw ('SendGrid Error: "{0}"' -f ($_.ErrorDetails.Message | ConvertFrom-Json | Select-Object -ExpandProperty errors | Select-Object -ExpandProperty message) -join ', ' )
-                }
-                else {
-                    throw ('Unable to query SendGrid: {0}' -f $_.Exception.Message)
-                }
+                throw (ConvertTo-SendGridException -ErrorRecord $_ -Context Query -RequestUri $RequestUri)
             }
         }
     }
@@ -231,15 +229,11 @@ class SendGridSession {
                 return $Query
             }
             catch {
-                $Refusal = Get-SendGridRedirectRefusal -ErrorRecord $_ -RequestUri $this.EndpointURL
+                $RequestUri = $this.EndpointURL
+                $Refusal = Get-SendGridRedirectRefusal -ErrorRecord $_ -RequestUri $RequestUri
                 $this.BuildEndpointURL($null)
                 if ($Refusal) { throw $Refusal }
-                if ($null -ne $_.ErrorDetails.Message) {
-                    throw ('SendGrid Error: "{0}"' -f ($_.ErrorDetails.Message | ConvertFrom-Json | Select-Object -ExpandProperty errors | Select-Object -ExpandProperty message) -join ', ' )
-                }
-                else {
-                    throw ('Unable to query SendGrid: {0}' -f $_.Exception.Message)
-                }
+                throw (ConvertTo-SendGridException -ErrorRecord $_ -Context Query -RequestUri $RequestUri)
             }
         }
     }
@@ -289,15 +283,11 @@ class SendGridSession {
                 return $Query
             }
             catch {
-                $Refusal = Get-SendGridRedirectRefusal -ErrorRecord $_ -RequestUri $this.EndpointURL
+                $RequestUri = $this.EndpointURL
+                $Refusal = Get-SendGridRedirectRefusal -ErrorRecord $_ -RequestUri $RequestUri
                 $this.BuildEndpointURL($null)
                 if ($Refusal) { throw $Refusal }
-                if ($null -ne $_.ErrorDetails.Message) {
-                    throw ('SendGrid Error: "{0}"' -f ($_.ErrorDetails.Message | ConvertFrom-Json | Select-Object -ExpandProperty errors | Select-Object -ExpandProperty message) -join ', ' )
-                }
-                else {
-                    throw ('Unable to query SendGrid: {0}' -f $_.Exception.Message)
-                }
+                throw (ConvertTo-SendGridException -ErrorRecord $_ -Context Query -RequestUri $RequestUri)
             }
         }
     }
@@ -351,15 +341,11 @@ class SendGridSession {
                 return $Query
             }
             catch {
-                $Refusal = Get-SendGridRedirectRefusal -ErrorRecord $_ -RequestUri $this.EndpointURL
+                $RequestUri = $this.EndpointURL
+                $Refusal = Get-SendGridRedirectRefusal -ErrorRecord $_ -RequestUri $RequestUri
                 $this.BuildEndpointURL($null)
                 if ($Refusal) { throw $Refusal }
-                if ($null -ne $_.ErrorDetails.Message) {
-                    throw ('SendGrid Error: "{0}"' -f ($_.ErrorDetails.Message | ConvertFrom-Json | Select-Object -ExpandProperty errors | Select-Object -ExpandProperty message) -join ', ' )
-                }
-                else {
-                    throw ('Unable to query SendGrid: {0}' -f $_.Exception.Message)
-                }
+                throw (ConvertTo-SendGridException -ErrorRecord $_ -Context Query -RequestUri $RequestUri)
             }
         }
     }

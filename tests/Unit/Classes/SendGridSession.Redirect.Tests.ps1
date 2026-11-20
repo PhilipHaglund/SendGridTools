@@ -149,20 +149,17 @@ Describe 'SendGridSession refuses a redirect' {
         }
     }
 
-    It 'Keeps today''s message for <Code> in <Label> (<Form>, details: <WithDetails>)' -ForEach $script:UnchangedCases {
+    It 'Names the HTTP status for <Code> in <Label> (<Form>, details: <WithDetails>)' -ForEach $script:UnchangedCases {
         InModuleScope SendGridTools -Parameters @{ Target = $Target; Case = $Case; Form = $Form; Code = $Code; WithDetails = $WithDetails; Cred = $script:Cred } {
             $Details = if ($WithDetails) { '{"errors":[{"message":"bad request"}]}' } else { $null }
             $Record = New-SgtFormRecord -Form $Form -Code $Code -Details $Details
             Set-SgtNetworkStub -Throw $Record
             $Result = Invoke-SgtSessionTarget -Target $Target -Case $Case -Credential $Cred
-            if ($Target -like 'Connect*') {
-                $Result.Message | Should -BeExactly ('Unable to connect to SendGrid. {0}' -f $Record.Exception.Message)
-            }
-            elseif ($WithDetails) {
-                $Result.Message | Should -BeExactly 'SendGrid Error: "bad request"'
+            if ($WithDetails) {
+                $Result.Message | Should -BeExactly ('SendGrid Error (HTTP {0}): "bad request"' -f $Code)
             }
             else {
-                $Result.Message | Should -BeExactly ('Unable to query SendGrid: {0}' -f $Record.Exception.Message)
+                $Result.Message | Should -BeExactly ('SendGrid Error (HTTP {0}). {1}' -f $Code, $Record.Exception.Message)
             }
         }
     }

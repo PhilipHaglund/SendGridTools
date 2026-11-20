@@ -67,7 +67,7 @@
             Invoke-SendGrid @InvokeSplat
         }
         catch {
-            Write-Error ('Failed to retrieve SendGrid Design. {0}' -f $_.Exception.Message) -ErrorAction Stop
+            Write-Error -Exception (ConvertTo-SendGridCommandException -Message ('Failed to retrieve SendGrid Design. {0}' -f $_.Exception.Message) -ErrorRecord $_) -ErrorAction Stop
         }
     }
 }

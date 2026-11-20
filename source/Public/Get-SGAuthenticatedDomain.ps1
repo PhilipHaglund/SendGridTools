@@ -130,7 +130,7 @@
                 $script:SGDomains = @(Invoke-SendGridPagedList -InvokeSplat $DynamicInvokeSplat -IdProperty 'Id')
             }
             catch {
-                Write-Error ('Failed to make SendGrid API call. {0}' -f $_.Exception.Message) -ErrorAction Stop
+                Write-Error -Exception (ConvertTo-SendGridCommandException -Message ('Failed to make SendGrid API call. {0}' -f $_.Exception.Message) -ErrorRecord $_) -ErrorAction Stop
             }
             # With no domains there is nothing to validate against, so DomainName is not offered (a ValidateSet cannot be empty).
             if ($script:SGDomains.Count -eq 0) {
@@ -175,7 +175,7 @@
                         Invoke-SendGrid @InvokeSplat
                     }
                     catch {
-                        Write-Error ('Failed to retrieve SendGrid Authenticated Domain. {0}' -f $_.Exception.Message) -ErrorAction Stop
+                        Write-Error -Exception (ConvertTo-SendGridCommandException -Message ('Failed to retrieve SendGrid Authenticated Domain. {0}' -f $_.Exception.Message) -ErrorRecord $_) -ErrorAction Stop
                     }
                 }
             }
@@ -186,7 +186,7 @@
                     Invoke-SendGridPagedList -InvokeSplat $InvokeSplat -IdProperty 'Id'
                 }
                 catch {
-                    Write-Error ('Failed to retrieve all SendGrid Authenticated Domain. {0}' -f $_.Exception.Message) -ErrorAction Stop
+                    Write-Error -Exception (ConvertTo-SendGridCommandException -Message ('Failed to retrieve all SendGrid Authenticated Domain. {0}' -f $_.Exception.Message) -ErrorRecord $_) -ErrorAction Stop
                 }
             }
         }

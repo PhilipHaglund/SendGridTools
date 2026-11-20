@@ -118,7 +118,7 @@
                         Invoke-SendGrid @InvokeSplat
                     }
                     catch {
-                        Write-Error ('Failed to create a FullAccess SendGrid API key. {0}' -f $_.Exception.Message) -ErrorAction Stop
+                        Write-Error -Exception (ConvertTo-SendGridCommandException -Message ('Failed to create a FullAccess SendGrid API key. {0}' -f $_.Exception.Message) -ErrorRecord $_) -ErrorAction Stop
                     }
                 }
             }
@@ -129,7 +129,7 @@
                     Invoke-SendGrid @InvokeSplat
                 }
                 catch {
-                    Write-Error ('Failed to create SendGrid API key. {0}' -f $_.Exception.Message) -ErrorAction Stop
+                    Write-Error -Exception (ConvertTo-SendGridCommandException -Message ('Failed to create SendGrid API key. {0}' -f $_.Exception.Message) -ErrorRecord $_) -ErrorAction Stop
                 }
             }
         }
