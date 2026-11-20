@@ -28,7 +28,7 @@ BeforeAll {
         }
     }
 
-    if ($script:ManifestPath) {
+    if ($script:ManifestPath -and $script:Shell) {
         $Quoted = $script:ManifestPath.Replace("'", "''")
         $script:CaseA = Invoke-SgtChildScript -Name 'using-module.ps1' -Lines @(
             "using module '$Quoted'"
@@ -41,6 +41,7 @@ BeforeAll {
         $script:CaseB = Invoke-SgtChildScript -Name 'import-module.ps1' -Lines @(
             "`$ErrorActionPreference = 'Stop'"
             "Import-Module -Name '$Quoted' -ErrorAction Stop"
+            "'IMPORTED'"
             'try {'
             '    $Asm = [SGASM]::new(5, @(1, 2))'
             "    'TYPE=' + `$Asm.GetType().FullName"
@@ -73,6 +74,7 @@ Describe 'SGASM reachability from outside the module' {
 
     It 'Import-Module alone does not make [SGASM] reachable in a new process' {
         $Because = "child exit code $($script:CaseB.ExitCode), output: $($script:CaseB.Output)"
+        $script:CaseB.Output | Should -Match '(?m)^IMPORTED\s*$' -Because $Because
         $script:CaseB.Output | Should -Not -Match '(?m)^TYPE=' -Because $Because
         $script:CaseB.Output | Should -Match 'Unable to find type' -Because $Because
         $script:CaseB.Output | Should -Match 'SGASM' -Because $Because
