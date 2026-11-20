@@ -200,6 +200,14 @@ Describe 'Get-SGSpamReport refuses an empty -EmailAddress (D116)' {
     }
 }
 
+Describe 'Get-SGSpamReport help (D117)' {
+    It 'Says that an empty -EmailAddress is refused' {
+        $Text = ((Get-Help Get-SGSpamReport -Parameter EmailAddress).description.Text -join ' ') -replace '\s+', ' '
+        $Text.Trim() | Should -BeLike '*An empty value is refused.'
+        (Get-Command Get-SGSpamReport).Definition | Should -Match '# [^\r\n]*An empty value is refused\.\r?\n\s*\[Parameter\('
+    }
+}
+
 Describe 'Network tripwire' {
     It 'Made no unmocked network call' {
         Assert-SgtNetworkTripwireActive

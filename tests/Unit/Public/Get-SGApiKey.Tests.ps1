@@ -309,6 +309,14 @@ Describe 'Get-SGApiKey refuses an empty -ApiKeyId (D116)' {
     }
 }
 
+Describe 'Get-SGApiKey help (D117)' {
+    It 'Says that an empty -ApiKeyId is refused' {
+        $Text = ((Get-Help Get-SGApiKey -Parameter ApiKeyId).description.Text -join ' ') -replace '\s+', ' '
+        $Text.Trim() | Should -BeLike '*An empty value is refused.'
+        (Get-Command Get-SGApiKey).Definition | Should -Match '# [^\r\n]*An empty value is refused\.\r?\n\s*\[Parameter\('
+    }
+}
+
 Describe 'Network tripwire' {
     It 'Made no unmocked network call' {
         Assert-SgtNetworkTripwireActive

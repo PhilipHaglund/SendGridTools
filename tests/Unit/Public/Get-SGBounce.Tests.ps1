@@ -200,6 +200,14 @@ Describe 'Get-SGBounce refuses an empty -EmailAddress (D116)' {
     }
 }
 
+Describe 'Get-SGBounce help (D117)' {
+    It 'Says that an empty -EmailAddress is refused' {
+        $Text = ((Get-Help Get-SGBounce -Parameter EmailAddress).description.Text -join ' ') -replace '\s+', ' '
+        $Text.Trim() | Should -BeLike '*An empty value is refused.'
+        (Get-Command Get-SGBounce).Definition | Should -Match '# [^\r\n]*An empty value is refused\.\r?\n\s*\[Parameter\('
+    }
+}
+
 Describe 'Network tripwire' {
     It 'Made no unmocked network call' {
         Assert-SgtNetworkTripwireActive
