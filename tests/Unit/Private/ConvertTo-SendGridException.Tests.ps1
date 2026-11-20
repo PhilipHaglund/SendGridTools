@@ -215,10 +215,25 @@ Describe 'ConvertTo-SendGridException' {
 
         It 'never holds the key or the Authorization header in the text, ToString or Data' {
             InModuleScope SendGridTools {
-                $Record = New-SgtHttpRecord -Code 400 -Details '{"errors":[{"field":"name","message":"name is required"}]}'
+                # Plant the key where the function must not copy it from: the request and response headers, and a body field outside errors.
+                $Record = New-SgtHttpRecord -Code 400 -Details '{"errors":[{"field":"name","message":"name is required"}],"auth":"Authorization: Bearer test-key-not-real"}'
+                $Response = $Record.Exception.Response
+                if ($Response -is [System.Net.Http.HttpResponseMessage]) {
+                    $Response.RequestMessage = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::Get, 'https://api.example.com/v3/x')
+                    $null = $Response.RequestMessage.Headers.TryAddWithoutValidation('Authorization', 'Bearer test-key-not-real')
+                }
+                else {
+                    $Response.Headers['Authorization'] = 'Bearer test-key-not-real'
+                }
+                $Record.ErrorDetails.Message | Should -Match 'test-key-not-real'
+                $PlantedHeader = if ($Response -is [System.Net.Http.HttpResponseMessage]) { $Response.RequestMessage.Headers.Authorization.ToString() } else { $Response.Headers['Authorization'] }
+                $PlantedHeader | Should -Match 'test-key-not-real'
                 $Result = ConvertTo-SendGridException -ErrorRecord $Record -Context Query -RequestUri ([uri]'https://api.example.com/v3/x?a=b')
+                $Result.Message | Should -BeExactly 'SendGrid Error (HTTP 400): "name: name is required"'
                 $All = @($Result.Message, $Result.ToString()) + @($Result.Data.Values | ForEach-Object { $_ | ConvertTo-Json -Depth 4 -Compress })
-                ($All -join ' ') | Should -Not -Match 'test-key-not-real|Authorization'
+                $All.Count | Should -BeGreaterThan 2
+                ($All -join ' ') | Should -Not -Match 'test-key-not-real'
+                ($All -join ' ') | Should -Not -Match 'Authorization'
             }
         }
     }

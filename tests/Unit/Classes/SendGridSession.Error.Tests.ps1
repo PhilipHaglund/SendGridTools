@@ -70,11 +70,16 @@ Describe 'SendGridSession error from SendGrid' {
 
     It 'Throws the HTTP text and keeps the original exception in <Label>' -ForEach $script:Targets {
         InModuleScope SendGridTools -Parameters @{ Target = $Target; Case = $Case; Cred = $script:Cred } {
-            $Record = New-SgtStatusRecord -Code 404 -Details '{"errors":[{"field":"id","message":"resource not found"}]}'
+            $Record = New-SgtStatusRecord -Code 404 -Details '{"errors":[{"field":"id","message":"resource not found"}],"auth":"Authorization: Bearer test-key-not-real"}'
             Set-SgtNetworkStub -Throw $Record
             $Result = Invoke-SgtErrorTarget -Target $Target -Case $Case -Credential $Cred
             $Exception = $Result.Caught.Exception
             $Exception.Message | Should -BeExactly 'SendGrid Error (HTTP 404): "id: resource not found"'
+            # The session credential holds test-key-not-real and the body plants it outside errors: neither may reach the error.
+            $Cred.GetNetworkCredential().Password | Should -BeExactly 'test-key-not-real'
+            $Seen = @($Exception.Message, $Exception.ToString()) + @($Exception.Data.Values | ForEach-Object { $_ | ConvertTo-Json -Depth 4 -Compress })
+            ($Seen -join ' ') | Should -Not -Match 'test-key-not-real'
+            ($Seen -join ' ') | Should -Not -Match 'Authorization'
             $Exception.GetType().FullName | Should -BeExactly 'System.Management.Automation.RuntimeException'
             [object]::ReferenceEquals($Exception.InnerException, $Record.Exception) | Should -BeTrue
             $Exception.Data['StatusCode'] | Should -BeOfType [int]
