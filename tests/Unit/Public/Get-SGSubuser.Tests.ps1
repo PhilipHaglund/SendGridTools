@@ -251,26 +251,34 @@ Describe 'Get-SGSubuser -Username lookup' {
         }
     }
 
-    It 'Keeps the filter first with -Limit and -Offset' {
+    It 'Sends neither limit nor offset with -Username, and warns' {
         InModuleScope SendGridTools {
-            $null = Get-SGSubuser -Username sgt-test-subuser-1 -Limit 2 -Offset 1 -Confirm:$false
+            $Text = "SendGrid's username filter also returns names that start with the value: -Limit and -Offset apply only when -Username is not given."
+
+            $null = Get-SGSubuser -Username sgt-test-subuser-1 -Limit 2 -Offset 1 -Confirm:$false -WarningVariable Warned -WarningAction SilentlyContinue
             $Calls = @(Get-SgtNetworkCall)[0]
             $Calls.Count | Should -Be 1
-            ([uri]$Calls[0].Uri).AbsoluteUri | Should -Be 'https://api.sendgrid.com/v3/subusers?username=sgt-test-subuser-1&limit=2&offset=1'
+            ([uri]$Calls[0].Uri).AbsoluteUri | Should -Be 'https://api.sendgrid.com/v3/subusers?username=sgt-test-subuser-1'
+            @($Warned).Count | Should -Be 1
+            "$($Warned[0])" | Should -Be $Text
 
             Reset-SgtNetworkStub
             Set-SgtNetworkStub -Response @()
-            $null = Get-SGSubuser -Username sgt-test-subuser-1 -Limit 2 -Confirm:$false
+            $null = Get-SGSubuser -Username sgt-test-subuser-1 -Limit 2 -Confirm:$false -WarningVariable Warned -WarningAction SilentlyContinue
             $Calls = @(Get-SgtNetworkCall)[0]
             $Calls.Count | Should -Be 1
-            ([uri]$Calls[0].Uri).AbsoluteUri | Should -Be 'https://api.sendgrid.com/v3/subusers?username=sgt-test-subuser-1&limit=2'
+            ([uri]$Calls[0].Uri).AbsoluteUri | Should -Be 'https://api.sendgrid.com/v3/subusers?username=sgt-test-subuser-1'
+            @($Warned).Count | Should -Be 1
+            "$($Warned[0])" | Should -Be $Text
 
             Reset-SgtNetworkStub
             Set-SgtNetworkStub -Response @()
-            $null = Get-SGSubuser -Username sgt-test-subuser-1 -Offset 1 -Confirm:$false
+            $null = Get-SGSubuser -Username sgt-test-subuser-1 -Offset 1 -Confirm:$false -WarningVariable Warned -WarningAction SilentlyContinue
             $Calls = @(Get-SgtNetworkCall)[0]
             $Calls.Count | Should -Be 1
-            ([uri]$Calls[0].Uri).AbsoluteUri | Should -Be 'https://api.sendgrid.com/v3/subusers?username=sgt-test-subuser-1&offset=1'
+            ([uri]$Calls[0].Uri).AbsoluteUri | Should -Be 'https://api.sendgrid.com/v3/subusers?username=sgt-test-subuser-1'
+            @($Warned).Count | Should -Be 1
+            "$($Warned[0])" | Should -Be $Text
         }
     }
 
@@ -294,15 +302,15 @@ Describe 'Get-SGSubuser -Username lookup' {
         }
     }
 
-    It 'Encodes every character in one name and keeps limit and offset' {
+    It 'Encodes every character in one name and sends neither limit nor offset' {
         InModuleScope SendGridTools {
-            $null = Get-SGSubuser -Username 'a b+c/d#e' -Limit 2 -Offset 1 -Confirm:$false
+            $null = Get-SGSubuser -Username 'a b+c/d#e' -Limit 2 -Offset 1 -Confirm:$false -WarningAction SilentlyContinue
 
             $Calls = @(Get-SgtNetworkCall)[0]
             $Calls.Count | Should -Be 1
             $Sent = [uri]$Calls[0].Uri
             $Sent.AbsolutePath | Should -Be '/v3/subusers'
-            $Sent.Query | Should -Be '?username=a%20b%2Bc%2Fd%23e&limit=2&offset=1'
+            $Sent.Query | Should -Be '?username=a%20b%2Bc%2Fd%23e'
             $Sent.Fragment | Should -BeNullOrEmpty
         }
     }
@@ -452,6 +460,55 @@ Describe 'Get-SGSubuser -Username lookup' {
             )
             $Limited = @(Get-SGSubuser -Limit 2 -Confirm:$false)
             $Limited.Count | Should -Be 2
+        }
+    }
+
+    It 'Warns once, not once per piped name, and sends neither limit nor offset' {
+        InModuleScope SendGridTools {
+            Reset-SgtNetworkStub
+            Set-SgtNetworkStub -Response @()
+
+            $null = 'sgt-test-abc', 'sgt-test-abcd' | Get-SGSubuser -Limit 1 -Offset 1 -Confirm:$false -WarningVariable Warned -WarningAction SilentlyContinue
+
+            $Calls = @(Get-SgtNetworkCall)[0]
+            $Calls.Count | Should -Be 2
+            "$($Calls[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/subusers?username=sgt-test-abc'
+            "$($Calls[1].Uri)" | Should -Be 'https://api.sendgrid.com/v3/subusers?username=sgt-test-abcd'
+            @($Warned).Count | Should -Be 1
+            "$($Warned[0])" | Should -Be "SendGrid's username filter also returns names that start with the value: -Limit and -Offset apply only when -Username is not given."
+            "$($Warned[0])" | Should -Not -Match 'sgt-test'
+        }
+    }
+
+    It 'Gives the paging warning and the region warning once each' {
+        InModuleScope SendGridTools {
+            $null = Get-SGSubuser -Username sgt-test-subuser-1 -Limit 1 -IncludeRegion -Confirm:$false -WarningVariable Warned -WarningAction SilentlyContinue
+
+            $Calls = @(Get-SgtNetworkCall)[0]
+            $Calls.Count | Should -Be 1
+            "$($Calls[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/subusers?username=sgt-test-subuser-1'
+            @($Warned).Count | Should -Be 2
+            @($Warned | ForEach-Object { "$_" }) | Should -Contain "SendGrid's username filter also returns names that start with the value: -Limit and -Offset apply only when -Username is not given."
+            @($Warned | Where-Object { "$_" -match 'single subuser' }).Count | Should -Be 1
+        }
+    }
+
+    It 'Sends limit and offset as before without -Username, and does not warn' {
+        InModuleScope SendGridTools {
+            $null = Get-SGSubuser -Limit 2 -Offset 4 -Confirm:$false -WarningVariable Warned -WarningAction SilentlyContinue
+
+            $Calls = @(Get-SgtNetworkCall)[0]
+            $Calls.Count | Should -Be 1
+            "$($Calls[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/subusers?limit=2&offset=4'
+            @($Warned).Count | Should -Be 0
+        }
+    }
+
+    It 'Gives no paging warning with -Username alone' {
+        InModuleScope SendGridTools {
+            $null = Get-SGSubuser -Username sgt-test-subuser-1 -Confirm:$false -WarningVariable Warned -WarningAction SilentlyContinue
+
+            @($Warned).Count | Should -Be 0
         }
     }
 }

@@ -1,4 +1,4 @@
-function Get-SGSubuser {
+﻿function Get-SGSubuser {
     <#
     .SYNOPSIS
         Retrieves all or a specific Subuser within the current SendGrid instance.
@@ -90,6 +90,7 @@ function Get-SGSubuser {
 
     begin {
         $WarnedAboutRegion = $false
+        $WarnedAboutPaging = $false
     }
 
     process {
@@ -105,12 +106,19 @@ function Get-SGSubuser {
 
         if ($PSBoundParameters.ContainsKey('Username')) {
             $QueryParameters.Add(('username={0}' -f [uri]::EscapeDataString($Username)))
+            # SendGrid's username filter matches on the start of the name, so a page of it can hide the equal name.
+            if (($PSBoundParameters.ContainsKey('Limit') -or $PSBoundParameters.ContainsKey('Offset')) -and -not $WarnedAboutPaging) {
+                $WarnedAboutPaging = $true
+                Write-Warning -Message "SendGrid's username filter also returns names that start with the value: -Limit and -Offset apply only when -Username is not given."
+            }
         }
-        if ($PSBoundParameters.ContainsKey('Limit')) {
-            $QueryParameters.Add("limit=$limit")
-        }
-        if ($PSBoundParameters.ContainsKey('Offset')) {
-            $QueryParameters.Add("offset=$offset")
+        else {
+            if ($PSBoundParameters.ContainsKey('Limit')) {
+                $QueryParameters.Add("limit=$limit")
+            }
+            if ($PSBoundParameters.ContainsKey('Offset')) {
+                $QueryParameters.Add("offset=$offset")
+            }
         }
         if ($IncludeRegion.IsPresent -or $PSBoundParameters.ContainsKey('Region')) {
             if ($PSBoundParameters.ContainsKey('Username')) {
