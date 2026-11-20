@@ -31,6 +31,7 @@
             Position = 0
         )]
         [Alias('Id')]
+        [ValidateNotNullOrEmpty()]
         [string[]]$AlertId,
 
         # Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
@@ -46,7 +47,7 @@
         if ($PSBoundParameters.OnBehalfOf) {
             $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
         }
-        if ($PSBoundParameters.AlertId) {
+        if ($PSBoundParameters.ContainsKey('AlertId')) {
             foreach ($Alert in $AlertId) {
                 $InvokeSplat['Namespace'] = "alerts/$Alert"
                 try {

@@ -42,6 +42,7 @@
             ValueFromPipelineByPropertyName,
             Position = 0
         )]
+        [ValidateNotNullOrEmpty()]
         [MailAddress[]]$EmailAddress,
 
         # Refers to the start of the time range in Unix timestamp when an invalid email was created (inclusive).
@@ -101,7 +102,7 @@
             $QueryParameters.Add("offset=$offset")
         }
 
-        if ($PSBoundParameters.EmailAddress) {
+        if ($PSBoundParameters.ContainsKey('EmailAddress')) {
             foreach ($Email in $EmailAddress) {
                 $EmailQuery = @($QueryParameters) + ('email={0}' -f [uri]::EscapeDataString($Email.Address))
                 $EmailInvokeSplat = $InvokeSplat.Clone()

@@ -175,7 +175,7 @@ Describe 'Get-SGGlobalSuppression refuses an empty -EmailAddress (D116)' {
             @($Errs).Count | Should -Be 1
             $Calls = @(Get-SgtNetworkCall)[0]
             $Calls.Count | Should -Be 1
-            "$($Calls[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/suppression/unsubscribes?email=user%40example.com'
+            ([uri]$Calls[0].Uri).AbsoluteUri | Should -Be 'https://api.sendgrid.com/v3/suppression/unsubscribes?email=user%40example.com'
         }
     }
 
@@ -185,7 +185,7 @@ Describe 'Get-SGGlobalSuppression refuses an empty -EmailAddress (D116)' {
 
             $Calls = @(Get-SgtNetworkCall)[0]
             $Calls.Count | Should -Be 1
-            "$($Calls[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/suppression/unsubscribes?email=user%40example.com'
+            ([uri]$Calls[0].Uri).AbsoluteUri | Should -Be 'https://api.sendgrid.com/v3/suppression/unsubscribes?email=user%40example.com'
         }
     }
 
@@ -195,7 +195,7 @@ Describe 'Get-SGGlobalSuppression refuses an empty -EmailAddress (D116)' {
 
             $Calls = @(Get-SgtNetworkCall)[0]
             $Calls.Count | Should -Be 1
-            "$($Calls[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/suppression/unsubscribes'
+            ([uri]$Calls[0].Uri).AbsoluteUri | Should -Be 'https://api.sendgrid.com/v3/suppression/unsubscribes'
         }
     }
 }

@@ -30,6 +30,7 @@
             ValueFromPipelineByPropertyName,
             Position = 0
         )]
+        [ValidateNotNullOrEmpty()]
         [string[]]$Username,
 
         # Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
@@ -47,7 +48,7 @@
             $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
         }
 
-        if ($PSBoundParameters.Username) {
+        if ($PSBoundParameters.ContainsKey('Username')) {
             foreach ($User in $Username) {
                 $UserInvokeSplat = $InvokeSplat.Clone()
                 $UserInvokeSplat['Namespace'] = "teammates/$([uri]::EscapeDataString($User))"

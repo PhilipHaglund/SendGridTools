@@ -42,6 +42,7 @@
             ValueFromPipelineByPropertyName,
             Position = 0
         )]
+        [ValidateNotNullOrEmpty()]
         [string[]]$ApiKeyId,
 
         # Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
@@ -59,7 +60,7 @@
         if ($PSBoundParameters.OnBehalfOf) {
             $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
         }
-        if ($PSBoundParameters.ApiKeyId) {
+        if ($PSBoundParameters.ContainsKey('ApiKeyId')) {
             foreach ($Id in $ApiKeyID) {
                 if ($PSCmdlet.ShouldProcess(('{0}' -f $Id))) {
                     $InvokeSplat['Namespace'] = "api_keys/$Id"
