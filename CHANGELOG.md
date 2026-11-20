@@ -7,11 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Every command's error that SendGrid answered keeps the caught exception in `$_.Exception.InnerException`, the HTTP status as an integer in `$_.Exception.Data['StatusCode']` and SendGrid's errors in `$_.Exception.Data['SendGridErrors']`, a list of objects with `Field` and `Message`. Before, the error held only the text: no inner exception and no `Data`. The text before `SendGrid Error`, the error id and the type are unchanged.
+- Every changed command error, `Disconnect-SendGrid` included, keeps the caught exception in `$_.Exception.InnerException`, also when SendGrid did not answer (for example a name lookup). When SendGrid answered, the HTTP status is an integer in `$_.Exception.Data['StatusCode']` and SendGrid's errors are in `$_.Exception.Data['SendGridErrors']`, a list of objects with `Field` and `Message`. Before, the error held only the text: no inner exception and no `Data`. The text before `SendGrid Error`, the error id and the type are unchanged. Callers may notice that `$_.Exception.GetBaseException()` now returns the original exception from `Invoke-RestMethod` instead of the command's error, and that `$_.Exception.ToString()` includes the inner exceptions.
 
 ### Changed
 
-- SendGrid's error text names the HTTP status and the field: `SendGrid Error (HTTP <status>): "<field>: <message>, ..."`, where the field is left out when SendGrid gives none. `Connect-SendGrid` shows `Unable to connect to SendGrid. Error detail: SendGrid Error (HTTP <status>): "..."`. Before, the text was `SendGrid Error: "<messages>"` without status or field, and `Connect-SendGrid` repeated `Unable to connect to SendGrid.` inside the detail. Without an HTTP answer, for example a name lookup or a timeout, the texts are unchanged.
+- SendGrid's error text names the HTTP status and the field: `SendGrid Error (HTTP <status>): "<field>: <message>, ..."`, where the field is left out when SendGrid gives none. `Connect-SendGrid` shows `Unable to connect to SendGrid. Error detail: SendGrid Error (HTTP <status>): "..."`. Before, the text was `SendGrid Error: "<first message>"` without status or field, and further messages were dropped; now every message is shown, in SendGrid's order. Before, also `Connect-SendGrid` repeated `Unable to connect to SendGrid.` inside the detail. Without an HTTP answer, for example a name lookup or a timeout, the texts are unchanged.
 
 ### Fixed
 
