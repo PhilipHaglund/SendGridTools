@@ -7,7 +7,7 @@
         Get-SGAlert retrieves a specific alert or all alerts from SendGrid based on the provided parameters.
 
     .PARAMETER AlertId
-        Specifies the ID of the alert to retrieve.
+        Specifies the ID of the alert to retrieve. An empty value is refused.
 
     .PARAMETER OnBehalfOf
         Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
@@ -24,13 +24,14 @@
     #>
     [CmdletBinding()]
     param (
-        # Specifies the ID of the alert to retrieve.
+        # Specifies the ID of the alert to retrieve. An empty value is refused.
         [Parameter(
             ValueFromPipeline,
             ValueFromPipelineByPropertyName,
             Position = 0
         )]
         [Alias('Id')]
+        [ValidateNotNullOrEmpty()]
         [string[]]$AlertId,
 
         # Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
@@ -46,7 +47,7 @@
         if ($PSBoundParameters.OnBehalfOf) {
             $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
         }
-        if ($PSBoundParameters.AlertId) {
+        if ($PSBoundParameters.ContainsKey('AlertId')) {
             foreach ($Alert in $AlertId) {
                 $InvokeSplat['Namespace'] = "alerts/$Alert"
                 try {

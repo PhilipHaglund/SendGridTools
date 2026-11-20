@@ -7,7 +7,7 @@
         Get-SGInvalidEmail retrieves all invalid emails or a specific invalid email based on its email address from SendGrid. Invalid emails occur when you attempt to send email to an address that is formatted in a manner that does not meet internet email format standards or the email does not exist at the recipient’s mail server.
 
     .PARAMETER EmailAddress
-        Specifies the email address of a specific invalid email to retrieve. If this parameter is not provided, all invalid emails are retrieved.
+        Specifies the email address of a specific invalid email to retrieve. If this parameter is not provided, all invalid emails are retrieved. An empty value is refused.
 
     .PARAMETER StartTime
         Refers to the start of the time range in Unix timestamp when an invalid email was created (inclusive).
@@ -73,12 +73,13 @@
     #>
     [CmdletBinding()]
     param (
-        # Specifies the specific email address to retrieve. If this parameter is not provided, all invalid emails are retrieved.
+        # Specifies the specific email address to retrieve. If this parameter is not provided, all invalid emails are retrieved. An empty value is refused.
         [Parameter(
             ValueFromPipeline,
             ValueFromPipelineByPropertyName,
             Position = 0
         )]
+        [ValidateNotNullOrEmpty()]
         [MailAddress[]]$EmailAddress,
 
         # Refers to the start of the time range in Unix timestamp when an invalid email was created (inclusive).
@@ -135,7 +136,7 @@
             $QueryParameters.Add("offset=$offset")
         }
 
-        if ($PSBoundParameters.EmailAddress) {
+        if ($PSBoundParameters.ContainsKey('EmailAddress')) {
             foreach ($Email in $EmailAddress) {
                 $EmailQuery = @($QueryParameters) + ('email={0}' -f [uri]::EscapeDataString($Email.Address))
                 $EmailInvokeSplat = $InvokeSplat.Clone()

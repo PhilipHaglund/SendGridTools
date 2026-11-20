@@ -10,7 +10,7 @@
 
     .PARAMETER ApiKeyId
         Specifies the ID of a specific API Key to retrieve. If this parameter is not provided, all API Keys are retrieved.
-        When a specific API Key ID is provided, the associated scopes of the key are also retrieved.
+        When a specific API Key ID is provided, the associated scopes of the key are also retrieved. An empty value is refused.
 
     .PARAMETER OnBehalfOf
         Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
@@ -36,12 +36,13 @@
     )]
     param (
 
-        # Specifies the ID of a specific API Key to retrieve. If this parameter is not provided, all API Keys are retrieved.
+        # Specifies the ID of a specific API Key to retrieve. If this parameter is not provided, all API Keys are retrieved. An empty value is refused.
         [Parameter(
             ValueFromPipeline,
             ValueFromPipelineByPropertyName,
             Position = 0
         )]
+        [ValidateNotNullOrEmpty()]
         [string[]]$ApiKeyId,
 
         # Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
@@ -59,7 +60,7 @@
         if ($PSBoundParameters.OnBehalfOf) {
             $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
         }
-        if ($PSBoundParameters.ApiKeyId) {
+        if ($PSBoundParameters.ContainsKey('ApiKeyId')) {
             foreach ($Id in $ApiKeyID) {
                 if ($PSCmdlet.ShouldProcess(('{0}' -f $Id))) {
                     $InvokeSplat['Namespace'] = "api_keys/$Id"

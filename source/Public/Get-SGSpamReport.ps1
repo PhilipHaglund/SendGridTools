@@ -7,7 +7,7 @@
         Get-SGSpamReport retrieves all spam reports or a specific spam report based on its email address from SendGrid. Spam reports occur when recipients mark emails as spam or junk.
 
     .PARAMETER EmailAddress
-        Specifies the email address of a specific spam report to retrieve. If this parameter is not provided, all spam reports are retrieved.
+        Specifies the email address of a specific spam report to retrieve. If this parameter is not provided, all spam reports are retrieved. An empty value is refused.
 
     .PARAMETER StartTime
         Refers to the start of the time range in Unix timestamp when a spam report was created (inclusive).
@@ -73,12 +73,13 @@
     #>
     [CmdletBinding()]
     param (
-        # Specifies the specific email address to retrieve. If this parameter is not provided, all spam reports are retrieved.
+        # Specifies the specific email address to retrieve. If this parameter is not provided, all spam reports are retrieved. An empty value is refused.
         [Parameter(
             ValueFromPipeline,
             ValueFromPipelineByPropertyName,
             Position = 0
         )]
+        [ValidateNotNullOrEmpty()]
         [MailAddress[]]$EmailAddress,
 
         # Refers to the start of the time range in Unix timestamp when a spam report was created (inclusive).
@@ -135,7 +136,7 @@
             $QueryParameters.Add("offset=$offset")
         }
 
-        if ($PSBoundParameters.EmailAddress) {
+        if ($PSBoundParameters.ContainsKey('EmailAddress')) {
             foreach ($Email in $EmailAddress) {
                 $EmailQuery = @($QueryParameters) + ('email={0}' -f [uri]::EscapeDataString($Email.Address))
                 $EmailInvokeSplat = $InvokeSplat.Clone()

@@ -7,7 +7,7 @@
         Get-SGTeammate retrieves all or a specific Teammate from SendGrid. You can specify the specific username to retrieve.
 
     .PARAMETER Username
-        Specifies the specific username to retrieve.
+        Specifies the specific username to retrieve. An empty value is refused.
 
     .PARAMETER OnBehalfOf
         Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
@@ -24,12 +24,13 @@
     #>
     [CmdletBinding()]
     param (
-        # Specifies the specific username to retrieve.
+        # Specifies the specific username to retrieve. An empty value is refused.
         [Parameter(
             ValueFromPipeline,
             ValueFromPipelineByPropertyName,
             Position = 0
         )]
+        [ValidateNotNullOrEmpty()]
         [string[]]$Username,
 
         # Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
@@ -47,7 +48,7 @@
             $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
         }
 
-        if ($PSBoundParameters.Username) {
+        if ($PSBoundParameters.ContainsKey('Username')) {
             foreach ($User in $Username) {
                 $UserInvokeSplat = $InvokeSplat.Clone()
                 $UserInvokeSplat['Namespace'] = "teammates/$([uri]::EscapeDataString($User))"

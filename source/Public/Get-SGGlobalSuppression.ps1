@@ -22,7 +22,7 @@
         Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
 
     .PARAMETER EmailAddress
-        Specifies one or more email addresses to look up on the global suppressions list. If this parameter is not provided, all global suppressions are retrieved.
+        Specifies one or more email addresses to look up on the global suppressions list. If this parameter is not provided, all global suppressions are retrieved. An empty value is refused.
 
     .EXAMPLE
         PS C:\> Get-SGGlobalSuppression
@@ -64,12 +64,13 @@
     #>
     [CmdletBinding()]
     param (
-        # Specifies the specific email address to retrieve. If this parameter is not provided, all suppressions are retrieved.
+        # Specifies the specific email address to retrieve. If this parameter is not provided, all suppressions are retrieved. An empty value is refused.
         [Parameter(
             ValueFromPipeline,
             ValueFromPipelineByPropertyName,
             Position = 0
         )]
+        [ValidateNotNullOrEmpty()]
         [MailAddress[]]$EmailAddress,
 
         # Refers to the start of the time range in Unix timestamp when an unsubscribe email was created (inclusive).
@@ -126,7 +127,7 @@
             $QueryParameters.Add("offset=$offset")
         }
 
-        if ($PSBoundParameters.EmailAddress) {
+        if ($PSBoundParameters.ContainsKey('EmailAddress')) {
             foreach ($Email in $EmailAddress) {
                 $EmailQuery = @($QueryParameters) + ('email={0}' -f [uri]::EscapeDataString($Email.Address))
                 $EmailInvokeSplat = $InvokeSplat.Clone()
