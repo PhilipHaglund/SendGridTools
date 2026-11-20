@@ -348,6 +348,78 @@ Describe 'Send-SGMailMessage -BatchId and -Unsubscribe (D102)' {
     }
 }
 
+Describe 'Send-SGMailMessage -Categories (D103)' {
+    BeforeAll {
+        # Runs one send in module scope with the category names built from $Names (the text of an expression).
+        # Returns the request count, the parsed body, the exception type and whether it was a binding exception.
+        $script:SendCategories = {
+            param($Cred, $Names)
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Reset-SgtNetworkStub
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ placeholder = 'accepted' })
+            $Params = @{
+                From       = 'sender@example.com'
+                To         = 'one@example.com'
+                Subject    = 'placeholder subject'
+                Body       = 'placeholder body'
+                Categories = [string[]](& ([scriptblock]::Create($Names)))
+            }
+            $Threw = $null
+            try { $null = Send-SGMailMessage @Params -Confirm:$false -ErrorAction Stop }
+            catch { $Threw = $_.Exception }
+            $Calls = @(Get-SgtNetworkCall | ForEach-Object { $_ })
+            [pscustomobject]@{
+                Count     = $Calls.Count
+                Sent      = if ($Calls.Count) { $Calls[0].Body | ConvertFrom-Json } else { $null }
+                ThrewType = if ($Threw) { $Threw.GetType().Name } else { $null }
+                IsBinding = ($Threw -is [System.Management.Automation.ParameterBindingException])
+            }
+        }.ToString()
+    }
+
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Sends <Label> exactly' -ForEach @(
+        @{ Label = '1 name'; Names = '''one-name'''; Expected = @('one-name') }
+        @{ Label = '10 names'; Names = '1..10 | ForEach-Object { "sgt-cat-$_" }'; Expected = @(1..10 | ForEach-Object { "sgt-cat-$_" }) }
+        @{ Label = 'a name of 1 character'; Names = '''a'''; Expected = @('a') }
+        @{ Label = 'a name of 255 characters'; Names = '''b'' * 255'; Expected = @('b' * 255) }
+        @{ Label = 'a name of 11 characters'; Names = '''abcdefghijk'''; Expected = @('abcdefghijk') }
+    ) {
+        $Run = InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Names = $Names; Send = $script:SendCategories } {
+            & ([scriptblock]::Create($Send)) $Cred $Names
+        }
+        $Run.Count | Should -Be 1
+        @($Run.Sent.categories).Count | Should -Be $Expected.Count
+        @($Run.Sent.categories) | Should -BeExactly $Expected
+    }
+
+    It 'Refuses <Label> at binding and sends no request' -ForEach @(
+        @{ Label = '11 names'; Names = '1..11 | ForEach-Object { "sgt-cat-$_" }' }
+        @{ Label = 'a name of 256 characters'; Names = '''c'' * 256' }
+        @{ Label = 'an empty name'; Names = '''''' }
+    ) {
+        $Run = InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Names = $Names; Send = $script:SendCategories } {
+            & ([scriptblock]::Create($Send)) $Cred $Names
+        }
+        $Run.IsBinding | Should -BeTrue
+        $Run.ThrewType | Should -BeExactly 'ParameterBindingValidationException'
+        $Run.Count | Should -Be 0
+        Get-SgtUnmockedNetworkCall | Should -BeNullOrEmpty
+    }
+
+    It 'Says 10 and 255 in the help of -Categories' {
+        $Text = (Get-Help -Name Send-SGMailMessage -Parameter Categories | Out-String)
+        $Text | Should -Match '\b10\b'
+        $Text | Should -Match '\b255\b'
+    }
+}
+
 Describe 'Network tripwire' {
     It 'Made no unmocked network call' {
         Assert-SgtNetworkTripwireActive
