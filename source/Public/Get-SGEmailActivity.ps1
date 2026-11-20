@@ -1,4 +1,4 @@
-function Get-SGEmailActivity {
+﻿function Get-SGEmailActivity {
     <#
     .SYNOPSIS
         Retrieves email activity from SendGrid based on the provided query.
@@ -530,6 +530,10 @@ function Get-SGEmailActivity {
         }
     }
     process {
+        if ($PSCmdlet.ParameterSetName -eq 'PropertySet' -and $Property -eq 'TemplateName') {
+            # The messages API has no filter field for a template name; refuse before any lookup or request.
+            Write-Error -Message 'SendGrid cannot filter email activity by template name; use -Property TemplateId.' -ErrorAction Stop
+        }
         $InvokeSplat = @{
             Method        = 'Get'
             Namespace     = 'messages'
