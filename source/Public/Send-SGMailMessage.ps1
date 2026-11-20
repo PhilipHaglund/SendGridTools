@@ -84,12 +84,18 @@
         Specifies the advanced suppression manager (ASM) settings for the message as an SGASM object. GroupId is the unsubscribe group of the message and GroupsToDisplay lists the groups shown on the unsubscribe page.
 
     .PARAMETER SandboxMode
-        With this switch SendGrid validates the message and answers without delivering it (sandbox mode, mail_settings.sandbox_mode.enable). Without it the message is sent as before.
+        Sends the request in sandbox mode (mail_settings.sandbox_mode.enable). SendGrid validates the request (addresses, content, attachments and scheduling, for example a SendAt more than 72 hours ahead) and answers without delivering the message, so nothing reaches any recipient.
+        The request is still sent to SendGrid for validation. This differs from -WhatIf, which sends nothing at all. Without this switch the message is sent as before.
 
     .EXAMPLE
         PS C:\> Send-SGMailMessage -From 'sender@example.com' -To 'recipient@example.com' -Subject 'Test Email' -Body 'Hello, this is a test email.'
 
         This command sends an email with the specified parameters via the SendGrid API.
+
+    .EXAMPLE
+        PS C:\> Send-SGMailMessage -From 'sender@example.com' -To 'recipient@example.com' -Subject 'Test Email' -Body 'Hello, this is a test email.' -SandboxMode
+
+        This command sends the message to SendGrid in sandbox mode. SendGrid validates the request and answers without delivering the message.
     #>
     [CmdletBinding(
         SupportsShouldProcess,
