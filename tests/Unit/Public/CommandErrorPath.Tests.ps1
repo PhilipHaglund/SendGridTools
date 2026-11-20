@@ -211,7 +211,11 @@ Describe 'The error path of every command' {
             $Caught.Exception.Message | Should -BeLike 'Cannot retrieve the dynamic parameters for the cmdlet.*'
             $Caught.Exception.Message | Should -BeLike ('*' + $Prefix + 'SendGrid Error (HTTP 404): "name: resource not found"*')
             $Inner = $Caught.Exception
-            while ($null -ne $Inner -and $Inner -isnot [Microsoft.PowerShell.Commands.WriteErrorException]) { $Inner = $Inner.InnerException }
+            for ($Depth = 0; $Depth -lt 10 -and $null -ne $Inner -and $Inner -isnot [Microsoft.PowerShell.Commands.WriteErrorException]; $Depth++) {
+                $Next = $Inner.InnerException
+                if ($null -eq $Next -and $null -ne $Inner.ErrorRecord -and -not [object]::ReferenceEquals($Inner.ErrorRecord.Exception, $Inner)) { $Next = $Inner.ErrorRecord.Exception }
+                $Inner = $Next
+            }
             $Inner | Should -Not -BeNullOrEmpty
             $Caught = [pscustomobject]@{ Exception = $Inner; FullyQualifiedErrorId = "Microsoft.PowerShell.Commands.WriteErrorException,$Command" }
         }
