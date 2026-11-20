@@ -384,6 +384,21 @@ Describe 'Get-SGSubuser -Username lookup' {
         }
     }
 
+    It 'Compares the username as text, not as a wildcard pattern' {
+        InModuleScope SendGridTools {
+            Reset-SgtNetworkStub
+            Set-SgtNetworkStub -Response @(
+                [pscustomobject]@{ username = 'sgt-test-abc'; id = 2001; email = '<address>'; disabled = $false }
+                [pscustomobject]@{ username = 'sgt-test-*'; id = 2002; email = '<address>'; disabled = $false }
+            )
+
+            $Out = @(Get-SGSubuser -Username 'sgt-test-*' -Confirm:$false)
+
+            $Out.Count | Should -Be 1
+            $Out[0].Username | Should -Be 'sgt-test-*'
+        }
+    }
+
     It 'Returns nothing and no error when SendGrid returns only other usernames' {
         InModuleScope SendGridTools {
             Reset-SgtNetworkStub
