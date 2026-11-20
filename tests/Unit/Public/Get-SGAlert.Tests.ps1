@@ -121,6 +121,41 @@ Describe 'Get-SGAlert help (D117)' {
     }
 }
 
+Describe 'Get-SGAlert encodes the id in the path (D153)' {
+    BeforeEach {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1 })
+        }
+    }
+
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Puts <Name> in one path segment' -ForEach @(
+        @{ Name = 'an id with a slash, a question mark and a hash'; Id = 'a/b?c#d'; Segment = 'a%2Fb%3Fc%23d' }
+        @{ Name = 'an id with only unreserved characters'; Id = 'abc-1.2_3~'; Segment = 'abc-1.2_3~' }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ Id = $Id; Segment = $Segment } {
+            $null = Get-SGAlert -AlertId $Id
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -BeGreaterThan 0
+            foreach ($Call in $Calls) {
+                $Call.Uri.OriginalString | Should -BeLike "https://api.sendgrid.com/v3/alerts/$Segment*"
+                $Call.Uri.OriginalString | Should -Not -BeLike '*/a/b*'
+                $Call.Uri.OriginalString | Should -Not -Match '[?#]'
+            }
+            $Calls[-1].Method | Should -Be 'Get'
+            $Calls[-1].Uri.OriginalString | Should -BeExactly "https://api.sendgrid.com/v3/alerts/$Segment"
+        }
+    }
+}
+
 Describe 'Network tripwire' {
     It 'Made no unmocked network call' {
         Assert-SgtNetworkTripwireActive

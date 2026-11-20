@@ -56,7 +56,7 @@ function Invoke-SendGridCursorList {
             $Parts.Add($Query)
         }
         if ($null -ne $AfterKey) {
-            $Parts.Add(('after_key={0}' -f [uri]::EscapeDataString($AfterKey)))
+            $Parts.Add(('after_key={0}' -f (ConvertTo-SendGridUriComponent $AfterKey)))
         }
         $Endpoint = $Namespace
         if ($Parts.Count -gt 0) {

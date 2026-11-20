@@ -105,7 +105,7 @@
         [System.Collections.Generic.List[string]]$QueryParameters = [System.Collections.Generic.List[string]]::new()
 
         if ($PSBoundParameters.ContainsKey('Username')) {
-            $QueryParameters.Add(('username={0}' -f [uri]::EscapeDataString($Username)))
+            $QueryParameters.Add(('username={0}' -f (ConvertTo-SendGridUriComponent $Username)))
             # SendGrid's username filter matches on the start of the name, so a page of it can hide the equal name.
             if (($PSBoundParameters.ContainsKey('Limit') -or $PSBoundParameters.ContainsKey('Offset')) -and -not $WarnedAboutPaging) {
                 $WarnedAboutPaging = $true

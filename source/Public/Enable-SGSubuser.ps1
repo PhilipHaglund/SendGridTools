@@ -35,7 +35,7 @@
     process {
         $InvokeSplat = @{
             Method        = 'Patch'
-            Namespace     = "subusers/$([uri]::EscapeDataString($Username))"
+            Namespace     = "subusers/$((ConvertTo-SendGridUriComponent $Username))"
             ErrorAction   = 'Stop'
             ContentBody   = @{
                 disabled = $false

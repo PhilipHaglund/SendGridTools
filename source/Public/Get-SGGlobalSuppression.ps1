@@ -13,10 +13,10 @@
         Refers to the end of the time range in Unix timestamp when an unsubscribe email was created (inclusive).
 
     .PARAMETER Limit
-        Sets the page size. The value is sent as the limit query parameter of each request the function sends; with -EmailAddress, one request is sent per address. If omitted, or if 0, no limit is sent and SendGrid's default page size applies. The module does not check an upper bound for the value.
+        Sets the page size. The value is sent as the limit query parameter of each request the function sends; with -EmailAddress, one request is sent per address. If omitted, no limit is sent and SendGrid's default page size applies. The module does not check an upper bound for the value. A value below 1 is refused.
 
     .PARAMETER Offset
-        The number of items in the list to skip over before starting to retrieve the items for the requested page. The default offset of 0 represents the beginning of the list, i.e., the start of the first page. To request the second page of the list, set the offset to the page size as determined by Limit. Use multiples of the page size as your offset to request further consecutive pages.
+        The number of items in the list to skip over before starting to retrieve the items for the requested page. The default offset of 0 represents the beginning of the list, i.e., the start of the first page. To request the second page of the list, set the offset to the page size as determined by Limit. Use multiples of the page size as your offset to request further consecutive pages. A value below 0 is refused.
 
     .PARAMETER OnBehalfOf
         Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
@@ -85,16 +85,18 @@
         )]
         [UnixTime]$EndTime,
 
-        # Sets the page size. The value is sent as the limit query parameter of each request the function sends; with -EmailAddress, one request is sent per address. If omitted, or if 0, no limit is sent and SendGrid's default page size applies. The module does not check an upper bound for the value.
+        # Sets the page size. The value is sent as the limit query parameter of each request the function sends; with -EmailAddress, one request is sent per address. If omitted, no limit is sent and SendGrid's default page size applies. The module does not check an upper bound for the value. A value below 1 is refused.
         [Parameter(
             Position = 3
         )]
+        [ValidateRange(1, [int]::MaxValue)]
         [int]$Limit,
 
-        # The number of items in the list to skip over before starting to retrieve the items for the requested page. The default offset of 0 represents the beginning of the list, i.e., the start of the first page. To request the second page of the list, set the offset to the page size as determined by Limit. Use multiples of the page size as your offset to request further consecutive pages.
+        # The number of items in the list to skip over before starting to retrieve the items for the requested page. The default offset of 0 represents the beginning of the list, i.e., the start of the first page. To request the second page of the list, set the offset to the page size as determined by Limit. Use multiples of the page size as your offset to request further consecutive pages. A value below 0 is refused.
         [Parameter(
             Position = 4
         )]
+        [ValidateRange(0, [int]::MaxValue)]
         [int]$Offset,
 
         # Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
@@ -120,16 +122,16 @@
         if ($PSBoundParameters.EndTime) {
             $QueryParameters.Add("end_time=$($EndTime.ToUnixTime())")
         }
-        if ($PSBoundParameters.Limit) {
+        if ($PSBoundParameters.ContainsKey('Limit')) {
             $QueryParameters.Add("limit=$limit")
         }
-        if ($PSBoundParameters.Offset) {
+        if ($PSBoundParameters.ContainsKey('Offset')) {
             $QueryParameters.Add("offset=$offset")
         }
 
         if ($PSBoundParameters.ContainsKey('EmailAddress')) {
             foreach ($Email in $EmailAddress) {
-                $EmailQuery = @($QueryParameters) + ('email={0}' -f [uri]::EscapeDataString($Email.Address))
+                $EmailQuery = @($QueryParameters) + ('email={0}' -f (ConvertTo-SendGridUriComponent $Email.Address))
                 $EmailInvokeSplat = $InvokeSplat.Clone()
                 $EmailInvokeSplat['Namespace'] += '?' + ($EmailQuery -join '&')
                 try {

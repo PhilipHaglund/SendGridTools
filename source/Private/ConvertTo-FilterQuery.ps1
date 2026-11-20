@@ -11,16 +11,16 @@
     )
 
     $OperatorFormatStructure = @{
-        'EQ'          = ('(Property{0})' -f ([uri]::EscapeDataString('=Value')))
-        'NE'          = ('(Property{0})' -f ([uri]::EscapeDataString('!=Value')))
-        'GT'          = ('(Property{0})' -f ([uri]::EscapeDataString('>Value')))
-        'LT'          = ('(Property{0})' -f ([uri]::EscapeDataString('<Value')))
-        'IN'          = ('(Property+IN+({0}))' -f ([uri]::EscapeDataString('Value'))) # Array = ("Value1", "Value2")
-        'NotIn'       = ('(Property+NOT+IN ({0}))' -f ([uri]::EscapeDataString('Value'))) # Array = ("Value1", "Value2")
-        'Like'        = ('(Property+LIKE+{0})' -f ([uri]::EscapeDataString('%Value%'))) #'(Property LIKE "%Value%")'
-        'NotLike'     = ('(Property+NOT+LIKE+{0})' -f ([uri]::EscapeDataString('%Value%'))) #'(Property NOT LIKE "%Value%")'
-        'Contains'    = ('(Contains(Property{0}))' -f ([uri]::EscapeDataString(',Value'))) #'(Contains(Property,"Value"))'
-        'NotContains' = ('(Not Contains(Property{0}))' -f ([uri]::EscapeDataString(',Value'))) #'(Not Contains(Property,"Value"))'
+        'EQ'          = ('(Property{0})' -f ((ConvertTo-SendGridUriComponent '=Value')))
+        'NE'          = ('(Property{0})' -f ((ConvertTo-SendGridUriComponent '!=Value')))
+        'GT'          = ('(Property{0})' -f ((ConvertTo-SendGridUriComponent '>Value')))
+        'LT'          = ('(Property{0})' -f ((ConvertTo-SendGridUriComponent '<Value')))
+        'IN'          = ('(Property+IN+({0}))' -f ((ConvertTo-SendGridUriComponent 'Value'))) # Array = ("Value1", "Value2")
+        'NotIn'       = ('(Property+NOT+IN ({0}))' -f ((ConvertTo-SendGridUriComponent 'Value'))) # Array = ("Value1", "Value2")
+        'Like'        = ('(Property+LIKE+{0})' -f ((ConvertTo-SendGridUriComponent '%Value%'))) #'(Property LIKE "%Value%")'
+        'NotLike'     = ('(Property+NOT+LIKE+{0})' -f ((ConvertTo-SendGridUriComponent '%Value%'))) #'(Property NOT LIKE "%Value%")'
+        'Contains'    = ('(Contains(Property{0}))' -f ((ConvertTo-SendGridUriComponent ',Value'))) #'(Contains(Property,"Value"))'
+        'NotContains' = ('(Not Contains(Property{0}))' -f ((ConvertTo-SendGridUriComponent ',Value'))) #'(Not Contains(Property,"Value"))'
         'IsEmpty'     = '(Property+IS+NULL)'
         'IsNotEmpty'  = '(Property+IS+NOT NULL)'
         'Between'     = '(Property+BETWEEN+TIMESTAMP+Value1+AND+TIMESTAMP+Value2)' # (last_event_time BETWEEN TIMESTAMP "2024-06-30T00:00:00.000Z" AND TIMESTAMP "2024-07-02T23:59:59.999Z")
@@ -143,12 +143,12 @@
 
         if ($DateTime -eq $true) {
             Write-Verbose -Message "DateTime: $Property"
-            $EncodedValue1 = [uri]::EscapeDataString($Value.Split(',')[0])
-            $EncodedValue2 = [uri]::EscapeDataString($Value.Split(',')[1])
+            $EncodedValue1 = (ConvertTo-SendGridUriComponent $Value.Split(',')[0])
+            $EncodedValue2 = (ConvertTo-SendGridUriComponent $Value.Split(',')[1])
             $null = $QueryString.Append(($OperatorFormatStructure[$Operator.Replace('-', '')] -replace 'Property', $Property -replace 'Value1', $EncodedValue1 -replace 'Value2', $EncodedValue2))
         }
         else {
-            $EncodedValue = [uri]::EscapeDataString($Value)
+            $EncodedValue = (ConvertTo-SendGridUriComponent $Value)
             $null = $QueryString.Append(($OperatorFormatStructure[$Operator.Replace('-', '')] -replace 'Property', $Property -replace 'Value', $EncodedValue))
         }
 

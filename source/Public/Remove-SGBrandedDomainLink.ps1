@@ -72,7 +72,7 @@
         foreach ($Id in $UniqueId) {
             $InvokeSplat = @{
                 Method        = 'Delete'
-                Namespace     = "whitelabel/links/$Id"
+                Namespace     = "whitelabel/links/$(ConvertTo-SendGridUriComponent $Id)"
                 ErrorAction   = 'Stop'
                 CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
             }

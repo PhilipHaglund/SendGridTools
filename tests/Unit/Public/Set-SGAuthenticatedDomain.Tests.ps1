@@ -213,6 +213,41 @@ Describe 'Set-SGAuthenticatedDomain with the id read from Get-SGAuthenticatedDom
         }
     }
 }
+Describe 'Set-SGAuthenticatedDomain encodes the id in the path (D153)' {
+    BeforeEach {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001; subdomain = 'sgt-test-sub'; domain = 'example.com'; valid = $false })
+        }
+    }
+
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Puts <Name> in one path segment' -ForEach @(
+        @{ Name = 'an id with a slash, a question mark and a hash'; Id = 'a/b?c#d'; Segment = 'a%2Fb%3Fc%23d' }
+        @{ Name = 'a numeric id'; Id = '1001'; Segment = '1001' }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ Id = $Id; Segment = $Segment } {
+            $null = Set-SGAuthenticatedDomain -UniqueId $Id -SetDefault -Confirm:$false
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -BeGreaterThan 0
+            foreach ($Call in $Calls) {
+                $Call.Uri.OriginalString | Should -BeLike "https://api.sendgrid.com/v3/whitelabel/domains/$Segment*"
+                $Call.Uri.OriginalString | Should -Not -BeLike '*/a/b*'
+                $Call.Uri.OriginalString | Should -Not -Match '[?#]'
+            }
+            $Calls[-1].Method | Should -Be 'Patch'
+            $Calls[-1].Uri.OriginalString | Should -BeExactly "https://api.sendgrid.com/v3/whitelabel/domains/$Segment"
+        }
+    }
+}
+
 Describe 'Network tripwire' {
     It 'Made no unmocked network call' {
         Assert-SgtNetworkTripwireActive

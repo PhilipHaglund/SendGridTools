@@ -473,6 +473,39 @@ Describe 'Get-SGEmailActivity binds -Value for a key, group or teammate property
     }
 }
 
+Describe 'Get-SGEmailActivity sends the same encoded filter text in both shells' {
+    BeforeEach {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ messages = @([pscustomobject]@{ msg_id = 'sgt-test-message-id'; status = 'delivered' }) })
+        }
+    }
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Sends the operator -NE as %21%3D' {
+        InModuleScope SendGridTools {
+            $null = Get-SGEmailActivity -Property Subject -NE -Value 'sgt-subject'
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Calls[0].Uri.OriginalString | Should -BeExactly 'https://api.sendgrid.com/v3/messages?limit=10&query=(subject %21%3D %22sgt-subject%22)'
+        }
+    }
+
+    It 'Sends an apostrophe, parentheses and an asterisk in a value as percent escapes' {
+        InModuleScope SendGridTools {
+            $null = Get-SGEmailActivity -Property Subject -EQ -Value "a'b(c)*"
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Calls[0].Uri.OriginalString | Should -BeExactly 'https://api.sendgrid.com/v3/messages?limit=10&query=(subject %3D %22a%27b%28c%29%2A%22)'
+        }
+    }
+}
+
 Describe 'Network tripwire' {
     It 'Made no unmocked network call' {
         Assert-SgtNetworkTripwireActive
