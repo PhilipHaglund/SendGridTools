@@ -83,10 +83,19 @@
     .PARAMETER Unsubscribe
         Specifies the advanced suppression manager (ASM) settings for the message as an SGASM object. GroupId is the unsubscribe group of the message and GroupsToDisplay lists the groups shown on the unsubscribe page.
 
+    .PARAMETER SandboxMode
+        Sends the request in sandbox mode (mail_settings.sandbox_mode.enable). SendGrid validates the request body (for example the address format, the content, attachments and scheduling, such as a SendAt more than 72 hours ahead) and answers without delivering the message, so nothing reaches any recipient. A successful answer does not show that a recipient exists or can receive mail.
+        The request is still sent to SendGrid for validation. This differs from -WhatIf, which sends nothing at all. Without this switch the message is sent as before.
+
     .EXAMPLE
         PS C:\> Send-SGMailMessage -From 'sender@example.com' -To 'recipient@example.com' -Subject 'Test Email' -Body 'Hello, this is a test email.'
 
         This command sends an email with the specified parameters via the SendGrid API.
+
+    .EXAMPLE
+        PS C:\> Send-SGMailMessage -From 'sender@example.com' -To 'recipient@example.com' -Subject 'Test Email' -Body 'Hello, this is a test email.' -SandboxMode
+
+        This command sends the message to SendGrid in sandbox mode. SendGrid validates the request and answers without delivering the message.
     #>
     [CmdletBinding(
         SupportsShouldProcess,
@@ -245,9 +254,12 @@
         [Parameter(ParameterSetName = 'Default')]
         [Parameter(ParameterSetName = 'SeparateTo')]
         [ValidateNotNullOrEmpty()]
-        [SGASM]$Unsubscribe
+        [SGASM]$Unsubscribe,
 
-
+        # Validates the message in SendGrid's sandbox mode: SendGrid checks the request and answers without delivering the message.
+        [Parameter(ParameterSetName = 'Default')]
+        [Parameter(ParameterSetName = 'SeparateTo')]
+        [switch]$SandboxMode
     )
     begin {
         $InvokeSplat = @{
@@ -262,7 +274,11 @@
         $RecipientCount = $To.Count + $CC.Count + $BCC.Count
     }
     process {
-        if ($PSCmdlet.ShouldProcess(('{0} to "{1}" recipients with subject: "{2}"' -f $From.Address, $RecipientCount, $Subject))) {
+        $Target = '{0} to "{1}" recipients with subject: "{2}"' -f $From.Address, $RecipientCount, $Subject
+        if ($SandboxMode) {
+            $Target += ' in sandbox mode'
+        }
+        if ($PSCmdlet.ShouldProcess($Target)) {
 
             # Convert the MailAddress objects to SendGrid API compatible objects.
             $FromList = ConvertTo-SendGridAddress -Address $From
@@ -343,6 +359,9 @@
             }
             if ($PSBoundParameters.ContainsKey('Categories')) {
                 $ContentBody.Add('categories', $Categories)
+            }
+            if ($SandboxMode) {
+                $ContentBody.Add('mail_settings', @{ sandbox_mode = @{ enable = $true } })
             }
 
             try {
