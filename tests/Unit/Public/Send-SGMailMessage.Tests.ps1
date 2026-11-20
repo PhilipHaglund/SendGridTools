@@ -469,6 +469,86 @@ Describe 'Send-SGMailMessage help for -Unsubscribe (D104)' {
     }
 }
 
+Describe 'Send-SGMailMessage -Unsubscribe as a hashtable from the caller (M1-M3)' {
+    BeforeAll {
+        # Runs -Command (text) in the caller's scope, outside the module, where [SGASM] is not visible.
+        # The session and the stub are set in module scope; the request is read from the tripwire's log.
+        # Returns the count, the parsed body, the raw body, the exception and whether it was a binding exception.
+        $script:RunFromCaller = {
+            param([string]$Command)
+            InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+                $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+                Set-SgtNetworkStub -Response ([pscustomobject]@{ placeholder = 'accepted' })
+            }
+            $Threw = $null
+            try { $null = & ([scriptblock]::Create($Command)) }
+            catch { $Threw = $_.Exception }
+            $Calls = @($global:SgtNetworkCall.ToArray())
+            [pscustomobject]@{
+                Count     = $Calls.Count
+                Raw       = if ($Calls.Count) { $Calls[0].Body } else { $null }
+                Sent      = if ($Calls.Count) { $Calls[0].Body | ConvertFrom-Json } else { $null }
+                ThrewType = if ($Threw) { $Threw.GetType().Name } else { $null }
+                ThrewText = if ($Threw) { $Threw.Message } else { $null }
+                IsBinding = ($Threw -is [System.Management.Automation.ParameterBindingException])
+            }
+        }
+        $script:SendPrefix = "Send-SGMailMessage -From 'sender@example.com' -To 'one@example.com' -Subject 'placeholder subject' -Body 'placeholder body' -Confirm:`$false -ErrorAction Stop"
+    }
+
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'M1: converts @{ GroupId = 7 } to SGASM and sends asm with group_id 7 only' {
+        $Run = & $script:RunFromCaller "$script:SendPrefix -Unsubscribe @{ GroupId = 7 }"
+        $Run.ThrewType | Should -BeNullOrEmpty
+        $Run.Count | Should -Be 1
+        (@($Run.Sent.PSObject.Properties.Name | Sort-Object) -join ', ') | Should -BeExactly 'asm, content, from, personalizations'
+        @($Run.Sent.asm.PSObject.Properties.Name) | Should -BeExactly @('group_id')
+        $Run.Raw | Should -Match '"group_id":\s*7[,\s}]'
+    }
+
+    It 'M1: converts @{ GroupId = 7; GroupsToDisplay = 7, 8 } to SGASM and sends both' {
+        $Run = & $script:RunFromCaller "$script:SendPrefix -Unsubscribe @{ GroupId = 7; GroupsToDisplay = 7, 8 }"
+        $Run.ThrewType | Should -BeNullOrEmpty
+        $Run.Count | Should -Be 1
+        (@($Run.Sent.asm.PSObject.Properties.Name | Sort-Object) -join ', ') | Should -BeExactly 'group_id, groups_to_display'
+        $Run.Raw | Should -Match '"group_id":\s*7[,\s}]'
+        @($Run.Sent.asm.groups_to_display) | Should -Be @(7, 8)
+        $Run.Raw | Should -Match '"groups_to_display":\s*\[\s*7\s*,\s*8\s*\]'
+    }
+
+    It 'M1: refuses @{ GroupId = 0 } with the plain message and no request' {
+        $Run = & $script:RunFromCaller "$script:SendPrefix -Unsubscribe @{ GroupId = 0 }"
+        $Run.ThrewText | Should -BeExactly 'Unsubscribe needs a GroupId greater than 0.'
+        $Run.IsBinding | Should -BeFalse
+        $Run.Count | Should -Be 0
+        Get-SgtUnmockedNetworkCall | Should -BeNullOrEmpty
+    }
+
+    It 'M2: refuses a hashtable with an unknown key at binding and sends no request' {
+        $Run = & $script:RunFromCaller "$script:SendPrefix -Unsubscribe @{ GroupId = 7; MadeUpKey = 1 }"
+        $Run.IsBinding | Should -BeTrue
+        $Run.ThrewType | Should -BeExactly 'ParameterBindingArgumentTransformationException'
+        $Run.Count | Should -Be 0
+        Get-SgtUnmockedNetworkCall | Should -BeNullOrEmpty
+    }
+
+    It 'M3: [SGASM] cannot be reached from the caller''s scope after Import-Module' {
+        ($null -ne ('SGASM' -as [type])) | Should -BeFalse
+    }
+
+    It 'M3: the old [SGASM]::new(123) example fails in the caller''s scope with Unable to find type, and sends nothing' {
+        $Run = & $script:RunFromCaller "`$Unsubscribe = [SGASM]::new(123); $script:SendPrefix -Unsubscribe `$Unsubscribe"
+        $Run.ThrewText | Should -Match 'Unable to find type \[SGASM\]'
+        $Run.Count | Should -Be 0
+    }
+}
+
 Describe 'Network tripwire' {
     It 'Made no unmocked network call' {
         Assert-SgtNetworkTripwireActive
