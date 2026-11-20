@@ -1,4 +1,4 @@
-﻿function Get-SGEmailActivity {
+function Get-SGEmailActivity {
     <#
     .SYNOPSIS
         Retrieves email activity from SendGrid based on the provided query.
@@ -329,48 +329,6 @@
             $ParamDictionary.Add('Value', $ValueParam)
             #>
             }
-            if ($Property -eq 'ApiKeyId') {
-                # Create the Value parameter attribute
-                $ValueParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
-                $ValueParamAttribute.Position = 2
-                $ValueParamAttribute.ParameterSetName = $PSCmdlet.ParameterSetName
-
-                # Add the parameter attributes to an attribute collection
-                $ValueAttributeCollection = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
-                $ValueAttributeCollection.Add($ValueParamAttribute)
-
-                # Add ValidateSet to the parameter
-                $script:APIKeys = Get-SGApiKey
-                $StatusValidateSet = [System.Management.Automation.ValidateSetAttribute]::new([string[]]$APIKeys.ApiKeyId)
-                $ValueAttributeCollection.Add($StatusValidateSet)
-
-                # Create the actual Value parameter
-                $ValueParam = [System.Management.Automation.RuntimeDefinedParameter]::new('Value', [string[]], $ValueAttributeCollection)
-
-                # Push the parameter(s) into a parameter dictionary
-                $ParamDictionary.Add('Value', $ValueParam)
-            }
-            if ($Property -eq 'ApiKeyName') {
-                # Create the Value parameter attribute
-                $ValueParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
-                $ValueParamAttribute.Position = 2
-                $ValueParamAttribute.ParameterSetName = $PSCmdlet.ParameterSetName
-
-                # Add the parameter attributes to an attribute collection
-                $ValueAttributeCollection = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
-                $ValueAttributeCollection.Add($ValueParamAttribute)
-
-                # Add ValidateSet to the parameter
-                $script:APIKeys = Get-SGApiKey
-                $StatusValidateSet = [System.Management.Automation.ValidateSetAttribute]::new([string[]]$APIKeys.Name)
-                $ValueAttributeCollection.Add($StatusValidateSet)
-
-                # Create the actual Value parameter
-                $ValueParam = [System.Management.Automation.RuntimeDefinedParameter]::new('Value', [string[]], $ValueAttributeCollection)
-
-                # Push the parameter(s) into a parameter dictionary
-                $ParamDictionary.Add('Value', $ValueParam)
-            }
             <# NOT YET IMPLEMENTED
         if ($Property -eq 'Categories') {
             # Create the Value parameter attribute
@@ -393,7 +351,126 @@
             # Push the parameter(s) into a parameter dictionary
             $ParamDictionary.Add('Value', $ValueParam)
         }#>
-            if ($Property -eq 'AsmGroupId') {
+            if ($Property -in 'ApiKeyId', 'ApiKeyName', 'AsmGroupId', 'AsmGroupName', 'Teammate') {
+                # Tab completion looks the values up when it is asked for them; binding the parameter makes no call.
+                $ValueCompleters = @{
+                'ApiKeyId' = {
+                    # The engine passes five positional arguments (command name, parameter name, word to complete, command AST and
+                    # fake bound parameters); the completer reads only the word to complete, so it declares no parameter it does not use.
+                    $WordToComplete = $args[2]
+                    try {
+                        $ReturnedValue = (Get-SGApiKey -ErrorAction Stop).ApiKeyId
+                    }
+                    catch {
+                        return
+                    }
+                    foreach ($Item in @($ReturnedValue)) {
+                        $Text = [string]$Item
+                        if ($Text -and $Text -like "$WordToComplete*") {
+                            # A value with whitespace, a quote, a dollar sign or a backtick is returned in single quotes so that it binds as one argument.
+                            if ($Text -match '[\s''"$`]') {
+                                "'" + $Text.Replace("'", "''") + "'"
+                            }
+                            else {
+                                $Text
+                            }
+                        }
+                    }
+                }
+                'ApiKeyName' = {
+                    # The engine passes five positional arguments (command name, parameter name, word to complete, command AST and
+                    # fake bound parameters); the completer reads only the word to complete, so it declares no parameter it does not use.
+                    $WordToComplete = $args[2]
+                    try {
+                        $ReturnedValue = (Get-SGApiKey -ErrorAction Stop).Name
+                    }
+                    catch {
+                        return
+                    }
+                    foreach ($Item in @($ReturnedValue)) {
+                        $Text = [string]$Item
+                        if ($Text -and $Text -like "$WordToComplete*") {
+                            # A value with whitespace, a quote, a dollar sign or a backtick is returned in single quotes so that it binds as one argument.
+                            if ($Text -match '[\s''"$`]') {
+                                "'" + $Text.Replace("'", "''") + "'"
+                            }
+                            else {
+                                $Text
+                            }
+                        }
+                    }
+                }
+                'AsmGroupId' = {
+                    # The engine passes five positional arguments (command name, parameter name, word to complete, command AST and
+                    # fake bound parameters); the completer reads only the word to complete, so it declares no parameter it does not use.
+                    $WordToComplete = $args[2]
+                    try {
+                        $ReturnedValue = (Get-SGSuppressionGroup -ErrorAction Stop).Id
+                    }
+                    catch {
+                        return
+                    }
+                    foreach ($Item in @($ReturnedValue)) {
+                        $Text = [string]$Item
+                        if ($Text -and $Text -like "$WordToComplete*") {
+                            # A value with whitespace, a quote, a dollar sign or a backtick is returned in single quotes so that it binds as one argument.
+                            if ($Text -match '[\s''"$`]') {
+                                "'" + $Text.Replace("'", "''") + "'"
+                            }
+                            else {
+                                $Text
+                            }
+                        }
+                    }
+                }
+                'AsmGroupName' = {
+                    # The engine passes five positional arguments (command name, parameter name, word to complete, command AST and
+                    # fake bound parameters); the completer reads only the word to complete, so it declares no parameter it does not use.
+                    $WordToComplete = $args[2]
+                    try {
+                        $ReturnedValue = (Get-SGSuppressionGroup -ErrorAction Stop).Name
+                    }
+                    catch {
+                        return
+                    }
+                    foreach ($Item in @($ReturnedValue)) {
+                        $Text = [string]$Item
+                        if ($Text -and $Text -like "$WordToComplete*") {
+                            # A value with whitespace, a quote, a dollar sign or a backtick is returned in single quotes so that it binds as one argument.
+                            if ($Text -match '[\s''"$`]') {
+                                "'" + $Text.Replace("'", "''") + "'"
+                            }
+                            else {
+                                $Text
+                            }
+                        }
+                    }
+                }
+                'Teammate' = {
+                    # The engine passes five positional arguments (command name, parameter name, word to complete, command AST and
+                    # fake bound parameters); the completer reads only the word to complete, so it declares no parameter it does not use.
+                    $WordToComplete = $args[2]
+                    try {
+                        $ReturnedValue = (Get-SGTeammate -ErrorAction Stop).Username
+                    }
+                    catch {
+                        return
+                    }
+                    foreach ($Item in @($ReturnedValue)) {
+                        $Text = [string]$Item
+                        if ($Text -and $Text -like "$WordToComplete*") {
+                            # A value with whitespace, a quote, a dollar sign or a backtick is returned in single quotes so that it binds as one argument.
+                            if ($Text -match '[\s''"$`]') {
+                                "'" + $Text.Replace("'", "''") + "'"
+                            }
+                            else {
+                                $Text
+                            }
+                        }
+                    }
+                }
+                }
+
                 # Create the Value parameter attribute
                 $ValueParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
                 $ValueParamAttribute.Position = 2
@@ -402,53 +479,7 @@
                 # Add the parameter attributes to an attribute collection
                 $ValueAttributeCollection = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
                 $ValueAttributeCollection.Add($ValueParamAttribute)
-
-                # Add ValidateSet to the parameter
-                $UnsubscribeGroups = Get-SGSuppressionGroup
-                $StatusValidateSet = [System.Management.Automation.ValidateSetAttribute]::new([string[]]$UnsubscribeGroups.Id)
-                $ValueAttributeCollection.Add($StatusValidateSet)
-
-                # Create the actual Value parameter
-                $ValueParam = [System.Management.Automation.RuntimeDefinedParameter]::new('Value', [string[]], $ValueAttributeCollection)
-
-                # Push the parameter(s) into a parameter dictionary
-                $ParamDictionary.Add('Value', $ValueParam)
-            }
-            if ($Property -eq 'AsmGroupName') {
-                # Create the Value parameter attribute
-                $ValueParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
-                $ValueParamAttribute.Position = 2
-                $ValueParamAttribute.ParameterSetName = $PSCmdlet.ParameterSetName
-
-                # Add the parameter attributes to an attribute collection
-                $ValueAttributeCollection = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
-                $ValueAttributeCollection.Add($ValueParamAttribute)
-
-                # Add ValidateSet to the parameter
-                $script:UnsubscribeGroups = Get-SGSuppressionGroup
-                $StatusValidateSet = [System.Management.Automation.ValidateSetAttribute]::new([string[]]$UnsubscribeGroups.Name)
-                $ValueAttributeCollection.Add($StatusValidateSet)
-
-                # Create the actual Value parameter
-                $ValueParam = [System.Management.Automation.RuntimeDefinedParameter]::new('Value', [string[]], $ValueAttributeCollection)
-
-                # Push the parameter(s) into a parameter dictionary
-                $ParamDictionary.Add('Value', $ValueParam)
-            }
-            if ($Property -eq 'Teammate') {
-                # Create the Value parameter attribute
-                $ValueParamAttribute = [System.Management.Automation.ParameterAttribute]::new()
-                $ValueParamAttribute.Position = 2
-                $ValueParamAttribute.ParameterSetName = $PSCmdlet.ParameterSetName
-
-                # Add the parameter attributes to an attribute collection
-                $ValueAttributeCollection = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
-                $ValueAttributeCollection.Add($ValueParamAttribute)
-
-                # Add ValidateSet to the parameter
-                $script:Teammates = Get-SGTeammate
-                $StatusValidateSet = [System.Management.Automation.ValidateSetAttribute]::new([string[]]$Teammates.Username)
-                $ValueAttributeCollection.Add($StatusValidateSet)
+                $ValueAttributeCollection.Add([System.Management.Automation.ArgumentCompleterAttribute]::new($ValueCompleters[$Property]))
 
                 # Create the actual Value parameter
                 $ValueParam = [System.Management.Automation.RuntimeDefinedParameter]::new('Value', [string[]], $ValueAttributeCollection)
@@ -462,14 +493,6 @@
         return $ParamDictionary
     }
     begin {
-        if ($Property -eq 'ApiKeyName') {
-            $Value = ($script:APIKeys.where({ $_.Name -eq "$($PSBoundParameters['Value'])" })).ApiKeyId
-            $PSBoundParameters['Value'] = $Value
-        }
-        if ($Property -eq 'ASMGroupName') {
-            $Value = ($script:UnsubscribeGroups.where({ $_.Name -eq "$($PSBoundParameters['Value'])" })).Id
-            $PSBoundParameters['Value'] = $Value
-        }
         $Properties = @{
             'MessageId'             = 'msg_id'
             'FromEmail'             = 'from_email'
@@ -520,6 +543,28 @@
             $EncodedFilter = $SendGridFilter
         }
         else {
+            if ($Property -eq 'ApiKeyName' -and $PSBoundParameters.ContainsKey('Value')) {
+                # The filter field takes the id, so the names are turned into ids with one lookup for the run.
+                $ApiKeys = @(Get-SGApiKey -ErrorAction Stop)
+                $PSBoundParameters['Value'] = [string[]]@(foreach ($Name in $PSBoundParameters['Value']) {
+                        $Matched = @($ApiKeys.Where({ $_.Name -eq $Name }))
+                        if ($Matched.Count -eq 0) {
+                            Write-Error -Message ("No API key named '{0}'." -f $Name) -ErrorAction Stop
+                        }
+                        foreach ($Item in $Matched) { [string]$Item.ApiKeyId }
+                    })
+            }
+            elseif ($Property -eq 'AsmGroupName' -and $PSBoundParameters.ContainsKey('Value')) {
+                # The filter field takes the id, so the names are turned into ids with one lookup for the run.
+                $Groups = @(Get-SGSuppressionGroup -ErrorAction Stop)
+                $PSBoundParameters['Value'] = [string[]]@(foreach ($Name in $PSBoundParameters['Value']) {
+                        $Matched = @($Groups.Where({ $_.Name -eq $Name }))
+                        if ($Matched.Count -eq 0) {
+                            Write-Error -Message ("No unsubscribe group named '{0}'." -f $Name) -ErrorAction Stop
+                        }
+                        foreach ($Item in $Matched) { [string]$Item.Id }
+                    })
+            }
             if ($PSBoundParameters['Value'].Count -gt 1 -and $PSBoundParameters.ContainsKey('EQ')) {
                 $UsedOperator = $Operators['IN']
                 $ValueIsArray = $true
