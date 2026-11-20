@@ -435,22 +435,33 @@ Describe 'Send-SGMailMessage -Categories (D103)' {
 Describe 'Send-SGMailMessage help for -Unsubscribe (D104)' {
     BeforeAll {
         $script:Squash = { param([string]$Text) ($Text -replace '\s+', ' ').Trim() }
-        $script:ParamHelp = & $script:Squash ((Get-Help -Name Send-SGMailMessage -Parameter Unsubscribe | Out-String))
+        # -Width keeps Get-Help from wrapping the text at the host width (Windows PowerShell 5.1 splits words).
+        $script:ParamHelp = & $script:Squash ((Get-Help -Name Send-SGMailMessage -Parameter Unsubscribe | Out-String -Width 4096))
         $script:Definition = & $script:Squash ((Get-Command -Name Send-SGMailMessage).Definition)
-        $script:FullHelp = & $script:Squash ((Get-Help -Name Send-SGMailMessage -Full | Out-String))
+        $script:FullHelp = & $script:Squash ((Get-Help -Name Send-SGMailMessage -Full | Out-String -Width 4096))
     }
 
     It 'says in the parameter help that GroupId must be greater than 0' {
         $script:ParamHelp | Should -Match 'greater than 0'
     }
 
-    It 'shows in the parameter help how to set GroupsToDisplay as a property' {
-        $script:ParamHelp.Contains('$Unsubscribe.GroupsToDisplay = 123, 124') | Should -BeTrue
+    It 'shows the hashtable example in the parameter help' {
+        $script:ParamHelp.Contains('-Unsubscribe @{ GroupId = 123; GroupsToDisplay = 123, 124 }') | Should -BeTrue
     }
 
-    It 'has the property example in the parameter comment block and not the two-argument example' {
-        $script:Definition.Contains('$Unsubscribe = [SGASM]::new(123); $Unsubscribe.GroupsToDisplay = 123, 124') | Should -BeTrue
-        $script:Definition.Contains('[SGASM]::new(123, @(1, 2, 3))') | Should -BeFalse
+    It 'has the hashtable example in the parameter comment block and no [SGASM]::new( example' {
+        $script:Definition.Contains('-Unsubscribe @{ GroupId = 123; GroupsToDisplay = 123, 124 }') | Should -BeTrue
+        $script:Definition.Contains('[SGASM]::new(') | Should -BeFalse
+        # Positive check first, so the absence check below cannot pass on empty or broken help text.
+        $script:FullHelp.Contains('GroupsToDisplay = 123, 124') | Should -BeTrue
+        $script:FullHelp.Contains('[SGASM]::new(') | Should -BeFalse
+    }
+
+    It 'says in the parameter help and the comment block that PowerShell converts the hashtable and that [SGASM] does not exist after only Import-Module' {
+        foreach ($Source in @(@{ Name = 'parameter help'; Text = $script:ParamHelp }, @{ Name = 'definition'; Text = $script:Definition })) {
+            $Source.Text.Contains('PowerShell converts the hashtable to SGASM') | Should -BeTrue -Because "the $($Source.Name) says PowerShell converts the hashtable"
+            $Source.Text.Contains('The type [SGASM] does not exist in a session that has only run Import-Module') | Should -BeTrue -Because "the $($Source.Name) says the type does not exist"
+        }
     }
 
     It 'says in the definition that GroupId must be greater than 0 when the message is sent' {
@@ -462,10 +473,169 @@ Describe 'Send-SGMailMessage help for -Unsubscribe (D104)' {
     }
 
     It 'names no backlog id in the help or the definition' {
+        $script:FullHelp | Should -Not -BeNullOrEmpty
+        $script:FullHelp.Contains('Send-SGMailMessage') | Should -BeTrue
+        $script:Definition | Should -Not -BeNullOrEmpty
+        $script:Definition.Contains('Send-SGMailMessage') | Should -BeTrue
         $script:FullHelp | Should -Not -Match 'SGT-\d'
         $script:FullHelp | Should -Not -Match 'BL-\d'
         $script:Definition | Should -Not -Match 'SGT-\d'
         $script:Definition | Should -Not -Match 'BL-\d'
+    }
+}
+
+Describe 'Send-SGMailMessage -Unsubscribe as a hashtable from the caller (M1-M3)' {
+    BeforeAll {
+        # Runs -Command (text) in the caller's scope, outside the module, where [SGASM] is not visible.
+        # The session and the stub are set in module scope; the request is read from the tripwire's log.
+        # Returns the count, the parsed body, the raw body, the exception and whether it was a binding exception.
+        $script:RunFromCaller = {
+            param([string]$Command)
+            InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+                $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+                Set-SgtNetworkStub -Response ([pscustomobject]@{ placeholder = 'accepted' })
+            }
+            $Threw = $null
+            try { $null = & ([scriptblock]::Create($Command)) }
+            catch { $Threw = $_.Exception }
+            $Calls = @($global:SgtNetworkCall.ToArray())
+            [pscustomobject]@{
+                Count     = $Calls.Count
+                Raw       = if ($Calls.Count) { $Calls[0].Body } else { $null }
+                Sent      = if ($Calls.Count) { $Calls[0].Body | ConvertFrom-Json } else { $null }
+                ThrewType = if ($Threw) { $Threw.GetType().Name } else { $null }
+                ThrewText = if ($Threw) { $Threw.Message } else { $null }
+                ThrewId   = if ($Threw -and ($Threw -is [System.Management.Automation.IContainsErrorRecord])) { $Threw.ErrorRecord.FullyQualifiedErrorId } else { $null }
+                IsBinding = ($Threw -is [System.Management.Automation.ParameterBindingException])
+            }
+        }
+        $script:SendPrefix = "Send-SGMailMessage -From 'sender@example.com' -To 'one@example.com' -Subject 'placeholder subject' -Body 'placeholder body' -Confirm:`$false -ErrorAction Stop"
+    }
+
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'M1: converts @{ GroupId = 7 } to SGASM and sends asm with group_id 7 only' {
+        $Run = & $script:RunFromCaller "$script:SendPrefix -Unsubscribe @{ GroupId = 7 }"
+        $Run.ThrewType | Should -BeNullOrEmpty
+        $Run.Count | Should -Be 1
+        (@($Run.Sent.PSObject.Properties.Name | Sort-Object) -join ', ') | Should -BeExactly 'asm, content, from, personalizations'
+        @($Run.Sent.asm.PSObject.Properties.Name) | Should -BeExactly @('group_id')
+        $Run.Raw | Should -Match '"group_id":\s*7[,\s}]'
+    }
+
+    It 'M1: converts @{ GroupId = 7; GroupsToDisplay = 7, 8 } to SGASM and sends both' {
+        $Run = & $script:RunFromCaller "$script:SendPrefix -Unsubscribe @{ GroupId = 7; GroupsToDisplay = 7, 8 }"
+        $Run.ThrewType | Should -BeNullOrEmpty
+        $Run.Count | Should -Be 1
+        (@($Run.Sent.asm.PSObject.Properties.Name | Sort-Object) -join ', ') | Should -BeExactly 'group_id, groups_to_display'
+        $Run.Raw | Should -Match '"group_id":\s*7[,\s}]'
+        @($Run.Sent.asm.groups_to_display) | Should -Be @(7, 8)
+        $Run.Raw | Should -Match '"groups_to_display":\s*\[\s*7\s*,\s*8\s*\]'
+    }
+
+    It 'M1: refuses @{ GroupId = 0 } with the plain message and no request' {
+        $Run = & $script:RunFromCaller "$script:SendPrefix -Unsubscribe @{ GroupId = 0 }"
+        $Run.ThrewText | Should -BeExactly 'Unsubscribe needs a GroupId greater than 0.'
+        $Run.IsBinding | Should -BeFalse
+        $Run.Count | Should -Be 0
+        Get-SgtUnmockedNetworkCall | Should -BeNullOrEmpty
+    }
+
+    It 'M2: refuses a hashtable with an unknown key at binding and sends no request' {
+        $Run = & $script:RunFromCaller "$script:SendPrefix -Unsubscribe @{ GroupId = 7; MadeUpKey = 1 }"
+        $Run.IsBinding | Should -BeTrue
+        $Run.ThrewType | Should -BeExactly 'ParameterBindingArgumentTransformationException'
+        $Run.Count | Should -Be 0
+        Get-SgtUnmockedNetworkCall | Should -BeNullOrEmpty
+    }
+
+    It 'M3: [SGASM] cannot be reached from the caller''s scope after Import-Module' {
+        ($null -ne ('SGASM' -as [type])) | Should -BeFalse
+    }
+
+    It 'M3: the old [SGASM]::new(123) example fails in the caller''s scope with Unable to find type, and sends nothing' {
+        $Run = & $script:RunFromCaller "`$Unsubscribe = [SGASM]::new(123); $script:SendPrefix -Unsubscribe `$Unsubscribe"
+        # The id depends on the error, not on the UI language; the message check only looks for the type name.
+        $Run.ThrewId | Should -BeExactly 'TypeNotFound'
+        $Run.ThrewText | Should -Match 'SGASM'
+        $Run.Count | Should -Be 0
+    }
+
+    Context 'the documented -Unsubscribe examples run as written (D122)' {
+        BeforeAll {
+            $script:Squash2 = { param([string]$Text) ($Text -replace '\s+', ' ').Trim() }
+            $script:CallPattern = "Send-SGMailMessage -From '[^']*' -To '[^']*' -Subject '[^']*' -Body '[^']*' -Unsubscribe @\{[^}]*\}"
+            $script:AssertDocumentedRun = {
+                param([string]$Line)
+                $Run = & $script:RunFromCaller "$Line -Confirm:`$false -ErrorAction Stop"
+                $Run.ThrewType | Should -BeNullOrEmpty
+                $Run.Count | Should -Be 1
+                (@($Run.Sent.asm.PSObject.Properties.Name | Sort-Object) -join ', ') | Should -BeExactly 'group_id, groups_to_display'
+                $Run.Raw | Should -Match '"group_id":\s*123[,\s}]'
+                @($Run.Sent.asm.groups_to_display) | Should -Be @(123, 124)
+            }
+        }
+
+        It 'D122: the -Unsubscribe .EXAMPLE runs as written from the caller''s scope' {
+            $Codes = @((Get-Help -Name Send-SGMailMessage).examples.example | Where-Object { $_.code -like '*-Unsubscribe*' })
+            $Codes.Count | Should -Be 1
+            $Line = ($Codes[0].code -replace '^\s*PS C:\\>\s*', '').Trim()
+            & $script:AssertDocumentedRun $Line
+        }
+
+        It 'D122: the example in the -Unsubscribe parameter help runs as written' {
+            $Text = & $script:Squash2 (Get-Help -Name Send-SGMailMessage -Parameter Unsubscribe | Out-String -Width 4096)
+            $Found = @([regex]::Matches($Text, $script:CallPattern))
+            $Found.Count | Should -Be 1
+            & $script:AssertDocumentedRun $Found[0].Value
+        }
+
+        It 'D122: the example in the comment block at the parameter runs as written' {
+            $Text = & $script:Squash2 (Get-Command -Name Send-SGMailMessage).Definition
+            $Marker = 'Example usage:'
+            ([regex]::Matches($Text, [regex]::Escape($Marker))).Count | Should -Be 1
+            $After = $Text.Substring($Text.IndexOf($Marker) + $Marker.Length)
+            $Found = [regex]::Match($After, $script:CallPattern)
+            $Found.Success | Should -BeTrue
+            & $script:AssertDocumentedRun $Found.Value
+        }
+    }
+}
+
+Describe 'Send-SGMailMessage help for -BatchId (D123)' {
+    BeforeAll {
+        $script:Squash = { param([string]$Text) ($Text -replace '\s+', ' ').Trim() }
+        # -Width keeps Get-Help from wrapping the text at the host width (Windows PowerShell 5.1 splits words).
+        $script:BatchHelp = & $script:Squash ((Get-Help -Name Send-SGMailMessage -Parameter BatchId | Out-String -Width 4096))
+        $script:Definition = & $script:Squash ((Get-Command -Name Send-SGMailMessage).Definition)
+        $script:Refusal = 'SendGrid refuses an ID that is not a batch in your account, also in sandbox mode, and then the message is not sent.'
+    }
+
+    It 'says allows you to include in the parameter help and at the parameter' {
+        $script:BatchHelp.Contains('allows you to include this email in that batch') | Should -BeTrue
+        $script:Definition.Contains('allows you to include this email in that batch') | Should -BeTrue
+        $script:BatchHelp.Contains('allows you include') | Should -BeFalse
+        $script:Definition.Contains('allows you include') | Should -BeFalse
+    }
+
+    It 'says in the parameter help and at the parameter that SendGrid refuses an id that is not a batch, also in sandbox mode' {
+        $script:BatchHelp.Contains($script:Refusal) | Should -BeTrue
+        $script:Definition.Contains($script:Refusal) | Should -BeTrue
+    }
+
+    It 'says it in the comment at the parameter, not only in the help' {
+        $Start = $script:Definition.IndexOf('# Specifies an ID representing a batch')
+        $End = $script:Definition.IndexOf('[string]$BatchId')
+        $Start | Should -BeGreaterOrEqual 0
+        $End | Should -BeGreaterThan $Start
+        $Comment = $script:Definition.Substring($Start, $End - $Start)
+        $Comment | Should -Not -BeNullOrEmpty
+        $Comment.Contains($script:Refusal) | Should -BeTrue
     }
 }
 
