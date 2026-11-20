@@ -5,6 +5,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Every command's error that SendGrid answered keeps the caught exception in `$_.Exception.InnerException`, the HTTP status as an integer in `$_.Exception.Data['StatusCode']` and SendGrid's errors in `$_.Exception.Data['SendGridErrors']`, a list of objects with `Field` and `Message`. Before, the error held only the text: no inner exception and no `Data`. The text before `SendGrid Error`, the error id and the type are unchanged.
+
+### Changed
+
+- SendGrid's error text names the HTTP status and the field: `SendGrid Error (HTTP <status>): "<field>: <message>, ..."`, where the field is left out when SendGrid gives none. `Connect-SendGrid` shows `Unable to connect to SendGrid. Error detail: SendGrid Error (HTTP <status>): "..."`. Before, the text was `SendGrid Error: "<messages>"` without status or field, and `Connect-SendGrid` repeated `Unable to connect to SendGrid.` inside the detail. Without an HTTP answer, for example a name lookup or a timeout, the texts are unchanged.
+
+### Fixed
+
+- An HTTP error whose body is not JSON, or has no errors, gives `SendGrid Error (HTTP <status>).` followed by the original exception text. Before, the JSON parse error reached the user ("Conversion from JSON failed" in PowerShell 7, "Invalid JSON primitive" in Windows PowerShell 5.1).
+- `Disconnect-SendGrid` writes `Unable to disconnect from SendGrid.` followed by the cause, still as a non-terminating error. Before, it wrote the text of a script block, `{ $_.Exception.Message }`, instead of the cause.
+
 ## [0.6.0] - 2026-11-20
 
 ### Added
