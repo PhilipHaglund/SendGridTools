@@ -5,17 +5,17 @@
 
     .DESCRIPTION
         Get-SGSubuser retrieves all Subusers or a specific Subuser based on its username
-        within the current SendGrid instance. Due to limitations in the SendGrid API, when retrieving all users it won't display disabled users.
+        within the current SendGrid instance. The list includes disabled Subusers.
 
     .PARAMETER Username
-        Specifies the username of a specific Subuser to retrieve. If this parameter is not provided, all Subusers are retrieved. Only a Subuser whose username equals the value is returned.
+        Specifies the username of a specific Subuser to retrieve. If this parameter is not provided, all Subusers are retrieved. Only a Subuser whose username equals the value is returned. An empty value is refused.
 
     .PARAMETER Limit
-        The number of results you would like to get in each request.
+        The number of results you would like to get in each request. It applies only when -Username is not given.
         Default: none
 
     .PARAMETER Offset
-        The number of Subusers to skip.
+        The number of Subusers to skip. It applies only when -Username is not given.
         Default: none
 
     .PARAMETER IncludeRegion
@@ -58,21 +58,24 @@
     )]
     param (
 
-        # Specifies the username of a specific Subuser to retrieve. If this parameter is not provided, all Subusers are retrieved. Only a Subuser whose username equals the value is returned.
+        # Specifies the username of a specific Subuser to retrieve. If this parameter is not provided, all Subusers are retrieved. Only a Subuser whose username equals the value is returned. An empty value is refused.
         [Parameter(
             ValueFromPipeline,
             ValueFromPipelineByPropertyName,
             Position = 0
         )]
+        [ValidateNotNullOrEmpty()]
         [Alias('Id')]
         [string]$Username,
 
-        # Specifies the page size, i.e. maximum number of items from the list to be returned for a single API request.
+        # Specifies the page size, i.e. maximum number of items from the list to be returned for a single API request. It applies only when -Username is not given.
         [Parameter()]
+        [ValidateRange(1, [int]::MaxValue)]
         [int]$Limit,
 
-        # Specifies the number of items in the list to skip over before starting to retrieve the items for the requested page.
+        # Specifies the number of items in the list to skip over before starting to retrieve the items for the requested page. It applies only when -Username is not given.
         [Parameter()]
+        [ValidateRange(0, [int]::MaxValue)]
         [int]$Offset,
 
         # Adds the region of each Subuser to the output by sending include_region=true.
@@ -87,6 +90,7 @@
 
     begin {
         $WarnedAboutRegion = $false
+        $WarnedAboutPaging = $false
     }
 
     process {
@@ -100,17 +104,24 @@
         #Generic List
         [System.Collections.Generic.List[string]]$QueryParameters = [System.Collections.Generic.List[string]]::new()
 
-        if ($PSBoundParameters.Username) {
+        if ($PSBoundParameters.ContainsKey('Username')) {
             $QueryParameters.Add(('username={0}' -f [uri]::EscapeDataString($Username)))
+            # SendGrid's username filter matches on the start of the name, so a page of it can hide the equal name.
+            if (($PSBoundParameters.ContainsKey('Limit') -or $PSBoundParameters.ContainsKey('Offset')) -and -not $WarnedAboutPaging) {
+                $WarnedAboutPaging = $true
+                Write-Warning -Message "SendGrid's username filter also returns names that start with the value: -Limit and -Offset apply only when -Username is not given."
+            }
         }
-        if ($PSBoundParameters.Limit) {
-            $QueryParameters.Add("limit=$limit")
-        }
-        if ($PSBoundParameters.Offset) {
-            $QueryParameters.Add("offset=$offset")
+        else {
+            if ($PSBoundParameters.ContainsKey('Limit')) {
+                $QueryParameters.Add("limit=$limit")
+            }
+            if ($PSBoundParameters.ContainsKey('Offset')) {
+                $QueryParameters.Add("offset=$offset")
+            }
         }
         if ($IncludeRegion.IsPresent -or $PSBoundParameters.ContainsKey('Region')) {
-            if ($PSBoundParameters.Username) {
+            if ($PSBoundParameters.ContainsKey('Username')) {
                 if (-not $WarnedAboutRegion) {
                     $WarnedAboutRegion = $true
                     Write-Warning -Message 'SendGrid does not report the region of a single subuser: -IncludeRegion and -Region apply only when -Username is not given.'
@@ -128,9 +139,10 @@
             $InvokeSplat['Namespace'] += '?' + ($QueryParameters -join '&')
         }
 
-        if ($PSCmdlet.ShouldProcess(('{0}' -f 'Subusers'))) {
+        $Target = if ($PSBoundParameters.ContainsKey('Username')) { "Subuser '{0}'" -f $Username } else { 'Subusers' }
+        if ($PSCmdlet.ShouldProcess($Target)) {
             try {
-                if ($PSBoundParameters.Username) {
+                if ($PSBoundParameters.ContainsKey('Username')) {
                     # SendGrid's username filter also returns names that start with the value, so only an equal username is passed on.
                     Invoke-SendGrid @InvokeSplat | Where-Object { "$($_.Username)" -eq $Username }
                 }
