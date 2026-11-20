@@ -370,12 +370,13 @@
                     foreach ($Item in @($ReturnedValue)) {
                         $Text = [string]$Item
                         if ($Text -and $Text -like "$WordToComplete*") {
-                            # A value with whitespace, a quote, a dollar sign or a backtick is returned in single quotes so that it binds as one argument.
-                            if ($Text -match '[\s''"$`]') {
-                                "'" + $Text.Replace("'", "''") + "'"
+                            # Only a value that binds as one bare word (starts with a letter, digit or underscore, then only letters, digits, _ . @ -)
+                            # is returned as is; every other value is wrapped in single quotes, with every single quote (typographic ones too) doubled.
+                            if ($Text -match '^[\w][\w.@-]*\z') {
+                                $Text
                             }
                             else {
-                                $Text
+                                "'" + ($Text -replace '([''\u2018\u2019\u201A\u201B])', '$1$1') + "'"
                             }
                         }
                     }
@@ -393,12 +394,13 @@
                     foreach ($Item in @($ReturnedValue)) {
                         $Text = [string]$Item
                         if ($Text -and $Text -like "$WordToComplete*") {
-                            # A value with whitespace, a quote, a dollar sign or a backtick is returned in single quotes so that it binds as one argument.
-                            if ($Text -match '[\s''"$`]') {
-                                "'" + $Text.Replace("'", "''") + "'"
+                            # Only a value that binds as one bare word (starts with a letter, digit or underscore, then only letters, digits, _ . @ -)
+                            # is returned as is; every other value is wrapped in single quotes, with every single quote (typographic ones too) doubled.
+                            if ($Text -match '^[\w][\w.@-]*\z') {
+                                $Text
                             }
                             else {
-                                $Text
+                                "'" + ($Text -replace '([''\u2018\u2019\u201A\u201B])', '$1$1') + "'"
                             }
                         }
                     }
@@ -416,12 +418,13 @@
                     foreach ($Item in @($ReturnedValue)) {
                         $Text = [string]$Item
                         if ($Text -and $Text -like "$WordToComplete*") {
-                            # A value with whitespace, a quote, a dollar sign or a backtick is returned in single quotes so that it binds as one argument.
-                            if ($Text -match '[\s''"$`]') {
-                                "'" + $Text.Replace("'", "''") + "'"
+                            # Only a value that binds as one bare word (starts with a letter, digit or underscore, then only letters, digits, _ . @ -)
+                            # is returned as is; every other value is wrapped in single quotes, with every single quote (typographic ones too) doubled.
+                            if ($Text -match '^[\w][\w.@-]*\z') {
+                                $Text
                             }
                             else {
-                                $Text
+                                "'" + ($Text -replace '([''\u2018\u2019\u201A\u201B])', '$1$1') + "'"
                             }
                         }
                     }
@@ -439,12 +442,13 @@
                     foreach ($Item in @($ReturnedValue)) {
                         $Text = [string]$Item
                         if ($Text -and $Text -like "$WordToComplete*") {
-                            # A value with whitespace, a quote, a dollar sign or a backtick is returned in single quotes so that it binds as one argument.
-                            if ($Text -match '[\s''"$`]') {
-                                "'" + $Text.Replace("'", "''") + "'"
+                            # Only a value that binds as one bare word (starts with a letter, digit or underscore, then only letters, digits, _ . @ -)
+                            # is returned as is; every other value is wrapped in single quotes, with every single quote (typographic ones too) doubled.
+                            if ($Text -match '^[\w][\w.@-]*\z') {
+                                $Text
                             }
                             else {
-                                $Text
+                                "'" + ($Text -replace '([''\u2018\u2019\u201A\u201B])', '$1$1') + "'"
                             }
                         }
                     }
@@ -462,12 +466,13 @@
                     foreach ($Item in @($ReturnedValue)) {
                         $Text = [string]$Item
                         if ($Text -and $Text -like "$WordToComplete*") {
-                            # A value with whitespace, a quote, a dollar sign or a backtick is returned in single quotes so that it binds as one argument.
-                            if ($Text -match '[\s''"$`]') {
-                                "'" + $Text.Replace("'", "''") + "'"
+                            # Only a value that binds as one bare word (starts with a letter, digit or underscore, then only letters, digits, _ . @ -)
+                            # is returned as is; every other value is wrapped in single quotes, with every single quote (typographic ones too) doubled.
+                            if ($Text -match '^[\w][\w.@-]*\z') {
+                                $Text
                             }
                             else {
-                                $Text
+                                "'" + ($Text -replace '([''\u2018\u2019\u201A\u201B])', '$1$1') + "'"
                             }
                         }
                     }
