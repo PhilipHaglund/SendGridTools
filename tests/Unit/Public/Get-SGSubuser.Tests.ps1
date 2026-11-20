@@ -456,6 +456,98 @@ Describe 'Get-SGSubuser -Username lookup' {
     }
 }
 
+Describe 'Get-SGSubuser refuses an empty -Username and limits -Limit and -Offset (D109)' {
+    BeforeEach {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Plain = $script:PlainFixture } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response (Get-Content -LiteralPath $Plain -Raw | ConvertFrom-Json)
+        }
+    }
+
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Refuses <Case> at binding and makes no call' -TestCases @(
+        @{ Case = "-Username ''"; Splat = @{ Username = '' } }
+        @{ Case = '-Username $null'; Splat = @{ Username = $null } }
+        @{ Case = '-Limit 0'; Splat = @{ Limit = 0 } }
+        @{ Case = '-Limit -1'; Splat = @{ Limit = -1 } }
+        @{ Case = '-Offset -1'; Splat = @{ Offset = -1 } }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ Splat = $Splat } {
+            { Get-SGSubuser @Splat -Confirm:$false } | Should -Throw -ErrorId 'ParameterArgumentValidationError*'
+            @(Get-SgtNetworkCall)[0].Count | Should -Be 0
+        }
+    }
+
+    It 'Refuses an empty name from the pipeline <Case> and makes no call' -TestCases @(
+        @{ Case = 'as a string'; ByProperty = $false }
+        @{ Case = 'by property Username'; ByProperty = $true }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ ByProperty = $ByProperty } {
+            # A pipeline binding error is written to the error stream and is not collected by -ErrorVariable.
+            if ($ByProperty) {
+                $Streams = @([pscustomobject]@{ Username = '' } | Get-SGSubuser -Confirm:$false 2>&1)
+            }
+            else {
+                $Streams = @('' | Get-SGSubuser -Confirm:$false 2>&1)
+            }
+            $Errs = @($Streams | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] })
+
+            @($Errs).Count | Should -Be 1
+            "$($Errs[0].FullyQualifiedErrorId)" | Should -BeLike 'ParameterArgumentValidationError*'
+            @(Get-SgtNetworkCall)[0].Count | Should -Be 0
+        }
+    }
+
+    It 'Sends only the other name when an empty name comes first in the pipeline' {
+        InModuleScope SendGridTools {
+            $Streams = @([pscustomobject]@{ Username = '' }, [pscustomobject]@{ Username = 'sgt-test-subuser-1' } |
+                    Get-SGSubuser -Confirm:$false 2>&1)
+            $Errs = @($Streams | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] })
+
+            @($Errs).Count | Should -Be 1
+            $Calls = @(Get-SgtNetworkCall)[0]
+            $Calls.Count | Should -Be 1
+            ([uri]$Calls[0].Uri).AbsoluteUri | Should -Be 'https://api.sendgrid.com/v3/subusers?username=sgt-test-subuser-1'
+        }
+    }
+
+    It 'Sends offset=0 for -Offset 0' {
+        InModuleScope SendGridTools {
+            $null = Get-SGSubuser -Offset 0 -Confirm:$false
+
+            $Calls = @(Get-SgtNetworkCall)[0]
+            $Calls.Count | Should -Be 1
+            ([uri]$Calls[0].Uri).AbsoluteUri | Should -Be 'https://api.sendgrid.com/v3/subusers?offset=0'
+        }
+    }
+
+    It 'Sends limit=1 and offset=0 for -Limit 1 -Offset 0' {
+        InModuleScope SendGridTools {
+            $null = Get-SGSubuser -Limit 1 -Offset 0 -Confirm:$false
+
+            $Calls = @(Get-SgtNetworkCall)[0]
+            $Calls.Count | Should -Be 1
+            ([uri]$Calls[0].Uri).AbsoluteUri | Should -Be 'https://api.sendgrid.com/v3/subusers?limit=1&offset=0'
+        }
+    }
+
+    It 'Sends the same request as before without parameters' {
+        InModuleScope SendGridTools {
+            $null = Get-SGSubuser -Confirm:$false
+
+            $Calls = @(Get-SgtNetworkCall)[0]
+            $Calls.Count | Should -Be 1
+            ([uri]$Calls[0].Uri).AbsoluteUri | Should -Be 'https://api.sendgrid.com/v3/subusers'
+        }
+    }
+}
+
 Describe 'Get-SGSubuser help' {
     It 'Describes -Username as a username' {
         $Text = ((Get-Help Get-SGSubuser -Parameter Username).description.Text -join ' ') -replace '\s+', ' '

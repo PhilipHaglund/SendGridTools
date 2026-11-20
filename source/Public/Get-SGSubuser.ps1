@@ -1,4 +1,4 @@
-﻿function Get-SGSubuser {
+function Get-SGSubuser {
     <#
     .SYNOPSIS
         Retrieves all or a specific Subuser within the current SendGrid instance.
@@ -64,15 +64,18 @@
             ValueFromPipelineByPropertyName,
             Position = 0
         )]
+        [ValidateNotNullOrEmpty()]
         [Alias('Id')]
         [string]$Username,
 
         # Specifies the page size, i.e. maximum number of items from the list to be returned for a single API request.
         [Parameter()]
+        [ValidateRange(1, [int]::MaxValue)]
         [int]$Limit,
 
         # Specifies the number of items in the list to skip over before starting to retrieve the items for the requested page.
         [Parameter()]
+        [ValidateRange(0, [int]::MaxValue)]
         [int]$Offset,
 
         # Adds the region of each Subuser to the output by sending include_region=true.
@@ -100,17 +103,17 @@
         #Generic List
         [System.Collections.Generic.List[string]]$QueryParameters = [System.Collections.Generic.List[string]]::new()
 
-        if ($PSBoundParameters.Username) {
+        if ($PSBoundParameters.ContainsKey('Username')) {
             $QueryParameters.Add(('username={0}' -f [uri]::EscapeDataString($Username)))
         }
-        if ($PSBoundParameters.Limit) {
+        if ($PSBoundParameters.ContainsKey('Limit')) {
             $QueryParameters.Add("limit=$limit")
         }
-        if ($PSBoundParameters.Offset) {
+        if ($PSBoundParameters.ContainsKey('Offset')) {
             $QueryParameters.Add("offset=$offset")
         }
         if ($IncludeRegion.IsPresent -or $PSBoundParameters.ContainsKey('Region')) {
-            if ($PSBoundParameters.Username) {
+            if ($PSBoundParameters.ContainsKey('Username')) {
                 if (-not $WarnedAboutRegion) {
                     $WarnedAboutRegion = $true
                     Write-Warning -Message 'SendGrid does not report the region of a single subuser: -IncludeRegion and -Region apply only when -Username is not given.'
@@ -130,7 +133,7 @@
 
         if ($PSCmdlet.ShouldProcess(('{0}' -f 'Subusers'))) {
             try {
-                if ($PSBoundParameters.Username) {
+                if ($PSBoundParameters.ContainsKey('Username')) {
                     # SendGrid's username filter also returns names that start with the value, so only an equal username is passed on.
                     Invoke-SendGrid @InvokeSplat | Where-Object { "$($_.Username)" -eq $Username }
                 }
