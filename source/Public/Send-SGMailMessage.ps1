@@ -78,7 +78,7 @@
         Specifies an array of category names for this message. 1 to 10 category names, and each name is 1 to 255 characters long.
 
     .PARAMETER BatchId
-        Specifies an ID representing a batch of emails to be sent at the same time. Including a batch_id in your request allows you include this email in that batch. It also enables you to cancel or pause the delivery of that batch. For more information, see the Cancel Scheduled Sends API.
+        Specifies an ID representing a batch of emails to be sent at the same time. Including a batch_id in your request allows you to include this email in that batch. It also enables you to cancel or pause the delivery of that batch. For more information, see the Cancel Scheduled Sends API. SendGrid refuses an ID that is not a batch in your account, also in sandbox mode, and then the message is not sent.
 
     .PARAMETER Unsubscribe
         Specifies the advanced suppression manager (ASM) settings for the message as an SGASM object. GroupId is the unsubscribe group of the message and must be greater than 0. GroupsToDisplay lists the groups shown on the unsubscribe page.
@@ -235,7 +235,7 @@
         [ValidateLength(1, 255)]
         [string[]]$Categories,
 
-        # Specifies an ID representing a batch of emails to be sent at the same time. Including a batch_id in your request allows you include this email in that batch. It also enables you to cancel or pause the delivery of that batch. For more information, see the Cancel Scheduled Sends API.
+        # Specifies an ID representing a batch of emails to be sent at the same time. Including a batch_id in your request allows you to include this email in that batch. It also enables you to cancel or pause the delivery of that batch. For more information, see the Cancel Scheduled Sends API. SendGrid refuses an ID that is not a batch in your account, also in sandbox mode, and then the message is not sent.
         [Parameter(ParameterSetName = 'Default')]
         [Parameter(ParameterSetName = 'SeparateTo')]
         [string]$BatchId,

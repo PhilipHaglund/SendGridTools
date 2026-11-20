@@ -598,6 +598,38 @@ Describe 'Send-SGMailMessage -Unsubscribe as a hashtable from the caller (M1-M3)
     }
 }
 
+Describe 'Send-SGMailMessage help for -BatchId (D123)' {
+    BeforeAll {
+        $script:Squash = { param([string]$Text) ($Text -replace '\s+', ' ').Trim() }
+        # -Width keeps Get-Help from wrapping the text at the host width (Windows PowerShell 5.1 splits words).
+        $script:BatchHelp = & $script:Squash ((Get-Help -Name Send-SGMailMessage -Parameter BatchId | Out-String -Width 4096))
+        $script:Definition = & $script:Squash ((Get-Command -Name Send-SGMailMessage).Definition)
+        $script:Refusal = 'SendGrid refuses an ID that is not a batch in your account, also in sandbox mode, and then the message is not sent.'
+    }
+
+    It 'says allows you to include in the parameter help and at the parameter' {
+        $script:BatchHelp.Contains('allows you to include this email in that batch') | Should -BeTrue
+        $script:Definition.Contains('allows you to include this email in that batch') | Should -BeTrue
+        $script:BatchHelp.Contains('allows you include') | Should -BeFalse
+        $script:Definition.Contains('allows you include') | Should -BeFalse
+    }
+
+    It 'says in the parameter help and at the parameter that SendGrid refuses an id that is not a batch, also in sandbox mode' {
+        $script:BatchHelp.Contains($script:Refusal) | Should -BeTrue
+        $script:Definition.Contains($script:Refusal) | Should -BeTrue
+    }
+
+    It 'says it in the comment at the parameter, not only in the help' {
+        $Start = $script:Definition.IndexOf('# Specifies an ID representing a batch')
+        $End = $script:Definition.IndexOf('[string]$BatchId')
+        $Start | Should -BeGreaterOrEqual 0
+        $End | Should -BeGreaterThan $Start
+        $Comment = $script:Definition.Substring($Start, $End - $Start)
+        $Comment | Should -Not -BeNullOrEmpty
+        $Comment.Contains($script:Refusal) | Should -BeTrue
+    }
+}
+
 Describe 'Network tripwire' {
     It 'Made no unmocked network call' {
         Assert-SgtNetworkTripwireActive
