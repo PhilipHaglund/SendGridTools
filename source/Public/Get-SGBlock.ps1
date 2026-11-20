@@ -7,7 +7,7 @@
         Get-SGBlock retrieves a specific block based on the email address from SendGrid. Blocks occur when an email is rejected due to an issue with the message itself.
 
     .PARAMETER EmailAddress
-        Specifies the email address of a specific block to retrieve.
+        Specifies the email address of a specific block to retrieve. An empty value is refused.
 
     .PARAMETER OnBehalfOf
         Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
@@ -36,7 +36,7 @@
     #>
     [CmdletBinding()]
     param (
-        # Specifies the specific email address to retrieve.
+        # Specifies the specific email address to retrieve. An empty value is refused.
         [Parameter(
             ValueFromPipeline,
             ValueFromPipelineByPropertyName,

@@ -7,7 +7,7 @@
         Get-SGAlert retrieves a specific alert or all alerts from SendGrid based on the provided parameters.
 
     .PARAMETER AlertId
-        Specifies the ID of the alert to retrieve.
+        Specifies the ID of the alert to retrieve. An empty value is refused.
 
     .PARAMETER OnBehalfOf
         Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
@@ -24,7 +24,7 @@
     #>
     [CmdletBinding()]
     param (
-        # Specifies the ID of the alert to retrieve.
+        # Specifies the ID of the alert to retrieve. An empty value is refused.
         [Parameter(
             ValueFromPipeline,
             ValueFromPipelineByPropertyName,

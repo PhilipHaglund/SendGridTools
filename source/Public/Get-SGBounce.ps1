@@ -7,7 +7,7 @@
         Get-SGBounce retrieves all bounces or a specific bounce based on its unique ID from SendGrid. Bounces occur when an email is rejected by the recipient's mail server.
 
     .PARAMETER EmailAddress
-        Specifies one or more email addresses whose bounces are retrieved. If this parameter is not provided, all bounces are retrieved.
+        Specifies one or more email addresses whose bounces are retrieved. If this parameter is not provided, all bounces are retrieved. An empty value is refused.
 
     .PARAMETER OnBehalfOf
         Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
@@ -75,7 +75,7 @@
     #>
     [CmdletBinding()]
     param (
-        # Specifies the specific email address to retrieve. If this parameter is not provided, all bounces are retrieved.
+        # Specifies the specific email address to retrieve. If this parameter is not provided, all bounces are retrieved. An empty value is refused.
         [Parameter(
             ValueFromPipeline,
             ValueFromPipelineByPropertyName,
