@@ -75,7 +75,7 @@
         Specifies the template ID to use. An email template ID. A template that contains a subject and content — either text or html — will override any subject and content values specified at the personalizations or message level.
 
     .PARAMETER Categories
-        Specifies an array of category names for this message. At most 10 category names, and each name is 1 to 255 characters long.
+        Specifies an array of category names for this message. 1 to 10 category names, and each name is 1 to 255 characters long.
 
     .PARAMETER BatchId
         Specifies an ID representing a batch of emails to be sent at the same time. Including a batch_id in your request allows you include this email in that batch. It also enables you to cancel or pause the delivery of that batch. For more information, see the Cancel Scheduled Sends API.
@@ -221,7 +221,7 @@
         [Parameter(ParameterSetName = 'SeparateTo')]
         [string]$TemplateId,
 
-        # Specifies an array of category names for this message. At most 10 category names, and each name is 1 to 255 characters long.
+        # Specifies an array of category names for this message. 1 to 10 category names, and each name is 1 to 255 characters long.
         [Parameter(ParameterSetName = 'Default')]
         [Parameter(ParameterSetName = 'SeparateTo')]
         [ValidateCount(1, 10)]

@@ -36,6 +36,7 @@ BeforeAll {
             'Categories one name of 256 characters' { $Params['Categories'] = 'c' * 256 }
             'Categories ten names' { $Params['Categories'] = @(1..10 | ForEach-Object { 'sgt-c{0:d2}' -f $_ }) }
             'Categories eleven names' { $Params['Categories'] = @(1..11 | ForEach-Object { 'sgt-c{0:d2}' -f $_ }) }
+            'Categories empty list' { $Params['Categories'] = @() }
             default { }
         }
         $Caught = $null
@@ -92,6 +93,7 @@ Describe 'Sprint 5 step 6 measurements' {
         @{ Id = 'M2'; Case = 'Categories one name of 256 characters' }
         @{ Id = 'M2'; Case = 'Categories ten names' }
         @{ Id = 'M2'; Case = 'Categories eleven names' }
+        @{ Id = 'M2'; Case = 'Categories empty list' }
         @{ Id = 'M3'; Case = 'none of the parameters' }
     ) {
         $Run = InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Case = $Case; Send = $script:SendText } {

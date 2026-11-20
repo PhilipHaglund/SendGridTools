@@ -346,6 +346,16 @@ Describe 'Send-SGMailMessage -BatchId and -Unsubscribe (D102)' {
         $Run.Threw | Should -BeFalse
         @($Run.Output | Where-Object { $_ -like 'threw *' }) | Should -BeNullOrEmpty
     }
+
+    It 'Refuses a GroupId of 0 under -WhatIf with the plain message, no What if line and no request' {
+        $Script = "try { Send-SGMailMessage -From 'sender@example.com' -To 'one@example.com' -Subject 'placeholder subject' -Body 'placeholder body' -Unsubscribe ([SGASM]::new()) -WhatIf } catch { 'threw {0}' -f `$_.Exception.Message }"
+        $Run = Invoke-SgtInCountingHost -Script $Script -AnswerJson '{}'
+        @($Run.HostLine | Where-Object { $_ -like 'What if:*' }).Count | Should -Be 0
+        $Run.NetworkCallCount | Should -Be 0
+        $Run.PromptCount | Should -Be 0
+        $Run.UnmockedCall | Should -BeNullOrEmpty
+        @($Run.Output | Where-Object { $_ -like 'threw *' }) | Should -BeExactly @('threw Unsubscribe needs a GroupId greater than 0.')
+    }
 }
 
 Describe 'Send-SGMailMessage -Categories (D103)' {
@@ -403,6 +413,7 @@ Describe 'Send-SGMailMessage -Categories (D103)' {
         @{ Label = '11 names'; Names = '1..11 | ForEach-Object { "sgt-cat-$_" }' }
         @{ Label = 'a name of 256 characters'; Names = '''c'' * 256' }
         @{ Label = 'an empty name'; Names = '''''' }
+        @{ Label = 'an empty list'; Names = '@()' }
     ) {
         $Run = InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Names = $Names; Send = $script:SendCategories } {
             & ([scriptblock]::Create($Send)) $Cred $Names
@@ -439,6 +450,10 @@ Describe 'Send-SGMailMessage help for -Unsubscribe (D104)' {
     It 'has the property example in the parameter comment block and not the two-argument example' {
         $script:Definition.Contains('$Unsubscribe = [SGASM]::new(123); $Unsubscribe.GroupsToDisplay = 123, 124') | Should -BeTrue
         $script:Definition.Contains('[SGASM]::new(123, @(1, 2, 3))') | Should -BeFalse
+    }
+
+    It 'says in the definition that GroupId must be greater than 0 when the message is sent' {
+        $script:Definition.Contains('It must be greater than 0 when the message is sent.') | Should -BeTrue
     }
 
     It 'says the second constructor argument is not kept' {
