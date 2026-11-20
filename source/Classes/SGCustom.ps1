@@ -73,7 +73,12 @@ class SGASM {
     }
     SGASM([int]$GroupId, [int[]]$GroupsToDisplay) {
         $this.GroupId = $GroupId
-        $this.GroupsToDisplay = @()
+        if ($null -eq $GroupsToDisplay) {
+            $this.GroupsToDisplay = @()
+        }
+        else {
+            $this.GroupsToDisplay = $GroupsToDisplay
+        }
     }
     [string] ToString() {
         return $this.GroupId.ToString()
