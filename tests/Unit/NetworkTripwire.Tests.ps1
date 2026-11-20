@@ -20,14 +20,16 @@ Describe 'Network tripwire helper' {
         Disable-SgtNetworkTripwire
     }
 
-    It 'Throws and records Invoke-RestMethod when a session class calls it unmocked' {
+    It 'Throws and records the web command when a session class calls it unmocked' {
         InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
             # Loopback target: a broken tripwire still cannot reach the internet.
             $Session = [SendGridSession]::new()
             $Session._BaseURL = [uri]'http://127.0.0.1:9/v3'
             { $Session.Connect($Cred) } | Should -Throw '*Unmocked network call*'
         }
-        Get-SgtUnmockedNetworkCall | Should -Contain 'Invoke-RestMethod'
+        # The session sends with Invoke-WebRequest in Windows PowerShell 5.1 and with Invoke-RestMethod in PowerShell 7.
+        $Command = if ($PSVersionTable.PSEdition -eq 'Desktop') { 'Invoke-WebRequest' } else { 'Invoke-RestMethod' }
+        Get-SgtUnmockedNetworkCall | Should -Contain $Command
     }
 
     It 'Records a direct Invoke-WebRequest the same way' {
@@ -55,6 +57,54 @@ Describe 'Network tripwire helper' {
         $global:SgtNetworkCall[0].Uri.AbsoluteUri | Should -Be 'http://127.0.0.1:9/v3/scopes'
     }
 
+    It 'Lets a web request stub answer Invoke-WebRequest, logs it and records nothing as unmocked' {
+        $global:SgtWebRequestStub = { [pscustomobject]@{ StatusCode = 204 } }
+        $Result = Invoke-WebRequest -Method Get -Uri 'http://127.0.0.1:9/x' -Headers @{ a = 'b' } -UseBasicParsing -MaximumRedirection 0
+        $Result.StatusCode | Should -Be 204
+        Get-SgtUnmockedNetworkCall | Should -BeNullOrEmpty
+        @($global:SgtNetworkCall).Count | Should -Be 1
+        $Entry = $global:SgtNetworkCall[0]
+        $Entry.Command | Should -Be 'Invoke-WebRequest'
+        $Entry.Method | Should -Be 'Get'
+        $Entry.UseBasicParsing | Should -BeTrue
+        $Entry.MaximumRedirectionPassed | Should -BeTrue
+        $Entry.MaximumRedirection | Should -Be 0
+        $Entry.BodyPassed | Should -BeFalse
+    }
+
+    It 'Wraps an Invoke-RestMethod stub as a JSON response for Invoke-WebRequest: <Name>' -ForEach @(
+        @{ Name = 'one object'; Stub = { [pscustomobject]@{ id = 1001; name = 'sgt-test' } }; Json = '{"id":1001,"name":"sgt-test"}' }
+        @{ Name = 'two objects'; Stub = { [pscustomobject]@{ id = 1 }; [pscustomobject]@{ id = 2 } }; Json = '[{"id":1},{"id":2}]' }
+        @{ Name = 'nothing'; Stub = { }; Json = $null }
+        @{ Name = 'a single null'; Stub = { $null }; Json = $null }
+    ) {
+        $global:SgtNetworkStub = $Stub
+        $Result = Invoke-WebRequest -Method Get -Uri 'http://127.0.0.1:9/x' -UseBasicParsing
+        if ($null -eq $Json) {
+            $Result | Should -BeNullOrEmpty
+        } else {
+            $Result.StatusCode | Should -Be 200
+            $Result.StatusDescription | Should -Be 'OK'
+            $Result.Headers['Content-Type'] | Should -Be 'application/json; charset=utf-8'
+            $Result.BaseResponse | Should -BeNullOrEmpty
+            [System.Text.Encoding]::UTF8.GetString($Result.RawContentStream.ToArray()) | Should -Be $Json
+        }
+        Get-SgtUnmockedNetworkCall | Should -BeNullOrEmpty
+        @($global:SgtNetworkCall).Count | Should -Be 1
+        $global:SgtNetworkCall[0].Command | Should -Be 'Invoke-WebRequest'
+    }
+
+    It 'Logs Command for a class call' {
+        $global:SgtNetworkStub = { 'stubbed' }
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $Session = [SendGridSession]::new()
+            $Session._BaseURL = [uri]'http://127.0.0.1:9/v3'
+            { $Session.Connect($Cred) } | Should -Not -Throw
+        }
+        $Command = if ($PSVersionTable.PSEdition -eq 'Desktop') { 'Invoke-WebRequest' } else { 'Invoke-RestMethod' }
+        $global:SgtNetworkCall[0].Command | Should -Be $Command
+    }
+
     It 'Reports the tripwire as active while enabled' {
         { Assert-SgtNetworkTripwireActive } | Should -Not -Throw
     }
@@ -76,6 +126,7 @@ Describe 'Network tripwire helper' {
         Test-Path -Path 'Function:\Invoke-RestMethod' | Should -BeFalse
         Test-Path -Path 'Function:\Invoke-WebRequest' | Should -BeFalse
         Test-Path -Path 'Variable:\global:SgtUnmockedNetworkCall' | Should -BeFalse
+        Test-Path -Path 'Variable:\global:SgtWebRequestStub' | Should -BeFalse
     }
 }
 

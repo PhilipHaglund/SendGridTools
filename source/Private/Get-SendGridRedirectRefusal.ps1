@@ -7,8 +7,8 @@ The SendGrid session calls Invoke-RestMethod with -MaximumRedirection 0 so that 
 redirects to. A refused redirect is thrown in a different shape in PowerShell 7 (an exception with a Response that holds an
 HttpResponseMessage) and in Windows PowerShell 5.1 (a MaximumRedirectExceeded error whose TargetObject is the request, or a
 WebException with a Response). Get-SendGridRedirectRefusal hides that difference. It returns the refusal text, which names only the
-host the redirect points to, when the error is a redirect (any 3xx status), and $null for every other error. It never throws. Windows
-PowerShell 5.1 raises a catchable error only for a 301 or 302 answer; it returns another 3xx answer as an empty result, which no error handler sees.
+host the redirect points to, when the error is a redirect (any 3xx status), and $null for every other error. It never throws. In Windows
+PowerShell 5.1 the session sends through Invoke-SendGridDesktopRequest, which raises every other 3xx answer as a WebException with the response, so every 3xx reaches this function.
 
 .PARAMETER ErrorRecord
 The error record caught from Invoke-RestMethod.
