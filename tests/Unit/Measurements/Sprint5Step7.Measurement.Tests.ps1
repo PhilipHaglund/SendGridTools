@@ -53,7 +53,8 @@ BeforeAll {
             catch { $Caught.Add($_) }
             foreach ($E in @($Stream | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] })) { $Caught.Add($E) }
             $Out = @($Stream | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] })
-            @{ Calls = @(Get-SgtNetworkCall)[0]; Caught = $Caught.ToArray(); Warned = @($Warned); OutCount = $Out.Count }
+            # A refusal at binding leaves -WarningVariable unset ($null), which is no warning.
+            @{ Calls = @(Get-SgtNetworkCall)[0]; Caught = $Caught.ToArray(); Warned = @($Warned | Where-Object { $null -ne $_ }); OutCount = $Out.Count }
         }
     }
 
