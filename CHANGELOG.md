@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- In Windows PowerShell 5.1 every command refuses an HTTP redirect with 300, 303, 304, 305, 307 or 308 the way it refuses 301 and 302: `SendGrid answered with a redirect to <host>; the request was refused so that the API key is not sent there.` Before, Windows PowerShell 5.1 gave an empty or ordinary result for these answers, and `Connect-SendGrid` said that the session was connected. PowerShell 7 already refused them, and every other answer gives the same result as before.
 - An HTTP error whose body is not JSON, or has no errors, gives `SendGrid Error (HTTP <status>).` followed by the original exception text. Before, the JSON parse error reached the user ("Conversion from JSON failed" in PowerShell 7, "Invalid JSON primitive" in Windows PowerShell 5.1).
 - `Disconnect-SendGrid` writes `Unable to disconnect from SendGrid.` followed by the cause, still as a non-terminating error. Before, it wrote the text of a script block, `{ $_.Exception.Message }`, instead of the cause.
 
