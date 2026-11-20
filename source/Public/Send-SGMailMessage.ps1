@@ -81,7 +81,7 @@
         Specifies an ID representing a batch of emails to be sent at the same time. Including a batch_id in your request allows you include this email in that batch. It also enables you to cancel or pause the delivery of that batch. For more information, see the Cancel Scheduled Sends API.
 
     .PARAMETER Unsubscribe
-        Specifies the advanced suppression manager (ASM) settings for the message as an SGASM object. GroupId is the unsubscribe group of the message and GroupsToDisplay lists the groups shown on the unsubscribe page.
+        Specifies the advanced suppression manager (ASM) settings for the message as an SGASM object. GroupId is the unsubscribe group of the message and must be greater than 0. GroupsToDisplay lists the groups shown on the unsubscribe page; set it as a property, for example $Unsubscribe = [SGASM]::new(123); $Unsubscribe.GroupsToDisplay = 123, 124
 
     .PARAMETER SandboxMode
         Sends the request in sandbox mode (mail_settings.sandbox_mode.enable). SendGrid validates the request body (for example the address format, the content, attachments and scheduling, such as a SendAt more than 72 hours ahead) and answers without delivering the message, so nothing reaches any recipient. A successful answer does not show that a recipient exists or can receive mail.
@@ -238,19 +238,19 @@
 
             The [SGASM] class represents a set of options for handling unsubscribes. It has the following properties:
 
-            - GroupId: An integer that represents the group ID for unsubscribes. Default value is 0.
+            - GroupId: An integer that represents the group ID for unsubscribes. Default value is 0. It must be greater than 0 when the message is sent.
             - GroupsToDisplay: An array of integers that represents the groups to display for unsubscribes. Default value is an empty array.
 
             You can create an instance of [SGASM] using the following constructors:
             - SGASM(): Creates an instance with default values for GroupId and GroupsToDisplay.
             - SGASM([int]$GroupId): Creates an instance with the specified GroupId and default value for GroupsToDisplay.
-            - SGASM([int]$GroupId, [int[]]$GroupsToDisplay): Creates an instance with the specified GroupId and GroupsToDisplay.
+            - SGASM([int]$GroupId, [int[]]$GroupsToDisplay): Creates an instance with the specified GroupId. The second argument is not kept today; set GroupsToDisplay as a property.
 
             The ToString() method returns a string representation of the GroupId.
 
             Example usage:
-            $unsubscribe = [SGASM]::new(123, @(1, 2, 3))
-            Send-SGMailMessage -Unsubscribe $unsubscribe
+            $Unsubscribe = [SGASM]::new(123); $Unsubscribe.GroupsToDisplay = 123, 124
+            Send-SGMailMessage -From 'sender@example.com' -To 'recipient@example.com' -Subject 'Test Email' -Body 'Hello' -Unsubscribe $Unsubscribe
         #>
         [Parameter(ParameterSetName = 'Default')]
         [Parameter(ParameterSetName = 'SeparateTo')]

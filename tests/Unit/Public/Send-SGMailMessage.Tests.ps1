@@ -420,6 +420,39 @@ Describe 'Send-SGMailMessage -Categories (D103)' {
     }
 }
 
+Describe 'Send-SGMailMessage help for -Unsubscribe (D104)' {
+    BeforeAll {
+        $script:Squash = { param([string]$Text) ($Text -replace '\s+', ' ').Trim() }
+        $script:ParamHelp = & $script:Squash ((Get-Help -Name Send-SGMailMessage -Parameter Unsubscribe | Out-String))
+        $script:Definition = & $script:Squash ((Get-Command -Name Send-SGMailMessage).Definition)
+        $script:FullHelp = & $script:Squash ((Get-Help -Name Send-SGMailMessage -Full | Out-String))
+    }
+
+    It 'says in the parameter help that GroupId must be greater than 0' {
+        $script:ParamHelp | Should -Match 'greater than 0'
+    }
+
+    It 'shows in the parameter help how to set GroupsToDisplay as a property' {
+        $script:ParamHelp.Contains('$Unsubscribe.GroupsToDisplay = 123, 124') | Should -BeTrue
+    }
+
+    It 'has the property example in the parameter comment block and not the two-argument example' {
+        $script:Definition.Contains('$Unsubscribe = [SGASM]::new(123); $Unsubscribe.GroupsToDisplay = 123, 124') | Should -BeTrue
+        $script:Definition.Contains('[SGASM]::new(123, @(1, 2, 3))') | Should -BeFalse
+    }
+
+    It 'says the second constructor argument is not kept' {
+        $script:Definition.Contains('The second argument is not kept today; set GroupsToDisplay as a property.') | Should -BeTrue
+    }
+
+    It 'names no backlog id in the help or the definition' {
+        $script:FullHelp | Should -Not -Match 'SGT-\d'
+        $script:FullHelp | Should -Not -Match 'BL-\d'
+        $script:Definition | Should -Not -Match 'SGT-\d'
+        $script:Definition | Should -Not -Match 'BL-\d'
+    }
+}
+
 Describe 'Network tripwire' {
     It 'Made no unmocked network call' {
         Assert-SgtNetworkTripwireActive
