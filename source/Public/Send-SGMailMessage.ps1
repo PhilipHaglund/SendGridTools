@@ -83,6 +83,9 @@
     .PARAMETER Unsubscribe
         Specifies the advanced suppression manager (ASM) settings for the message as an SGASM object. GroupId is the unsubscribe group of the message and GroupsToDisplay lists the groups shown on the unsubscribe page.
 
+    .PARAMETER SandboxMode
+        With this switch SendGrid validates the message and answers without delivering it (sandbox mode, mail_settings.sandbox_mode.enable). Without it the message is sent as before.
+
     .EXAMPLE
         PS C:\> Send-SGMailMessage -From 'sender@example.com' -To 'recipient@example.com' -Subject 'Test Email' -Body 'Hello, this is a test email.'
 
@@ -245,9 +248,12 @@
         [Parameter(ParameterSetName = 'Default')]
         [Parameter(ParameterSetName = 'SeparateTo')]
         [ValidateNotNullOrEmpty()]
-        [SGASM]$Unsubscribe
+        [SGASM]$Unsubscribe,
 
-
+        # Validates the message in SendGrid's sandbox mode: SendGrid checks the request and answers without delivering the message.
+        [Parameter(ParameterSetName = 'Default')]
+        [Parameter(ParameterSetName = 'SeparateTo')]
+        [switch]$SandboxMode
     )
     begin {
         $InvokeSplat = @{
@@ -262,7 +268,11 @@
         $RecipientCount = $To.Count + $CC.Count + $BCC.Count
     }
     process {
-        if ($PSCmdlet.ShouldProcess(('{0} to "{1}" recipients with subject: "{2}"' -f $From.Address, $RecipientCount, $Subject))) {
+        $Target = '{0} to "{1}" recipients with subject: "{2}"' -f $From.Address, $RecipientCount, $Subject
+        if ($SandboxMode) {
+            $Target += ' in sandbox mode'
+        }
+        if ($PSCmdlet.ShouldProcess($Target)) {
 
             # Convert the MailAddress objects to SendGrid API compatible objects.
             $FromList = ConvertTo-SendGridAddress -Address $From
@@ -343,6 +353,9 @@
             }
             if ($PSBoundParameters.ContainsKey('Categories')) {
                 $ContentBody.Add('categories', $Categories)
+            }
+            if ($SandboxMode) {
+                $ContentBody.Add('mail_settings', @{ sandbox_mode = @{ enable = $true } })
             }
 
             try {
