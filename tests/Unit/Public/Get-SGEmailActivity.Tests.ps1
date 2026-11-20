@@ -134,14 +134,34 @@ Describe 'Get-SGEmailActivity binds -Value for a template property without a cal
         }
     }
 
-    It 'Binds -Value for TemplateName and sends the value' {
-        InModuleScope SendGridTools {
-            $Result = @(Get-SGEmailActivity -Property TemplateName -EQ -Value 'sgt-test-template-name')
-            $Calls = (Get-SgtNetworkCall)
-            $Calls.Count | Should -Be 1
-            # The field name of the TemplateName filter is an existing gap and is not asserted.
-            $Calls[0].Uri.OriginalString | Should -BeLike 'https://api.sendgrid.com/v3/messages?limit=10&query=(*%22sgt-test-template-name%22)'
+    It 'Refuses -Property TemplateName with <Operator> and sends nothing' -ForEach @(
+        @{ Operator = 'EQ' }
+        @{ Operator = 'NE' }
+        @{ Operator = 'Contains' }
+        @{ Operator = 'NotContains' }
+        @{ Operator = 'no operator switch' }
+    ) {
+        Mock -CommandName Get-SGApiKey -ModuleName SendGridTools -MockWith { throw 'Get-SGApiKey must not be called' }
+        Mock -CommandName Get-SGSuppressionGroup -ModuleName SendGridTools -MockWith { throw 'Get-SGSuppressionGroup must not be called' }
+        Mock -CommandName Get-SGTeammate -ModuleName SendGridTools -MockWith { throw 'Get-SGTeammate must not be called' }
+        InModuleScope SendGridTools -Parameters @{ Operator = $Operator } {
+            $Switches = @{}
+            if ($Operator -ne 'no operator switch') {
+                $Switches[$Operator] = $true
+            }
+            $Message = $null
+            try {
+                $null = @(Get-SGEmailActivity -Property TemplateName -Value 'sgt-test-template-name' @Switches)
+            }
+            catch {
+                $Message = $_.Exception.Message
+            }
+            $Message | Should -BeExactly 'SendGrid cannot filter email activity by template name; use -Property TemplateId.'
+            (Get-SgtNetworkCall).Count | Should -Be 0
         }
+        Should -Invoke -CommandName Get-SGApiKey -ModuleName SendGridTools -Times 0 -Exactly
+        Should -Invoke -CommandName Get-SGSuppressionGroup -ModuleName SendGridTools -Times 0 -Exactly
+        Should -Invoke -CommandName Get-SGTeammate -ModuleName SendGridTools -Times 0 -Exactly
     }
 
     It 'Gives -Value for <Property> the type, set and position it has for ToEmail' -ForEach @(
@@ -304,7 +324,9 @@ Describe 'Get-SGEmailActivity binds -Value for a key, group or teammate property
         }
 
         It 'Calls <Lookup> once for one run of the completer for <Property>' -ForEach @(
+            @{ Property = 'ApiKeyId'; Lookup = 'Get-SGApiKey' }
             @{ Property = 'ApiKeyName'; Lookup = 'Get-SGApiKey' }
+            @{ Property = 'AsmGroupId'; Lookup = 'Get-SGSuppressionGroup' }
             @{ Property = 'AsmGroupName'; Lookup = 'Get-SGSuppressionGroup' }
             @{ Property = 'Teammate'; Lookup = 'Get-SGTeammate' }
         ) {
