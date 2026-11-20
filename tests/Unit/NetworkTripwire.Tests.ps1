@@ -20,14 +20,16 @@ Describe 'Network tripwire helper' {
         Disable-SgtNetworkTripwire
     }
 
-    It 'Throws and records Invoke-RestMethod when a session class calls it unmocked' {
+    It 'Throws and records the web command when a session class calls it unmocked' {
         InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
             # Loopback target: a broken tripwire still cannot reach the internet.
             $Session = [SendGridSession]::new()
             $Session._BaseURL = [uri]'http://127.0.0.1:9/v3'
             { $Session.Connect($Cred) } | Should -Throw '*Unmocked network call*'
         }
-        Get-SgtUnmockedNetworkCall | Should -Contain 'Invoke-RestMethod'
+        # The session sends with Invoke-WebRequest in Windows PowerShell 5.1 and with Invoke-RestMethod in PowerShell 7.
+        $Command = if ($PSVersionTable.PSEdition -eq 'Desktop') { 'Invoke-WebRequest' } else { 'Invoke-RestMethod' }
+        Get-SgtUnmockedNetworkCall | Should -Contain $Command
     }
 
     It 'Records a direct Invoke-WebRequest the same way' {
@@ -92,14 +94,15 @@ Describe 'Network tripwire helper' {
         $global:SgtNetworkCall[0].Command | Should -Be 'Invoke-WebRequest'
     }
 
-    It 'Logs Command for a class call' -Skip:($PSVersionTable.PSEdition -eq 'Desktop') {
+    It 'Logs Command for a class call' {
         $global:SgtNetworkStub = { 'stubbed' }
         InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
             $Session = [SendGridSession]::new()
             $Session._BaseURL = [uri]'http://127.0.0.1:9/v3'
             { $Session.Connect($Cred) } | Should -Not -Throw
         }
-        $global:SgtNetworkCall[0].Command | Should -Be 'Invoke-RestMethod'
+        $Command = if ($PSVersionTable.PSEdition -eq 'Desktop') { 'Invoke-WebRequest' } else { 'Invoke-RestMethod' }
+        $global:SgtNetworkCall[0].Command | Should -Be $Command
     }
 
     It 'Reports the tripwire as active while enabled' {

@@ -69,7 +69,12 @@ class SendGridSession {
                     'Authorization' = ('Bearer {0}' -f $this._Credential.GetNetworkCredential().Password)
                     'Content-Type'  = 'application/json'
                 }
-                $null = Invoke-RestMethod -Method Get -Uri  $this.EndpointURL -Headers $Headers -MaximumRedirection 0 -ErrorAction Stop
+                if ($global:PSVersionTable.PSEdition -eq 'Desktop') {
+                    $null = Invoke-SendGridDesktopRequest -Method Get -Uri $this.EndpointURL -Headers $Headers
+                }
+                else {
+                    $null = Invoke-RestMethod -Method Get -Uri  $this.EndpointURL -Headers $Headers -MaximumRedirection 0 -ErrorAction Stop
+                }
                 $this._Connected = $true
                 $this._CreateDateTime = Get-Date # Used to refresh "session lifetime"
             }
@@ -104,7 +109,12 @@ class SendGridSession {
                 'Authorization' = ('Bearer {0}' -f $this._Credential.GetNetworkCredential().Password)
                 'Content-Type'  = 'application/json'
             }
-            $null = Invoke-RestMethod -Method Get -Uri  $this.EndpointURL -Headers $Headers -MaximumRedirection 0 -ErrorAction Stop
+            if ($global:PSVersionTable.PSEdition -eq 'Desktop') {
+                $null = Invoke-SendGridDesktopRequest -Method Get -Uri $this.EndpointURL -Headers $Headers
+            }
+            else {
+                $null = Invoke-RestMethod -Method Get -Uri  $this.EndpointURL -Headers $Headers -MaximumRedirection 0 -ErrorAction Stop
+            }
             $this._Connected = $true
             $this._CreateDateTime = Get-Date
         }
@@ -166,7 +176,12 @@ class SendGridSession {
                     'Authorization' = "Bearer $($this._Credential.GetNetworkCredential().Password)"
                     'Content-Type'  = 'application/json'
                 }
-                $Query = (Invoke-RestMethod -Method $WebRequestMethod -Uri $this.EndpointURL -Headers $Headers -MaximumRedirection 0 -ErrorAction Stop)
+                if ($global:PSVersionTable.PSEdition -eq 'Desktop') {
+                    $Query = (Invoke-SendGridDesktopRequest -Method $WebRequestMethod -Uri $this.EndpointURL -Headers $Headers)
+                }
+                else {
+                    $Query = (Invoke-RestMethod -Method $WebRequestMethod -Uri $this.EndpointURL -Headers $Headers -MaximumRedirection 0 -ErrorAction Stop)
+                }
                 $this.BuildEndpointURL($null)
                 $this._CreateDateTime = Get-Date
                 return $Query
@@ -180,7 +195,7 @@ class SendGridSession {
             }
         }
     }
-    
+
     <#
     .SYNOPSIS
         Sends a query to the SendGrid API.
@@ -223,7 +238,12 @@ class SendGridSession {
                     'Authorization' = "Bearer $($this._Credential.GetNetworkCredential().Password)"
                     'Content-Type'  = 'application/json'
                 }
-                $Query = (Invoke-RestMethod -Method $WebRequestMethod -Uri $this.EndpointURL -Headers $Headers -Body $Body -MaximumRedirection 0 -ErrorAction Stop)
+                if ($global:PSVersionTable.PSEdition -eq 'Desktop') {
+                    $Query = (Invoke-SendGridDesktopRequest -Method $WebRequestMethod -Uri $this.EndpointURL -Headers $Headers -Body $Body)
+                }
+                else {
+                    $Query = (Invoke-RestMethod -Method $WebRequestMethod -Uri $this.EndpointURL -Headers $Headers -Body $Body -MaximumRedirection 0 -ErrorAction Stop)
+                }
                 $this.BuildEndpointURL($null)
                 $this._CreateDateTime = Get-Date
                 return $Query
@@ -277,7 +297,12 @@ class SendGridSession {
                     'on-behalf-of'  = $OnBehalfOf
                     'Content-Type'  = 'application/json'
                 }
-                $Query = (Invoke-RestMethod -Method $WebRequestMethod -Uri $this.EndpointURL -Headers $Headers -MaximumRedirection 0 -ErrorAction Stop)
+                if ($global:PSVersionTable.PSEdition -eq 'Desktop') {
+                    $Query = (Invoke-SendGridDesktopRequest -Method $WebRequestMethod -Uri $this.EndpointURL -Headers $Headers)
+                }
+                else {
+                    $Query = (Invoke-RestMethod -Method $WebRequestMethod -Uri $this.EndpointURL -Headers $Headers -MaximumRedirection 0 -ErrorAction Stop)
+                }
                 $this.BuildEndpointURL($null)
                 $this._CreateDateTime = Get-Date
                 return $Query
@@ -297,7 +322,7 @@ class SendGridSession {
         Sends a query to the SendGrid API.
 
     .DESCRIPTION
-        This method sends a query to the SendGrid API and returns the results. 
+        This method sends a query to the SendGrid API and returns the results.
 
     .PARAMETER WebRequestMethod
         The HTTP method to use for the query (GET, POST, etc.).
@@ -335,7 +360,12 @@ class SendGridSession {
                     'on-behalf-of'  = $OnBehalfOf
                     'Content-Type'  = 'application/json'
                 }
-                $Query = (Invoke-RestMethod -Method $WebRequestMethod -Uri $this.EndpointURL -Headers $Headers -Body $Body -MaximumRedirection 0 -ErrorAction Stop)
+                if ($global:PSVersionTable.PSEdition -eq 'Desktop') {
+                    $Query = (Invoke-SendGridDesktopRequest -Method $WebRequestMethod -Uri $this.EndpointURL -Headers $Headers -Body $Body)
+                }
+                else {
+                    $Query = (Invoke-RestMethod -Method $WebRequestMethod -Uri $this.EndpointURL -Headers $Headers -Body $Body -MaximumRedirection 0 -ErrorAction Stop)
+                }
                 $this.BuildEndpointURL($null)
                 $this._CreateDateTime = Get-Date
                 return $Query
