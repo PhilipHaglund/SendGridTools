@@ -204,7 +204,10 @@ Describe 'Get-SGGlobalSuppression help (D117)' {
     It 'Says that an empty -EmailAddress is refused' {
         $Text = ((Get-Help Get-SGGlobalSuppression -Parameter EmailAddress).description.Text -join ' ') -replace '\s+', ' '
         $Text.Trim() | Should -BeLike '*An empty value is refused.'
-        (Get-Command Get-SGGlobalSuppression).Definition | Should -Match '# [^\r\n]*An empty value is refused\.\r?\n\s*\[Parameter\('
+    }
+
+    It 'Says in the comment at -EmailAddress that an empty value is refused' {
+        (Get-Command Get-SGGlobalSuppression).Definition | Should -Match '# [^\r\n]*An empty value is refused\.\r?\n\s*\[Parameter\([^)]*\)\]\s*(\[[^\r\n]*\]\s*)*\$EmailAddress\b'
     }
 }
 

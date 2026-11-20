@@ -114,7 +114,10 @@ Describe 'Get-SGAlert help (D117)' {
     It 'Says that an empty -AlertId is refused' {
         $Text = ((Get-Help Get-SGAlert -Parameter AlertId).description.Text -join ' ') -replace '\s+', ' '
         $Text.Trim() | Should -BeLike '*An empty value is refused.'
-        (Get-Command Get-SGAlert).Definition | Should -Match '# [^\r\n]*An empty value is refused\.\r?\n\s*\[Parameter\('
+    }
+
+    It 'Says in the comment at -AlertId that an empty value is refused' {
+        (Get-Command Get-SGAlert).Definition | Should -Match '# [^\r\n]*An empty value is refused\.\r?\n\s*\[Parameter\([^)]*\)\]\s*(\[[^\r\n]*\]\s*)*\$AlertId\b'
     }
 }
 

@@ -313,7 +313,10 @@ Describe 'Get-SGApiKey help (D117)' {
     It 'Says that an empty -ApiKeyId is refused' {
         $Text = ((Get-Help Get-SGApiKey -Parameter ApiKeyId).description.Text -join ' ') -replace '\s+', ' '
         $Text.Trim() | Should -BeLike '*An empty value is refused.'
-        (Get-Command Get-SGApiKey).Definition | Should -Match '# [^\r\n]*An empty value is refused\.\r?\n\s*\[Parameter\('
+    }
+
+    It 'Says in the comment at -ApiKeyId that an empty value is refused' {
+        (Get-Command Get-SGApiKey).Definition | Should -Match '# [^\r\n]*An empty value is refused\.\r?\n\s*\[Parameter\([^)]*\)\]\s*(\[[^\r\n]*\]\s*)*\$ApiKeyId\b'
     }
 }
 
