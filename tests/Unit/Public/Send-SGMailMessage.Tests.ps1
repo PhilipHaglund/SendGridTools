@@ -372,7 +372,8 @@ Describe 'Send-SGMailMessage -Categories (D103)' {
                 To         = 'one@example.com'
                 Subject    = 'placeholder subject'
                 Body       = 'placeholder body'
-                Categories = [string[]](& ([scriptblock]::Create($Names)))
+                # @() keeps an empty result an empty array; without it an empty list would bind as $null.
+                Categories = [string[]]@(& ([scriptblock]::Create($Names)))
             }
             $Threw = $null
             try { $null = Send-SGMailMessage @Params -Confirm:$false -ErrorAction Stop }
