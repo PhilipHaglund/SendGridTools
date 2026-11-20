@@ -452,6 +452,8 @@ Describe 'Send-SGMailMessage help for -Unsubscribe (D104)' {
     It 'has the hashtable example in the parameter comment block and no [SGASM]::new( example' {
         $script:Definition.Contains('-Unsubscribe @{ GroupId = 123; GroupsToDisplay = 123, 124 }') | Should -BeTrue
         $script:Definition.Contains('[SGASM]::new(') | Should -BeFalse
+        # Positive check first, so the absence check below cannot pass on empty or broken help text.
+        $script:FullHelp.Contains('GroupsToDisplay = 123, 124') | Should -BeTrue
         $script:FullHelp.Contains('[SGASM]::new(') | Should -BeFalse
     }
 
@@ -471,6 +473,10 @@ Describe 'Send-SGMailMessage help for -Unsubscribe (D104)' {
     }
 
     It 'names no backlog id in the help or the definition' {
+        $script:FullHelp | Should -Not -BeNullOrEmpty
+        $script:FullHelp.Contains('Send-SGMailMessage') | Should -BeTrue
+        $script:Definition | Should -Not -BeNullOrEmpty
+        $script:Definition.Contains('Send-SGMailMessage') | Should -BeTrue
         $script:FullHelp | Should -Not -Match 'SGT-\d'
         $script:FullHelp | Should -Not -Match 'BL-\d'
         $script:Definition | Should -Not -Match 'SGT-\d'
@@ -499,6 +505,7 @@ Describe 'Send-SGMailMessage -Unsubscribe as a hashtable from the caller (M1-M3)
                 Sent      = if ($Calls.Count) { $Calls[0].Body | ConvertFrom-Json } else { $null }
                 ThrewType = if ($Threw) { $Threw.GetType().Name } else { $null }
                 ThrewText = if ($Threw) { $Threw.Message } else { $null }
+                ThrewId   = if ($Threw -and ($Threw -is [System.Management.Automation.IContainsErrorRecord])) { $Threw.ErrorRecord.FullyQualifiedErrorId } else { $null }
                 IsBinding = ($Threw -is [System.Management.Automation.ParameterBindingException])
             }
         }
@@ -553,7 +560,9 @@ Describe 'Send-SGMailMessage -Unsubscribe as a hashtable from the caller (M1-M3)
 
     It 'M3: the old [SGASM]::new(123) example fails in the caller''s scope with Unable to find type, and sends nothing' {
         $Run = & $script:RunFromCaller "`$Unsubscribe = [SGASM]::new(123); $script:SendPrefix -Unsubscribe `$Unsubscribe"
-        $Run.ThrewText | Should -Match 'Unable to find type \[SGASM\]'
+        # The id depends on the error, not on the UI language; the message check only looks for the type name.
+        $Run.ThrewId | Should -BeExactly 'TypeNotFound'
+        $Run.ThrewText | Should -Match 'SGASM'
         $Run.Count | Should -Be 0
     }
 
