@@ -444,13 +444,23 @@ Describe 'Send-SGMailMessage help for -Unsubscribe (D104)' {
         $script:ParamHelp | Should -Match 'greater than 0'
     }
 
-    It 'shows in the parameter help how to set GroupsToDisplay as a property' {
-        $script:ParamHelp.Contains('$Unsubscribe.GroupsToDisplay = 123, 124') | Should -BeTrue
+    It 'shows the hashtable example in the parameter help' {
+        $script:ParamHelp.Contains('-Unsubscribe @{ GroupId = 123; GroupsToDisplay = 123, 124 }') | Should -BeTrue
     }
 
-    It 'has the property example in the parameter comment block and not the two-argument example' {
-        $script:Definition.Contains('$Unsubscribe = [SGASM]::new(123); $Unsubscribe.GroupsToDisplay = 123, 124') | Should -BeTrue
-        $script:Definition.Contains('[SGASM]::new(123, @(1, 2, 3))') | Should -BeFalse
+    It 'has the hashtable example in the parameter comment block and no [SGASM]::new( example' {
+        $script:Definition.Contains('-Unsubscribe @{ GroupId = 123; GroupsToDisplay = 123, 124 }') | Should -BeTrue
+        $script:Definition.Contains('[SGASM]::new(') | Should -BeFalse
+        $script:FullHelp.Contains('[SGASM]::new(') | Should -BeFalse
+    }
+
+    It 'says in the parameter help and the comment block that PowerShell converts the hashtable and that [SGASM] does not exist after only Import-Module' {
+        # Windows PowerShell 5.1 wraps Get-Help output at the console width and can split a word, so compare without any whitespace.
+        $NoSpace = { param([string]$Text) $Text -replace '\s+', '' }
+        foreach ($Source in @(@{ Name = 'parameter help'; Text = $script:ParamHelp }, @{ Name = 'definition'; Text = $script:Definition })) {
+            (& $NoSpace $Source.Text).Contains((& $NoSpace 'PowerShell converts the hashtable to SGASM')) | Should -BeTrue -Because "the $($Source.Name) says PowerShell converts the hashtable"
+            (& $NoSpace $Source.Text).Contains((& $NoSpace 'The type [SGASM] does not exist in a session that has only run Import-Module')) | Should -BeTrue -Because "the $($Source.Name) says the type does not exist"
+        }
     }
 
     It 'says in the definition that GroupId must be greater than 0 when the message is sent' {
@@ -546,6 +556,46 @@ Describe 'Send-SGMailMessage -Unsubscribe as a hashtable from the caller (M1-M3)
         $Run = & $script:RunFromCaller "`$Unsubscribe = [SGASM]::new(123); $script:SendPrefix -Unsubscribe `$Unsubscribe"
         $Run.ThrewText | Should -Match 'Unable to find type \[SGASM\]'
         $Run.Count | Should -Be 0
+    }
+
+    Context 'the documented -Unsubscribe examples run as written (D122)' {
+        BeforeAll {
+            $script:Squash2 = { param([string]$Text) ($Text -replace '\s+', ' ').Trim() }
+            $script:CallPattern = "Send-SGMailMessage -From '[^']*' -To '[^']*' -Subject '[^']*' -Body '[^']*' -Unsubscribe @\{[^}]*\}"
+            $script:AssertDocumentedRun = {
+                param([string]$Line)
+                $Run = & $script:RunFromCaller "$Line -Confirm:`$false -ErrorAction Stop"
+                $Run.ThrewType | Should -BeNullOrEmpty
+                $Run.Count | Should -Be 1
+                (@($Run.Sent.asm.PSObject.Properties.Name | Sort-Object) -join ', ') | Should -BeExactly 'group_id, groups_to_display'
+                $Run.Raw | Should -Match '"group_id":\s*123[,\s}]'
+                @($Run.Sent.asm.groups_to_display) | Should -Be @(123, 124)
+            }
+        }
+
+        It 'D122: the -Unsubscribe .EXAMPLE runs as written from the caller''s scope' {
+            $Codes = @((Get-Help -Name Send-SGMailMessage).examples.example | Where-Object { $_.code -like '*-Unsubscribe*' })
+            $Codes.Count | Should -Be 1
+            $Line = ($Codes[0].code -replace '^\s*PS C:\\>\s*', '').Trim()
+            & $script:AssertDocumentedRun $Line
+        }
+
+        It 'D122: the example in the -Unsubscribe parameter help runs as written' {
+            $Text = & $script:Squash2 (Get-Help -Name Send-SGMailMessage -Parameter Unsubscribe | Out-String)
+            $Found = @([regex]::Matches($Text, $script:CallPattern))
+            $Found.Count | Should -Be 1
+            & $script:AssertDocumentedRun $Found[0].Value
+        }
+
+        It 'D122: the example in the comment block at the parameter runs as written' {
+            $Text = & $script:Squash2 (Get-Command -Name Send-SGMailMessage).Definition
+            $Marker = 'Example usage:'
+            ([regex]::Matches($Text, [regex]::Escape($Marker))).Count | Should -Be 1
+            $After = $Text.Substring($Text.IndexOf($Marker) + $Marker.Length)
+            $Found = [regex]::Match($After, $script:CallPattern)
+            $Found.Success | Should -BeTrue
+            & $script:AssertDocumentedRun $Found.Value
+        }
     }
 }
 

@@ -81,7 +81,9 @@
         Specifies an ID representing a batch of emails to be sent at the same time. Including a batch_id in your request allows you include this email in that batch. It also enables you to cancel or pause the delivery of that batch. For more information, see the Cancel Scheduled Sends API.
 
     .PARAMETER Unsubscribe
-        Specifies the advanced suppression manager (ASM) settings for the message as an SGASM object. GroupId is the unsubscribe group of the message and must be greater than 0. GroupsToDisplay lists the groups shown on the unsubscribe page; set it as a property, for example $Unsubscribe = [SGASM]::new(123); $Unsubscribe.GroupsToDisplay = 123, 124
+        Specifies the advanced suppression manager (ASM) settings for the message as an SGASM object. GroupId is the unsubscribe group of the message and must be greater than 0. GroupsToDisplay lists the groups shown on the unsubscribe page.
+        Pass a hashtable, for example: Send-SGMailMessage -From 'sender@example.com' -To 'recipient@example.com' -Subject 'Test Email' -Body 'Hello' -Unsubscribe @{ GroupId = 123; GroupsToDisplay = 123, 124 }
+        PowerShell converts the hashtable to SGASM when it binds the parameter. The type [SGASM] does not exist in a session that has only run Import-Module, so pass a hashtable rather than the type name.
 
     .PARAMETER SandboxMode
         Sends the request in sandbox mode (mail_settings.sandbox_mode.enable). SendGrid validates the request body (for example the address format, the content, attachments and scheduling, such as a SendAt more than 72 hours ahead) and answers without delivering the message, so nothing reaches any recipient. A successful answer does not show that a recipient exists or can receive mail.
@@ -96,6 +98,11 @@
         PS C:\> Send-SGMailMessage -From 'sender@example.com' -To 'recipient@example.com' -Subject 'Test Email' -Body 'Hello, this is a test email.' -SandboxMode
 
         This command sends the message to SendGrid in sandbox mode. SendGrid validates the request and answers without delivering the message.
+
+    .EXAMPLE
+        PS C:\> Send-SGMailMessage -From 'sender@example.com' -To 'recipient@example.com' -Subject 'Test Email' -Body 'Hello, this is a test email.' -Unsubscribe @{ GroupId = 123; GroupsToDisplay = 123, 124 }
+
+        This command sends the message with unsubscribe group 123 and shows groups 123 and 124 on the unsubscribe page. PowerShell converts the hashtable to SGASM; the type [SGASM] does not exist in a session that has only run Import-Module.
     #>
     [CmdletBinding(
         SupportsShouldProcess,
@@ -249,8 +256,9 @@
             The ToString() method returns a string representation of the GroupId.
 
             Example usage:
-            $Unsubscribe = [SGASM]::new(123); $Unsubscribe.GroupsToDisplay = 123, 124
-            Send-SGMailMessage -From 'sender@example.com' -To 'recipient@example.com' -Subject 'Test Email' -Body 'Hello' -Unsubscribe $Unsubscribe
+            Send-SGMailMessage -From 'sender@example.com' -To 'recipient@example.com' -Subject 'Test Email' -Body 'Hello' -Unsubscribe @{ GroupId = 123; GroupsToDisplay = 123, 124 }
+
+            PowerShell converts the hashtable to SGASM when it binds the parameter. The type [SGASM] does not exist in a session that has only run Import-Module, so pass a hashtable rather than the type name.
         #>
         [Parameter(ParameterSetName = 'Default')]
         [Parameter(ParameterSetName = 'SeparateTo')]
