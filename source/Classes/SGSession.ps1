@@ -195,7 +195,7 @@ class SendGridSession {
             }
         }
     }
-
+    
     <#
     .SYNOPSIS
         Sends a query to the SendGrid API.
@@ -322,7 +322,7 @@ class SendGridSession {
         Sends a query to the SendGrid API.
 
     .DESCRIPTION
-        This method sends a query to the SendGrid API and returns the results.
+        This method sends a query to the SendGrid API and returns the results. 
 
     .PARAMETER WebRequestMethod
         The HTTP method to use for the query (GET, POST, etc.).
