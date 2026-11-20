@@ -248,10 +248,10 @@
             - GroupId: An integer that represents the group ID for unsubscribes. Default value is 0. It must be greater than 0 when the message is sent.
             - GroupsToDisplay: An array of integers that represents the groups to display for unsubscribes. Default value is an empty array.
 
-            You can create an instance of [SGASM] using the following constructors:
+            After using module SendGridTools at the top of a script, you can create an instance of [SGASM] with the following constructors:
             - SGASM(): Creates an instance with default values for GroupId and GroupsToDisplay.
             - SGASM([int]$GroupId): Creates an instance with the specified GroupId and default value for GroupsToDisplay.
-            - SGASM([int]$GroupId, [int[]]$GroupsToDisplay): Creates an instance with the specified GroupId. The second argument is not kept today; set GroupsToDisplay as a property.
+            - SGASM([int]$GroupId, [int[]]$GroupsToDisplay): Creates an instance with the specified GroupId and GroupsToDisplay. $null gives an empty GroupsToDisplay.
 
             The ToString() method returns a string representation of the GroupId.
 
