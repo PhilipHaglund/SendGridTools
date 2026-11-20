@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-20
+
 ### Added
 
 - `New-SGAuthenticatedDomain`, `New-SGBrandedDomainLink` and `New-SGApiKey` have a `-Force` switch. With `-Force` the question before `-Default` replaces the current default, or before a key with full access is created, is not asked, so a script without a console can do it. `-Force` does not change `-WhatIf` or `-Confirm`. Without `-Force` the commands ask as before.
@@ -190,7 +192,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - First release: connect to SendGrid, manage API keys, authenticated domains and branded links, and send mail with `Send-SGMailMessage`.
 
-[Unreleased]: https://github.com/PhilipHaglund/SendGridTools/compare/v0.5.2...HEAD
+[Unreleased]: https://github.com/PhilipHaglund/SendGridTools/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/PhilipHaglund/SendGridTools/compare/v0.5.2...v0.6.0
 [0.5.2]: https://github.com/PhilipHaglund/SendGridTools/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/PhilipHaglund/SendGridTools/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/PhilipHaglund/SendGridTools/compare/v0.4.8...v0.5.0
