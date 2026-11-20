@@ -601,44 +601,44 @@
             if ($PSBoundParameters.ContainsKey('EQ') -or $PSBoundParameters.ContainsKey('NE')) {
                 $null = $FilterQuery.Append($Properties[$Property])
                 $null = $FilterQuery.Append(' ')
-                $null = $FilterQuery.Append([uri]::EscapeDataString($UsedOperator))
+                $null = $FilterQuery.Append((ConvertTo-SendGridUriComponent $UsedOperator))
                 $null = $FilterQuery.Append(' ')
                 if ($ValueIsArray) {
                     $null = $FilterQuery.Append('(')
                     foreach ($Var in ($PSBoundParameters['Value'])) {
-                        $null = $FilterQuery.Append([uri]::EscapeDataString("""$Var"""))
+                        $null = $FilterQuery.Append((ConvertTo-SendGridUriComponent """$Var"""))
                         $null = $FilterQuery.Append(',')
                     }
                     $null = $FilterQuery.Remove($FilterQuery.Length - 1, 1) # Remove the last comma using the length of the string and the number of characters to remove
                     $null = $FilterQuery.Append(')')
                 }
                 else {
-                    $null = $FilterQuery.Append([uri]::EscapeDataString("""$($PSBoundParameters['Value'])"""))
+                    $null = $FilterQuery.Append((ConvertTo-SendGridUriComponent """$($PSBoundParameters['Value'])"""))
                 }
             }
             elseif ($PSBoundParameters.ContainsKey('GT') -or $PSBoundParameters.ContainsKey('LT')) {
                 $null = $FilterQuery.Append($Properties[$Property])
                 $null = $FilterQuery.Append(' ')
-                $null = $FilterQuery.Append([uri]::EscapeDataString($UsedOperator))
+                $null = $FilterQuery.Append((ConvertTo-SendGridUriComponent $UsedOperator))
                 $null = $FilterQuery.Append(' ')
                 $null = $FilterQuery.Append($PSBoundParameters['Value'])
             }
             elseif ($PSBoundParameters.ContainsKey('Like') -or $PSBoundParameters.ContainsKey('NotLike')) {
                 $null = $FilterQuery.Append($Properties[$Property])
                 $null = $FilterQuery.Append(' ')
-                $null = $FilterQuery.Append([uri]::EscapeDataString($UsedOperator))
+                $null = $FilterQuery.Append((ConvertTo-SendGridUriComponent $UsedOperator))
                 $null = $FilterQuery.Append(' ')
-                $null = $FilterQuery.Append([uri]::EscapeDataString("""%$($PSBoundParameters['Value'])%"""))
+                $null = $FilterQuery.Append((ConvertTo-SendGridUriComponent """%$($PSBoundParameters['Value'])%"""))
             }
             elseif ($PSBoundParameters.ContainsKey('Contains') -or $PSBoundParameters.ContainsKey('NotContains')) {
                 $null = $FilterQuery.Append('(')
                 foreach ($Var in ($PSBoundParameters['Value'])) {
 
-                    $null = $FilterQuery.Append([uri]::EscapeDataString($UsedOperator))
+                    $null = $FilterQuery.Append((ConvertTo-SendGridUriComponent $UsedOperator))
                     $null = $FilterQuery.Append('(')
                     $null = $FilterQuery.Append($Properties[$Property])
                     $null = $FilterQuery.Append(',')
-                    $null = $FilterQuery.Append([uri]::EscapeDataString("""$Var"""))
+                    $null = $FilterQuery.Append((ConvertTo-SendGridUriComponent """$Var"""))
                     $null = $FilterQuery.Append(')')
                     $null = $FilterQuery.Append(' OR ')
                 }
@@ -653,9 +653,9 @@
             else {
                 $null = $FilterQuery.Append($Properties[$Property])
                 $null = $FilterQuery.Append(' ')
-                $null = $FilterQuery.Append([uri]::EscapeDataString($UsedOperator))
+                $null = $FilterQuery.Append((ConvertTo-SendGridUriComponent $UsedOperator))
                 $null = $FilterQuery.Append(' ')
-                $null = $FilterQuery.Append([uri]::EscapeDataString("""$($PSBoundParameters['Value'])"""))
+                $null = $FilterQuery.Append((ConvertTo-SendGridUriComponent """$($PSBoundParameters['Value'])"""))
             }
 
             $null = $FilterQuery.Append(')')

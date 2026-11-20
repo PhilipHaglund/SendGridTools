@@ -80,7 +80,7 @@
         foreach ($Id in $AddressList) {
             $InvokeSplat = @{
                 Method        = 'Delete'
-                Namespace     = "suppression/unsubscribes/$([uri]::EscapeDataString($Id))"
+                Namespace     = "suppression/unsubscribes/$((ConvertTo-SendGridUriComponent $Id))"
                 ErrorAction   = 'Stop'
                 CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
             }

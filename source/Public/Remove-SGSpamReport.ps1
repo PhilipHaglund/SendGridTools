@@ -102,7 +102,7 @@
             foreach ($Id in $EmailAddress) {
                 $InvokeSplat = @{
                     Method        = 'Delete'
-                    Namespace     = "suppression/spam_reports/$([uri]::EscapeDataString($Id.Address))"
+                    Namespace     = "suppression/spam_reports/$((ConvertTo-SendGridUriComponent $Id.Address))"
                     ErrorAction   = 'Stop'
                     CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
                 }

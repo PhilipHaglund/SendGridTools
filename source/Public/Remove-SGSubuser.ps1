@@ -32,7 +32,7 @@
     process {
         $InvokeSplat = @{
             Method        = 'Delete'
-            Namespace     = "subusers/$([uri]::EscapeDataString($Username))"
+            Namespace     = "subusers/$((ConvertTo-SendGridUriComponent $Username))"
             ErrorAction   = 'Stop'
             CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
         }

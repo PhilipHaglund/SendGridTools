@@ -51,7 +51,7 @@
         if ($PSBoundParameters.ContainsKey('Username')) {
             foreach ($User in $Username) {
                 $UserInvokeSplat = $InvokeSplat.Clone()
-                $UserInvokeSplat['Namespace'] = "teammates/$([uri]::EscapeDataString($User))"
+                $UserInvokeSplat['Namespace'] = "teammates/$((ConvertTo-SendGridUriComponent $User))"
                 try {
                     Invoke-SendGrid @UserInvokeSplat
                 }

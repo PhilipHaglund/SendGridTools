@@ -54,7 +54,7 @@
             $QueryParameters.Add("page_size=$($PageSize)")
         }
         if ($PSBoundParameters.PageToken) {
-            $QueryParameters.Add('page_token=' + [uri]::EscapeDataString($PageToken))
+            $QueryParameters.Add('page_token=' + (ConvertTo-SendGridUriComponent $PageToken))
         }
         if ($PSBoundParameters.ContainsKey('Summary')) {
             $QueryParameters.Add('summary=' + ([string]$Summary.IsPresent).ToLowerInvariant())

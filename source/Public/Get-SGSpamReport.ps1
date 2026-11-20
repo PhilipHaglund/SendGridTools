@@ -138,7 +138,7 @@
 
         if ($PSBoundParameters.ContainsKey('EmailAddress')) {
             foreach ($Email in $EmailAddress) {
-                $EmailQuery = @($QueryParameters) + ('email={0}' -f [uri]::EscapeDataString($Email.Address))
+                $EmailQuery = @($QueryParameters) + ('email={0}' -f (ConvertTo-SendGridUriComponent $Email.Address))
                 $EmailInvokeSplat = $InvokeSplat.Clone()
                 $EmailInvokeSplat['Namespace'] += '?' + ($EmailQuery -join '&')
                 try {
