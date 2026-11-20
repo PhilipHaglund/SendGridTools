@@ -351,6 +351,30 @@ Describe 'Get-SGSubuser -Username lookup' {
     }
 }
 
+Describe 'Get-SGSubuser help' {
+    It 'Describes -Username as a username' {
+        $Text = ((Get-Help Get-SGSubuser -Parameter Username).description.Text -join ' ') -replace '\s+', ' '
+        $Text.Trim() | Should -Be 'Specifies the username of a specific Subuser to retrieve. If this parameter is not provided, all Subusers are retrieved.'
+    }
+
+    It 'Uses the same words in the comment above the parameter' {
+        $Definition = (Get-Command Get-SGSubuser).Definition
+        $Definition | Should -BeLike '*# Specifies the username of a specific Subuser to retrieve. If this parameter is not provided, all Subusers are retrieved.*'
+        $Definition | Should -Not -Match 'the ID of a specific Subuser'
+    }
+
+    It 'Spells the description right' {
+        $Text = ((Get-Help Get-SGSubuser).description.Text -join ' ') -replace '\s+', ' '
+        $Text | Should -BeLike "*when retrieving all users it won't display disabled users*"
+        $Text | Should -Not -Match 'retrieve ing'
+        $Text | Should -Not -Match '\bwont\b'
+    }
+
+    It 'Keeps the alias Id on -Username' {
+        (Get-Command Get-SGSubuser).Parameters['Username'].Aliases | Should -Contain 'Id'
+    }
+}
+
 Describe 'Network tripwire' {
     It 'Made no unmocked network call' {
         Assert-SgtNetworkTripwireActive

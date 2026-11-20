@@ -140,6 +140,13 @@ Describe 'New-SGSubuser password exposure' {
     }
 }
 
+Describe 'New-SGSubuser help' {
+    It 'Describes -Username as the username to create' {
+        $Text = ((Get-Help New-SGSubuser -Parameter Username).description.Text -join ' ') -replace '\s+', ' '
+        $Text.Trim() | Should -Be 'Specifies the username for the Subuser to create.'
+    }
+}
+
 Describe 'Network tripwire' {
     It 'Made no unmocked network call' {
         Assert-SgtNetworkTripwireActive
