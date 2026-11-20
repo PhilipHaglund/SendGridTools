@@ -75,7 +75,7 @@
         foreach ($DomainId in $UniqueId) {
             $InvokeSplat = @{
                 Method        = 'Patch'
-                Namespace     = "whitelabel/domains/$DomainId"
+                Namespace     = "whitelabel/domains/$(ConvertTo-SendGridUriComponent $DomainId)"
                 ErrorAction   = 'Stop'
                 CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
             }

@@ -3,7 +3,6 @@ Disconnect-SendGrid
 Get-SGAddressWhitelistSetting
 Get-SGBounceByClassification
 Get-SGBouncePurgeSetting
-Get-SGBrandedDomainLink
 Get-SGForwardBounceSetting
 Get-SGForwardSpamSetting
 Get-SGMailSetting

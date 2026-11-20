@@ -49,7 +49,7 @@
         }
         if ($PSBoundParameters.ContainsKey('AlertId')) {
             foreach ($Alert in $AlertId) {
-                $InvokeSplat['Namespace'] = "alerts/$Alert"
+                $InvokeSplat['Namespace'] = "alerts/$(ConvertTo-SendGridUriComponent $Alert)"
                 try {
                     Invoke-SendGrid @InvokeSplat
                 }

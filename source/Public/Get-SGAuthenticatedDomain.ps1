@@ -170,7 +170,7 @@
         if ($null -ne $Id) {
             foreach ($UniqueId in $Id) {
                 if ($PSCmdlet.ShouldProcess(('{0}' -f $UniqueId))) {
-                    $InvokeSplat['Namespace'] = "whitelabel/domains/$UniqueId"
+                    $InvokeSplat['Namespace'] = "whitelabel/domains/$(ConvertTo-SendGridUriComponent $UniqueId)"
                     try {
                         Invoke-SendGrid @InvokeSplat
                     }

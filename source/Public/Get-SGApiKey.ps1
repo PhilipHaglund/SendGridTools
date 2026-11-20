@@ -63,7 +63,7 @@
         if ($PSBoundParameters.ContainsKey('ApiKeyId')) {
             foreach ($Id in $ApiKeyID) {
                 if ($PSCmdlet.ShouldProcess(('{0}' -f $Id))) {
-                    $InvokeSplat['Namespace'] = "api_keys/$Id"
+                    $InvokeSplat['Namespace'] = "api_keys/$(ConvertTo-SendGridUriComponent $Id)"
                     try {
                         Invoke-SendGrid @InvokeSplat
                     }

@@ -320,6 +320,41 @@ Describe 'Get-SGApiKey help (D117)' {
     }
 }
 
+Describe 'Get-SGApiKey encodes the id in the path (D153)' {
+    BeforeEach {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ api_key_id = 'sgt-key'; name = 'sgt-test-key'; scopes = @('mail.send') })
+        }
+    }
+
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Puts <Name> in one path segment' -ForEach @(
+        @{ Name = 'an id with a slash, a question mark and a hash'; Id = 'a/b?c#d'; Segment = 'a%2Fb%3Fc%23d' }
+        @{ Name = 'an id with only unreserved characters'; Id = 'abc-1.2_3~'; Segment = 'abc-1.2_3~' }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ Id = $Id; Segment = $Segment } {
+            $null = Get-SGApiKey -ApiKeyId $Id -Confirm:$false
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -BeGreaterThan 0
+            foreach ($Call in $Calls) {
+                $Call.Uri.OriginalString | Should -BeLike "https://api.sendgrid.com/v3/api_keys/$Segment*"
+                $Call.Uri.OriginalString | Should -Not -BeLike '*/a/b*'
+                $Call.Uri.OriginalString | Should -Not -Match '[?#]'
+            }
+            $Calls[-1].Method | Should -Be 'Get'
+            $Calls[-1].Uri.OriginalString | Should -BeExactly "https://api.sendgrid.com/v3/api_keys/$Segment"
+        }
+    }
+}
+
 Describe 'Network tripwire' {
     It 'Made no unmocked network call' {
         Assert-SgtNetworkTripwireActive

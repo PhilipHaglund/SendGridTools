@@ -64,7 +64,7 @@
         foreach ($Id in $UniqueId) {
             $InvokeSplat = @{
                 Method        = 'Delete'
-                Namespace     = "api_keys/$Id"
+                Namespace     = "api_keys/$(ConvertTo-SendGridUriComponent $Id)"
                 ErrorAction   = 'Stop'
                 CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
             }

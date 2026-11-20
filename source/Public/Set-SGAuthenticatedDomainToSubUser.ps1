@@ -51,7 +51,7 @@
     process {
         $InvokeSplat = @{
             Method        = 'Post'
-            Namespace     = "whitelabel/domains/$UniqueId/subuser"
+            Namespace     = "whitelabel/domains/$(ConvertTo-SendGridUriComponent $UniqueId)/subuser"
             ErrorAction   = 'Stop'
             CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
         }
