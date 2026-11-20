@@ -342,11 +342,101 @@ Describe 'Get-SGSubuser -Username lookup' {
         }
     }
 
-    It 'Passes on what SendGrid returns without filtering' {
+    It 'Returns only the matching Subuser from the recorded page' {
         InModuleScope SendGridTools {
             $Out = @(Get-SGSubuser -Username sgt-test-subuser-1 -Confirm:$false)
 
+            $Out.Count | Should -Be 1
+            $Out[0].Username | Should -Be 'sgt-test-subuser-1'
+        }
+    }
+
+    It 'Returns only the Subuser whose username equals the value, not one that starts with it' {
+        InModuleScope SendGridTools {
+            Reset-SgtNetworkStub
+            Set-SgtNetworkStub -Response @(
+                [pscustomobject]@{ username = 'sgt-test-abc'; id = 2001; email = '<address>'; disabled = $false }
+                [pscustomobject]@{ username = 'sgt-test-abcd'; id = 2002; email = '<address>'; disabled = $false }
+            )
+
+            $Out = @(Get-SGSubuser -Username 'sgt-test-abc' -Confirm:$false)
+
+            $Out.Count | Should -Be 1
+            $Out[0].Username | Should -Be 'sgt-test-abc'
+            $Calls = @(Get-SgtNetworkCall)[0]
+            $Calls.Count | Should -Be 1
+            "$($Calls[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/subusers?username=sgt-test-abc'
+        }
+    }
+
+    It 'Compares the username without regard to case' {
+        InModuleScope SendGridTools {
+            Reset-SgtNetworkStub
+            Set-SgtNetworkStub -Response @(
+                [pscustomobject]@{ username = 'SGT-Test-ABC'; id = 2001; email = '<address>'; disabled = $false }
+                [pscustomobject]@{ username = 'sgt-test-abcd'; id = 2002; email = '<address>'; disabled = $false }
+            )
+
+            $Out = @(Get-SGSubuser -Username 'sgt-test-abc' -Confirm:$false)
+
+            $Out.Count | Should -Be 1
+            $Out[0].Username | Should -Be 'SGT-Test-ABC'
+        }
+    }
+
+    It 'Returns nothing and no error when SendGrid returns only other usernames' {
+        InModuleScope SendGridTools {
+            Reset-SgtNetworkStub
+            Set-SgtNetworkStub -Response @(
+                [pscustomobject]@{ username = 'sgt-test-abcd'; id = 2002; email = '<address>'; disabled = $false }
+            )
+
+            # With -ErrorAction Stop an error would end the test here.
+            $Out = @(Get-SGSubuser -Username 'sgt-test-abc' -ErrorAction Stop -Confirm:$false)
+
+            $Out.Count | Should -Be 0
+        }
+    }
+
+    It 'Returns each piped name only its own Subuser' {
+        InModuleScope SendGridTools {
+            Reset-SgtNetworkStub
+            Set-SgtNetworkStub -Response @(
+                [pscustomobject]@{ username = 'sgt-test-abc'; id = 2001; email = '<address>'; disabled = $false }
+                [pscustomobject]@{ username = 'sgt-test-abcd'; id = 2002; email = '<address>'; disabled = $false }
+            )
+
+            $Out = @('sgt-test-abc', 'sgt-test-abcd' | Get-SGSubuser -Confirm:$false)
+
             $Out.Count | Should -Be 2
+            $Out[0].Username | Should -Be 'sgt-test-abc'
+            $Out[1].Username | Should -Be 'sgt-test-abcd'
+            @(Get-SgtNetworkCall)[0].Count | Should -Be 2
+        }
+    }
+
+    It 'Returns every object unchanged without -Username' {
+        InModuleScope SendGridTools {
+            Reset-SgtNetworkStub
+            Set-SgtNetworkStub -Response @(
+                [pscustomobject]@{ username = 'sgt-test-abc'; id = 2001; email = '<address>'; disabled = $false }
+                [pscustomobject]@{ username = 'sgt-test-abcd'; id = 2002; email = '<address>'; disabled = $false }
+            )
+
+            $Out = @(Get-SGSubuser -Confirm:$false)
+
+            $Out.Count | Should -Be 2
+            $Out[0].Username | Should -Be 'sgt-test-abc'
+            $Out[1].Username | Should -Be 'sgt-test-abcd'
+            "$((@(Get-SgtNetworkCall)[0])[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/subusers'
+
+            Reset-SgtNetworkStub
+            Set-SgtNetworkStub -Response @(
+                [pscustomobject]@{ username = 'sgt-test-abc'; id = 2001; email = '<address>'; disabled = $false }
+                [pscustomobject]@{ username = 'sgt-test-abcd'; id = 2002; email = '<address>'; disabled = $false }
+            )
+            $Limited = @(Get-SGSubuser -Limit 2 -Confirm:$false)
+            $Limited.Count | Should -Be 2
         }
     }
 }
@@ -354,7 +444,13 @@ Describe 'Get-SGSubuser -Username lookup' {
 Describe 'Get-SGSubuser help' {
     It 'Describes -Username as a username' {
         $Text = ((Get-Help Get-SGSubuser -Parameter Username).description.Text -join ' ') -replace '\s+', ' '
-        $Text.Trim() | Should -Be 'Specifies the username of a specific Subuser to retrieve. If this parameter is not provided, all Subusers are retrieved.'
+        $Text.Trim() | Should -Be 'Specifies the username of a specific Subuser to retrieve. If this parameter is not provided, all Subusers are retrieved. Only a Subuser whose username equals the value is returned.'
+    }
+
+    It 'Says that only an equal username is returned' {
+        $Text = ((Get-Help Get-SGSubuser -Parameter Username).description.Text -join ' ') -replace '\s+', ' '
+        $Text | Should -BeLike '*Only a Subuser whose username equals the value is returned.*'
+        (Get-Command Get-SGSubuser).Definition | Should -BeLike '*# Specifies the username of a specific Subuser to retrieve. If this parameter is not provided, all Subusers are retrieved. Only a Subuser whose username equals the value is returned.*'
     }
 
     It 'Uses the same words in the comment above the parameter' {
