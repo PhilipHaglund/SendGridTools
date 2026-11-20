@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `New-SGAuthenticatedDomain`, `New-SGBrandedDomainLink` and `New-SGApiKey` have a `-Force` switch. With `-Force` the question before `-Default` replaces the current default, or before a key with full access is created, is not asked, so a script without a console can do it. `-Force` does not change `-WhatIf` or `-Confirm`. Without `-Force` the commands ask as before.
-- `Send-SGMailMessage` has a `-SandboxMode` switch. With it the message is sent to SendGrid in sandbox mode: SendGrid validates the request and answers without delivering the message. Without `-SandboxMode` the request is unchanged.
+- `Send-SGMailMessage` has a `-SandboxMode` switch. With it the message is sent to SendGrid in sandbox mode: SendGrid validates the request and answers without delivering the message. With `-SandboxMode` the target that `-WhatIf` and `-Confirm` name ends with ` in sandbox mode`. Without `-SandboxMode` the request and the target are unchanged.
 
 ### Fixed
 

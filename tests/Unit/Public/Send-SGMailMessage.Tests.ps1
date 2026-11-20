@@ -118,7 +118,7 @@ Describe 'Send-SGMailMessage -SandboxMode (D78)' {
                     $Sent.PSObject.Properties[$Name] | Should -Not -BeNullOrEmpty
                 }
                 else {
-                    ($Sent.$Name | ConvertTo-Json -Depth 6 -Compress) | Should -BeExactly ($Runs.Off.Sent.$Name | ConvertTo-Json -Depth 6 -Compress) -Because "key $Name must be unchanged"
+                    (ConvertTo-Json -InputObject $Sent.$Name -Depth 6 -Compress) | Should -BeExactly (ConvertTo-Json -InputObject $Runs.Off.Sent.$Name -Depth 6 -Compress) -Because "key $Name must be unchanged"
                 }
             }
         }

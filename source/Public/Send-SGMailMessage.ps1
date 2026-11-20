@@ -84,7 +84,7 @@
         Specifies the advanced suppression manager (ASM) settings for the message as an SGASM object. GroupId is the unsubscribe group of the message and GroupsToDisplay lists the groups shown on the unsubscribe page.
 
     .PARAMETER SandboxMode
-        Sends the request in sandbox mode (mail_settings.sandbox_mode.enable). SendGrid validates the request (addresses, content, attachments and scheduling, for example a SendAt more than 72 hours ahead) and answers without delivering the message, so nothing reaches any recipient.
+        Sends the request in sandbox mode (mail_settings.sandbox_mode.enable). SendGrid validates the request body (for example the address format, the content, attachments and scheduling, such as a SendAt more than 72 hours ahead) and answers without delivering the message, so nothing reaches any recipient. A successful answer does not show that a recipient exists or can receive mail.
         The request is still sent to SendGrid for validation. This differs from -WhatIf, which sends nothing at all. Without this switch the message is sent as before.
 
     .EXAMPLE
