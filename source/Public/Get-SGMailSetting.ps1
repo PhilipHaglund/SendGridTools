@@ -7,10 +7,10 @@
         Get-SGMailSetting retrieves a paginated list of all mail settings on SendGrid.
 
     .PARAMETER Limit
-        Specifies the page size, i.e. maximum number of items from the list to be returned for a single API request.
+        Specifies the page size, i.e. maximum number of items from the list to be returned for a single API request. A value below 1 is refused.
 
     .PARAMETER Offset
-        Specifies the number of items in the list to skip over before starting to retrieve the items for the requested page.
+        Specifies the number of items in the list to skip over before starting to retrieve the items for the requested page. A value below 0 is refused.
 
     .PARAMETER OnBehalfOf
         Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
@@ -27,12 +27,14 @@
     #>
     [CmdletBinding()]
     param (
-        # Specifies the page size, i.e. maximum number of items from the list to be returned for a single API request.
+        # Specifies the page size, i.e. maximum number of items from the list to be returned for a single API request. A value below 1 is refused.
         [Parameter()]
+        [ValidateRange(1, [int]::MaxValue)]
         [int]$Limit,
 
-        # Specifies the number of items in the list to skip over before starting to retrieve the items for the requested page.
+        # Specifies the number of items in the list to skip over before starting to retrieve the items for the requested page. A value below 0 is refused.
         [Parameter()]
+        [ValidateRange(0, [int]::MaxValue)]
         [int]$Offset,
 
         # Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
@@ -53,10 +55,10 @@
         #Generic List
         [System.Collections.Generic.List[string]]$QueryParameters = [System.Collections.Generic.List[string]]::new()
 
-        if ($PSBoundParameters.Limit) {
+        if ($PSBoundParameters.ContainsKey('Limit')) {
             $QueryParameters.Add("limit=$limit")
         }
-        if ($PSBoundParameters.Offset) {
+        if ($PSBoundParameters.ContainsKey('Offset')) {
             $QueryParameters.Add("offset=$offset")
         }
 

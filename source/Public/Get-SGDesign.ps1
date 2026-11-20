@@ -9,7 +9,7 @@
         This function does not return the pre-built Twilio SendGrid designs.
 
     .PARAMETER PageSize
-        Specifies the number of results to return. The value is sent only when the parameter is given with a value other than 0; without it SendGrid returns its default page size of 100.
+        Specifies the number of results to return. The value is sent when the parameter is given; without it SendGrid returns its default page size of 100. A value below 1 is refused.
 
     .PARAMETER PageToken
         Specifies the token corresponding to a specific page of results, as provided by metadata.
@@ -26,9 +26,11 @@
     #>
     [CmdletBinding()]
     param (
+        # Specifies the number of results to return. The value is sent when the parameter is given; without it SendGrid returns its default page size of 100. A value below 1 is refused.
         [Parameter(
             Position = 0
         )]
+        [ValidateRange(1, [int]::MaxValue)]
         [int]$PageSize = 100,
         [Parameter(
             Position = 1
@@ -50,7 +52,7 @@
         #Generic List
         [System.Collections.Generic.List[string]]$QueryParameters = [System.Collections.Generic.List[string]]::new()
 
-        if ($PSBoundParameters.PageSize) {
+        if ($PSBoundParameters.ContainsKey('PageSize')) {
             $QueryParameters.Add("page_size=$($PageSize)")
         }
         if ($PSBoundParameters.PageToken) {

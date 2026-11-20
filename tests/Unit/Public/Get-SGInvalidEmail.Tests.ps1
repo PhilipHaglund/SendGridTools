@@ -211,6 +211,70 @@ Describe 'Get-SGInvalidEmail help (D117)' {
     }
 }
 
+Describe 'Get-SGInvalidEmail paging parameters are checked by presence and validated at binding (D154)' {
+    BeforeEach {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1 })
+        }
+    }
+
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Refuses <Name> at binding and makes no call' -ForEach @(
+        @{ Name = '-Limit 0'; Splat = @{ Limit = 0 } }
+        @{ Name = '-Limit -1'; Splat = @{ Limit = -1 } }
+        @{ Name = '-Offset -1'; Splat = @{ Offset = -1 } }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ Splat = $Splat } {
+            { Get-SGInvalidEmail @Splat } | Should -Throw -ErrorId 'ParameterArgumentValidationError*'
+            (Get-SgtNetworkCall).Count | Should -Be 0
+        }
+    }
+
+    It 'Sends <Expected> for <Name>' -ForEach @(
+        @{ Name = 'no parameters'; Splat = @{}; Expected = '' }
+        @{ Name = '-Limit 1'; Splat = @{ Limit = 1 }; Expected = '?limit=1' }
+        @{ Name = '-Offset 0'; Splat = @{ Offset = 0 }; Expected = '?offset=0' }
+        @{ Name = '-Limit 5 -Offset 0'; Splat = @{ Limit = 5; Offset = 0 }; Expected = '?limit=5&offset=0' }
+        @{ Name = '-Limit 5 -Offset 10'; Splat = @{ Limit = 5; Offset = 10 }; Expected = '?limit=5&offset=10' }
+        @{ Name = '-StartTime 0'; Splat = @{ StartTime = 0 }; Expected = '?start_time=0' }
+        @{ Name = '-EndTime 0'; Splat = @{ EndTime = 0 }; Expected = '?end_time=0' }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ Splat = $Splat; Expected = $Expected } {
+            $null = Get-SGInvalidEmail @Splat
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            ([uri]$Calls[0].Uri).Query | Should -BeExactly $Expected
+        }
+    }
+}
+
+Describe 'Get-SGInvalidEmail paging help (D154)' {
+    It 'Says that a limit below 1 is refused' {
+        $Text = ((Get-Help Get-SGInvalidEmail -Parameter Limit).description.Text -join ' ') -replace '\s+', ' '
+        $Text.Trim() | Should -BeLike '*A value below 1 is refused.'
+    }
+
+    It 'Says that an offset below 0 is refused' {
+        $Text = ((Get-Help Get-SGInvalidEmail -Parameter Offset).description.Text -join ' ') -replace '\s+', ' '
+        $Text.Trim() | Should -BeLike '*A value below 0 is refused.'
+    }
+
+    It 'Says in the comment at -Limit that a value below 1 is refused' {
+        (Get-Command Get-SGInvalidEmail).Definition | Should -Match '# [^\r\n]*A value below 1 is refused\.\r?\n\s*\[Parameter\([^)]*\)\]\s*(\[[^\r\n]*\]\s*)*\$Limit\b'
+    }
+
+    It 'Says in the comment at -Offset that a value below 0 is refused' {
+        (Get-Command Get-SGInvalidEmail).Definition | Should -Match '# [^\r\n]*A value below 0 is refused\.\r?\n\s*\[Parameter\([^)]*\)\]\s*(\[[^\r\n]*\]\s*)*\$Offset\b'
+    }
+}
 Describe 'Network tripwire' {
     It 'Made no unmocked network call' {
         Assert-SgtNetworkTripwireActive

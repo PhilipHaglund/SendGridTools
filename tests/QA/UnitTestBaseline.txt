@@ -5,7 +5,6 @@ Get-SGBounceByClassification
 Get-SGBouncePurgeSetting
 Get-SGForwardBounceSetting
 Get-SGForwardSpamSetting
-Get-SGMailSetting
 Get-SGPermissionScopes
 Get-SGSuppression
 Get-SGSuppressionGroup
