@@ -131,7 +131,7 @@
         if ($PSCmdlet.ShouldProcess(('{0}' -f 'Subusers'))) {
             try {
                 if ($PSBoundParameters.Username) {
-                    # SendGrid's username filter also returns names that start with the value (D96).
+                    # SendGrid's username filter also returns names that start with the value, so only an equal username is passed on.
                     Invoke-SendGrid @InvokeSplat | Where-Object { "$($_.Username)" -eq $Username }
                 }
                 else {
