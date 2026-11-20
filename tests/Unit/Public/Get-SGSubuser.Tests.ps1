@@ -548,6 +548,8 @@ Describe 'Get-SGSubuser refuses an empty -Username and limits -Limit and -Offset
         @{ Case = 'as $null'; ByProperty = $false; Value = $null }
     ) {
         InModuleScope SendGridTools -Parameters @{ ByProperty = $ByProperty; Value = $Value } {
+            # A pipeline binding error follows the caller's preference, not -ErrorAction; CI's pwsh shell sets Stop.
+            $ErrorActionPreference = 'Continue'
             # A pipeline binding error is written to the error stream and is not collected by -ErrorVariable.
             if ($ByProperty) {
                 $Streams = @([pscustomobject]@{ Username = $Value } | Get-SGSubuser -Confirm:$false 2>&1)
@@ -577,6 +579,8 @@ Describe 'Get-SGSubuser refuses an empty -Username and limits -Limit and -Offset
 
     It 'Sends only the other name when an empty name comes first in the pipeline' {
         InModuleScope SendGridTools {
+            # A pipeline binding error follows the caller's preference, not -ErrorAction; CI's pwsh shell sets Stop.
+            $ErrorActionPreference = 'Continue'
             $Streams = @([pscustomobject]@{ Username = '' }, [pscustomobject]@{ Username = 'sgt-test-subuser-1' } |
                     Get-SGSubuser -Confirm:$false 2>&1)
             $Errs = @($Streams | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] })
