@@ -543,22 +543,35 @@ Describe 'Get-SGSubuser refuses an empty -Username and limits -Limit and -Offset
     }
 
     It 'Refuses an empty name from the pipeline <Case> and makes no call' -TestCases @(
-        @{ Case = 'as a string'; ByProperty = $false }
-        @{ Case = 'by property Username'; ByProperty = $true }
+        @{ Case = 'as a string'; ByProperty = $false; Value = '' }
+        @{ Case = 'by property Username'; ByProperty = $true; Value = '' }
+        @{ Case = 'as $null'; ByProperty = $false; Value = $null }
     ) {
-        InModuleScope SendGridTools -Parameters @{ ByProperty = $ByProperty } {
+        InModuleScope SendGridTools -Parameters @{ ByProperty = $ByProperty; Value = $Value } {
             # A pipeline binding error is written to the error stream and is not collected by -ErrorVariable.
             if ($ByProperty) {
-                $Streams = @([pscustomobject]@{ Username = '' } | Get-SGSubuser -Confirm:$false 2>&1)
+                $Streams = @([pscustomobject]@{ Username = $Value } | Get-SGSubuser -Confirm:$false 2>&1)
             }
             else {
-                $Streams = @('' | Get-SGSubuser -Confirm:$false 2>&1)
+                $Streams = @($Value | Get-SGSubuser -Confirm:$false 2>&1)
             }
             $Errs = @($Streams | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] })
 
             @($Errs).Count | Should -Be 1
             "$($Errs[0].FullyQualifiedErrorId)" | Should -BeLike 'ParameterArgumentValidationError*'
             @(Get-SgtNetworkCall)[0].Count | Should -Be 0
+        }
+    }
+
+    # PowerShell binds the object by value when its Username is $null, so this is a lookup of the object's text, never the list.
+    It 'Sends no list request and gives no Subuser for an object whose Username is $null' {
+        InModuleScope SendGridTools {
+            $Streams = @([pscustomobject]@{ Username = $null } | Get-SGSubuser -Confirm:$false 2>&1)
+            $Output = @($Streams | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] })
+
+            $Output.Count | Should -Be 0
+            $Calls = @(@(Get-SgtNetworkCall)[0])
+            @($Calls | Where-Object { -not ([uri]$_.Uri).Query.StartsWith('?username=') }).Count | Should -Be 0
         }
     }
 
