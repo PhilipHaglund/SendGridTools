@@ -274,6 +274,9 @@
         $RecipientCount = $To.Count + $CC.Count + $BCC.Count
     }
     process {
+        if ($PSBoundParameters.ContainsKey('Unsubscribe') -and $Unsubscribe.GroupId -le 0) {
+            Write-Error -Message 'Unsubscribe needs a GroupId greater than 0.' -Category InvalidArgument -ErrorAction Stop
+        }
         $Target = '{0} to "{1}" recipients with subject: "{2}"' -f $From.Address, $RecipientCount, $Subject
         if ($SandboxMode) {
             $Target += ' in sandbox mode'
@@ -359,6 +362,15 @@
             }
             if ($PSBoundParameters.ContainsKey('Categories')) {
                 $ContentBody.Add('categories', $Categories)
+            }
+            if ($PSBoundParameters.ContainsKey('BatchId')) {
+                $ContentBody.Add('batch_id', $BatchId)
+            }
+            if ($PSBoundParameters.ContainsKey('Unsubscribe')) {
+                $ContentBody.Add('asm', @{
+                        group_id          = $Unsubscribe.GroupId
+                        groups_to_display = $Unsubscribe.GroupsToDisplay
+                    })
             }
             if ($SandboxMode) {
                 $ContentBody.Add('mail_settings', @{ sandbox_mode = @{ enable = $true } })

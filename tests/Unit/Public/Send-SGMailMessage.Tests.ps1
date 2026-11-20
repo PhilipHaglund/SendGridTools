@@ -177,6 +177,177 @@ Describe 'Send-SGMailMessage -SandboxMode (D78)' {
     }
 }
 
+Describe 'Send-SGMailMessage -BatchId and -Unsubscribe (D102)' {
+    BeforeAll {
+        # Runs one send in module scope. $Extra is the text of a scriptblock that returns a hashtable of extra
+        # parameters, so [SGASM] is built inside the module. Returns the count, the parsed body and the raw body.
+        $script:SendText = {
+            param($Cred, $Shape, $Extra)
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Reset-SgtNetworkStub
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ placeholder = 'accepted' })
+            $Params = @{
+                From    = 'sender@example.com'
+                To      = 'one@example.com'
+                Subject = 'placeholder subject'
+                Body    = 'placeholder body'
+            }
+            if ($Shape -like 'SeparateTo*') {
+                $Params['To'] = @('one@example.com', 'two@example.com')
+                $Params['SeparateTo'] = [switch]::new($true)
+            }
+            if ($Shape -like '*full') {
+                if ($Shape -like 'Default*') {
+                    $Params['CC'] = 'copy@example.com'
+                    $Params['BCC'] = 'blind@example.com'
+                }
+                $Params['BodyAsHtml'] = [switch]::new($true)
+                $Params['Attachment'] = [System.Net.Mail.Attachment]::new([System.IO.MemoryStream]::new([byte[]](104, 105)), 'note.txt', 'text/plain')
+                $Params['Priority'] = 'High'
+                $Params['ReplyTo'] = 'reply@example.com'
+                $Params['SendAt'] = (Get-Date).AddHours(1)
+                $Params['TemplateId'] = 'd-placeholder'
+                $Params['Categories'] = 'sgt-cat'
+            }
+            foreach ($Entry in (& ([scriptblock]::Create($Extra))).GetEnumerator()) { $Params[$Entry.Key] = $Entry.Value }
+            $Threw = $null
+            try { $null = Send-SGMailMessage @Params -Confirm:$false -ErrorAction Stop }
+            catch { $Threw = $_.Exception.Message }
+            $Calls = @(Get-SgtNetworkCall | ForEach-Object { $_ })
+            [pscustomobject]@{
+                Count = $Calls.Count
+                Raw   = if ($Calls.Count) { $Calls[0].Body } else { $null }
+                Sent  = if ($Calls.Count) { $Calls[0].Body | ConvertFrom-Json } else { $null }
+                Threw = $Threw
+            }
+        }.ToString()
+        $script:Cases = @{
+            Both = '@{ BatchId = ''sgt-made-up-batch''; Unsubscribe = & { $A = [SGASM]::new(7); $A.GroupsToDisplay = 7, 8; $A } }'
+        }
+    }
+
+    BeforeDiscovery {
+        $script:Shapes = @(
+            @{ Shape = 'Default minimal'; Keys = 'content, from, personalizations' }
+            @{ Shape = 'Default full'; Keys = 'attachments, categories, content, from, personalizations, priority, reply_to, send_at, template_id' }
+            @{ Shape = 'SeparateTo minimal'; Keys = 'content, from, personalizations' }
+            @{ Shape = 'SeparateTo full'; Keys = 'attachments, categories, content, from, personalizations, priority, reply_to, send_at, template_id' }
+        )
+    }
+
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Sends -BatchId as batch_id and nothing else new, <Shape>' -ForEach $script:Shapes {
+        $Run = InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Shape = $Shape; Send = $script:SendText } {
+            & ([scriptblock]::Create($Send)) $Cred $Shape '@{ BatchId = ''sgt-made-up-batch'' }'
+        }
+        $Run.Count | Should -Be 1
+        (@($Run.Sent.PSObject.Properties.Name | Sort-Object) -join ', ') | Should -BeExactly ((@($Keys -split ', ') + 'batch_id' | Sort-Object) -join ', ')
+        $Run.Sent.batch_id | Should -BeExactly 'sgt-made-up-batch'
+    }
+
+    It 'Sends -Unsubscribe as asm with group_id and groups_to_display, <Shape>' -ForEach $script:Shapes {
+        $Run = InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Shape = $Shape; Send = $script:SendText } {
+            & ([scriptblock]::Create($Send)) $Cred $Shape '@{ Unsubscribe = & { $A = [SGASM]::new(7); $A.GroupsToDisplay = 7, 8; $A } }'
+        }
+        $Run.Count | Should -Be 1
+        (@($Run.Sent.PSObject.Properties.Name | Sort-Object) -join ', ') | Should -BeExactly ((@($Keys -split ', ') + 'asm' | Sort-Object) -join ', ')
+        (@($Run.Sent.asm.PSObject.Properties.Name | Sort-Object) -join ', ') | Should -BeExactly 'group_id, groups_to_display'
+        $Run.Sent.asm.group_id | Should -Not -BeOfType [string]
+        $Run.Sent.asm.group_id | Should -Be 7
+        $Run.Raw | Should -Match '"group_id":\s*7[,\s}]'
+        @($Run.Sent.asm.groups_to_display) | Should -Be @(7, 8)
+    }
+
+    It 'Sends one display group as a JSON array' {
+        $Run = InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Send = $script:SendText } {
+            & ([scriptblock]::Create($Send)) $Cred 'Default minimal' '@{ Unsubscribe = & { $A = [SGASM]::new(7); $A.GroupsToDisplay = 7; $A } }'
+        }
+        $Run.Count | Should -Be 1
+        $Run.Raw | Should -Match '"groups_to_display":\s*\['
+    }
+
+    It 'Leaves out an empty groups_to_display' {
+        $Run = InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Send = $script:SendText } {
+            & ([scriptblock]::Create($Send)) $Cred 'Default minimal' '@{ Unsubscribe = [SGASM]::new(1) }'
+        }
+        $Run.Count | Should -Be 1
+        @($Run.Sent.asm.PSObject.Properties.Name) | Should -BeExactly @('group_id')
+        $Run.Sent.asm.group_id | Should -Be 1
+    }
+
+    It 'Refuses GroupId <Id> with a plain message and no request' -ForEach @(
+        @{ Id = 0; Make = '[SGASM]::new()' }
+        @{ Id = -5; Make = '[SGASM]::new(-5)' }
+    ) {
+        $Run = InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Make = $Make; Send = $script:SendText } {
+            & ([scriptblock]::Create($Send)) $Cred 'Default minimal' ('@{{ Unsubscribe = {0} }}' -f $Make)
+        }
+        $Run.Threw | Should -BeExactly 'Unsubscribe needs a GroupId greater than 0.'
+        $Run.Count | Should -Be 0
+        Get-SgtUnmockedNetworkCall | Should -BeNullOrEmpty
+    }
+
+    It 'Adds categories, batch_id, asm and mail_settings in that order in the source' {
+        $Command = Get-Command -Name Send-SGMailMessage
+        $Ast = $Command.ScriptBlock.Ast
+        $Calls = $Ast.FindAll({
+                param($Node)
+                $Node -is [System.Management.Automation.Language.InvokeMemberExpressionAst] -and
+                $Node.Member.Value -eq 'Add' -and
+                $Node.Expression.Extent.Text -eq '$ContentBody' -and
+                $Node.Arguments[0] -is [System.Management.Automation.Language.StringConstantExpressionAst]
+            }, $true)
+        $Names = @($Calls | ForEach-Object { $_.Arguments[0].Value })
+        $Wanted = @($Names | Where-Object { $_ -in 'categories', 'batch_id', 'asm', 'mail_settings' })
+        $Wanted | Should -BeExactly @('categories', 'batch_id', 'asm', 'mail_settings')
+    }
+
+    It 'Changes no other key when -BatchId and -Unsubscribe are added, <Shape>' -ForEach $script:Shapes {
+        $Runs = InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Shape = $Shape; Send = $script:SendText; Both = $script:Cases.Both } {
+            $Block = [scriptblock]::Create($Send)
+            [pscustomobject]@{
+                Off = & $Block $Cred $Shape '@{}'
+                On  = & $Block $Cred $Shape $Both
+            }
+        }
+        (@($Runs.Off.Sent.PSObject.Properties.Name | Sort-Object) -join ', ') | Should -BeExactly $Keys
+        foreach ($Name in $Runs.Off.Sent.PSObject.Properties.Name) {
+            if ($Name -eq 'send_at') {
+                $Runs.On.Sent.PSObject.Properties[$Name] | Should -Not -BeNullOrEmpty
+            }
+            else {
+                (ConvertTo-Json -InputObject $Runs.On.Sent.$Name -Depth 6 -Compress) | Should -BeExactly (ConvertTo-Json -InputObject $Runs.Off.Sent.$Name -Depth 6 -Compress) -Because "key $Name must be unchanged"
+            }
+        }
+    }
+
+    It 'Sends batch_id, asm and mail_settings together with -SandboxMode' {
+        $Run = InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Send = $script:SendText } {
+            & ([scriptblock]::Create($Send)) $Cred 'Default minimal' '@{ SandboxMode = [switch]::new($true); BatchId = ''sgt-made-up-batch''; Unsubscribe = [SGASM]::new(3) }'
+        }
+        $Run.Count | Should -Be 1
+        (@($Run.Sent.PSObject.Properties.Name | Sort-Object) -join ', ') | Should -BeExactly 'asm, batch_id, content, from, mail_settings, personalizations'
+        $Run.Sent.mail_settings.sandbox_mode.enable | Should -BeTrue
+    }
+
+    It 'Makes no request and asks nothing under -WhatIf with -BatchId and -Unsubscribe' {
+        $Script = "try { Send-SGMailMessage -From 'sender@example.com' -To 'one@example.com' -Subject 'placeholder subject' -Body 'placeholder body' -BatchId 'sgt-made-up-batch' -Unsubscribe ([SGASM]::new(3)) -WhatIf } catch { 'threw {0}' -f `$_.Exception.GetType().FullName }"
+        $Run = Invoke-SgtInCountingHost -Script $Script -AnswerJson '{}'
+        @($Run.HostLine | Where-Object { $_ -like 'What if:*' }).Count | Should -Be 1
+        $Run.NetworkCallCount | Should -Be 0
+        $Run.PromptCount | Should -Be 0
+        $Run.UnmockedCall | Should -BeNullOrEmpty
+        $Run.Threw | Should -BeFalse
+        @($Run.Output | Where-Object { $_ -like 'threw *' }) | Should -BeNullOrEmpty
+    }
+}
+
 Describe 'Network tripwire' {
     It 'Made no unmocked network call' {
         Assert-SgtNetworkTripwireActive
