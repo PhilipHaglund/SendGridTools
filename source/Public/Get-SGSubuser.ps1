@@ -5,17 +5,17 @@
 
     .DESCRIPTION
         Get-SGSubuser retrieves all Subusers or a specific Subuser based on its username
-        within the current SendGrid instance. Due to limitations in the SendGrid API, when retrieving all users it won't display disabled users.
+        within the current SendGrid instance. The list includes disabled Subusers.
 
     .PARAMETER Username
-        Specifies the username of a specific Subuser to retrieve. If this parameter is not provided, all Subusers are retrieved. Only a Subuser whose username equals the value is returned.
+        Specifies the username of a specific Subuser to retrieve. If this parameter is not provided, all Subusers are retrieved. Only a Subuser whose username equals the value is returned. An empty value is refused.
 
     .PARAMETER Limit
-        The number of results you would like to get in each request.
+        The number of results you would like to get in each request. It applies only when -Username is not given.
         Default: none
 
     .PARAMETER Offset
-        The number of Subusers to skip.
+        The number of Subusers to skip. It applies only when -Username is not given.
         Default: none
 
     .PARAMETER IncludeRegion
@@ -58,7 +58,7 @@
     )]
     param (
 
-        # Specifies the username of a specific Subuser to retrieve. If this parameter is not provided, all Subusers are retrieved. Only a Subuser whose username equals the value is returned.
+        # Specifies the username of a specific Subuser to retrieve. If this parameter is not provided, all Subusers are retrieved. Only a Subuser whose username equals the value is returned. An empty value is refused.
         [Parameter(
             ValueFromPipeline,
             ValueFromPipelineByPropertyName,
@@ -68,12 +68,12 @@
         [Alias('Id')]
         [string]$Username,
 
-        # Specifies the page size, i.e. maximum number of items from the list to be returned for a single API request.
+        # Specifies the page size, i.e. maximum number of items from the list to be returned for a single API request. It applies only when -Username is not given.
         [Parameter()]
         [ValidateRange(1, [int]::MaxValue)]
         [int]$Limit,
 
-        # Specifies the number of items in the list to skip over before starting to retrieve the items for the requested page.
+        # Specifies the number of items in the list to skip over before starting to retrieve the items for the requested page. It applies only when -Username is not given.
         [Parameter()]
         [ValidateRange(0, [int]::MaxValue)]
         [int]$Offset,

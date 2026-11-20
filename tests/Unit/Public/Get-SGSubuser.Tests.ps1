@@ -645,7 +645,26 @@ Describe 'Get-SGSubuser names the username in -WhatIf (D111)' {
 Describe 'Get-SGSubuser help' {
     It 'Describes -Username as a username' {
         $Text = ((Get-Help Get-SGSubuser -Parameter Username).description.Text -join ' ') -replace '\s+', ' '
-        $Text.Trim() | Should -Be 'Specifies the username of a specific Subuser to retrieve. If this parameter is not provided, all Subusers are retrieved. Only a Subuser whose username equals the value is returned.'
+        $Text.Trim() | Should -Be 'Specifies the username of a specific Subuser to retrieve. If this parameter is not provided, all Subusers are retrieved. Only a Subuser whose username equals the value is returned. An empty value is refused.'
+    }
+
+    It 'Says that an empty -Username is refused' {
+        $Text = ((Get-Help Get-SGSubuser -Parameter Username).description.Text -join ' ') -replace '\s+', ' '
+        $Text | Should -BeLike '*An empty value is refused.*'
+        (Get-Command Get-SGSubuser).Definition | Should -BeLike '*Only a Subuser whose username equals the value is returned. An empty value is refused.*'
+    }
+
+    It 'Says that -<Name> applies only without -Username' -ForEach @(
+        @{ Name = 'Limit'; Comment = '# Specifies the page size, i.e. maximum number of items from the list to be returned for a single API request. It applies only when -Username is not given.' }
+        @{ Name = 'Offset'; Comment = '# Specifies the number of items in the list to skip over before starting to retrieve the items for the requested page. It applies only when -Username is not given.' }
+    ) {
+        $Text = ((Get-Help Get-SGSubuser -Parameter $Name).description.Text -join ' ') -replace '\s+', ' '
+        $Text | Should -BeLike '*It applies only when -Username is not given.*'
+        (Get-Command Get-SGSubuser).Definition | Should -BeLike "*$Comment*"
+    }
+
+    It 'Names no issue id in the help or the code' {
+        (Get-Command Get-SGSubuser).Definition | Should -Not -Match '\b(SGT|BL)-\d+'
     }
 
     It 'Says that only an equal username is returned' {
@@ -662,7 +681,8 @@ Describe 'Get-SGSubuser help' {
 
     It 'Spells the description right' {
         $Text = ((Get-Help Get-SGSubuser).description.Text -join ' ') -replace '\s+', ' '
-        $Text | Should -BeLike "*when retrieving all users it won't display disabled users*"
+        $Text | Should -BeLike '*The list includes disabled Subusers.*'
+        $Text | Should -Not -Match "won't display disabled"
         $Text | Should -Not -Match 'retrieve ing'
         $Text | Should -Not -Match '\bwont\b'
     }
