@@ -5,12 +5,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `New-SGAuthenticatedDomain`, `New-SGBrandedDomainLink` and `New-SGApiKey` have a `-Force` switch. With `-Force` the question before `-Default` replaces the current default, or before a key with full access is created, is not asked, so a script without a console can do it. `-Force` does not change `-WhatIf` or `-Confirm`. Without `-Force` the commands ask as before.
+
 ### Fixed
 
 - `Get-SGBlock`, `Get-SGBounce`, `Get-SGGlobalSuppression`, `Get-SGInvalidEmail` and `Get-SGSpamReport` with `-EmailAddress` now encode the address in the query, so an address with `+`, `#` or `&` asks for that address. Before, the address was sent as given: SendGrid read `+` as a space, and `#` or `&` cut or split the query. Without `-EmailAddress` the query is unchanged.
 - `Disable-SGSubuser`, `Enable-SGSubuser`, `Remove-SGSubuser` and `Get-SGTeammate -Username` encode the username in the request path; a name without special characters gives the same path as before. `Get-SGTeammate -Username` now sends its request; before, it called the module's request function without its parameters, so in a console PowerShell asked for those parameters, and otherwise the command failed; no request for the username was sent. `Remove-SGSubuser` names the username in its question and in `-WhatIf`; before, the target was the word `Subuser`. The help for `-Username` in the three subuser commands says the username of the Subuser with the right verb; before, it said the ID (and "to enable" in `Disable-SGSubuser`).
 - `Remove-SGBlock`, `Remove-SGBounce`, `Remove-SGInvalidEmail` and `Remove-SGSpamReport` stop with "InputObject has no Email property; pass an email address or an object with an Email property." for an object in the pipeline without a non-empty `Email`, and send nothing for it. Before, an object without `Email` sent a removal to the list's path without an address, and an object with an empty `Email` failed with a conversion error. Any other input that is not a text or such an object now gives "Failed to convert InputObject to an email address." instead of "Failed to convert InputObject to Id.". A text and an object with `Email` work as before.
 - `Get-SGDesign` sends `-PageSize` as a plain number, encodes `-PageToken`, and sends `summary=true` for `-Summary` and `summary=false` for `-Summary:$false`. Before, `-PageSize` was sent with an extra `)`, which SendGrid refused, the token was sent as given, `-Summary` was sent as `True`, and `-Summary:$false` sent nothing, so all fields were never asked for. Without `-Summary` no value is sent, as before.
+- `New-SGApiKey -FullAccessKey` honours `-WhatIf` and `-Confirm`: with `-WhatIf` it writes one line for the key, asks nothing and creates nothing; with `-Confirm` it asks for the key and then the question about full access. Before, the question about full access was asked also under `-WhatIf`, and `-Confirm` gave no question of its own. Without these switches it asks once, as before.
 
 ## [0.5.2] - 2026-11-19
 

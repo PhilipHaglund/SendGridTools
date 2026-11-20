@@ -16,10 +16,13 @@
         Specifies an optional subdomain to be used. Use when you don't want SendGrid to automatically generate a subdomain like url1234.
 
     .PARAMETER Default
-        Specifies that the new branded domain link becomes the default one for the SendGrid instance. The current default is replaced, so a confirmation prompt is shown.
+        Specifies that the new branded domain link becomes the default one for the SendGrid instance. The current default is replaced, so a confirmation prompt is shown. Use -Force to skip that prompt.
 
     .PARAMETER OnBehalfOf
         Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
+
+    .PARAMETER Force
+        Specifies that the question before -Default replaces the current default branded link is not asked, so a script without a console can set a default branded link. -Force does not change -WhatIf or -Confirm.
 
     .EXAMPLE
         PS C:\> New-SGBrandedDomainLink -Domain 'example.com' -SendGridSubDomain 'link'
@@ -31,10 +34,14 @@
 
         Adds a new branded domain link for the domain 'sub.example.com', which itself contains a subdomain, and lets SendGrid generate the link subdomain. Passing a domain that includes a subdomain is not recommended, as the Domain parameter help describes.
 
+    .EXAMPLE
+        PS C:\> New-SGBrandedDomainLink -Domain 'example.com' -SendGridSubDomain 'link' -Default -Force
+
+        Adds the branded link 'link.example.com' and makes it the default branded link without asking first, for example in a script that runs without a console. -WhatIf still shows the link without adding it.
+
     .NOTES
         To use this function, you must be connected to a SendGrid instance. Use the Connect-SendGrid function to establish a connection.
     #>
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidShouldContinueWithoutForce', '', Justification = 'The ShouldContinue prompt, reached through Confirm-SendGridContinue, only asks before -Default replaces the current default domain and is not a -Force bypass; a -Force parameter would add to the public surface, so it waits for a later minor release.')]
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseLiteralInitializerForHashtable', '', Justification = '[hashtable]::new() creates a case-sensitive table while @{} is case-insensitive; the two are not interchangeable in general, so changing the initializer could change behaviour and is deferred.')]
     [CmdletBinding(SupportsShouldProcess)]
     param (
@@ -59,7 +66,11 @@
 
         # Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
         [Parameter()]
-        [string]$OnBehalfOf
+        [string]$OnBehalfOf,
+
+        # Specifies that the question before -Default replaces the current default branded link is not asked. -WhatIf and -Confirm work as without it.
+        [Parameter()]
+        [switch]$Force
     )
 
     begin {
@@ -88,7 +99,7 @@
     }
     process {
         if ($PSCmdlet.ShouldProcess($ProcessMessage)) {
-            if ($Default.IsPresent -and (Confirm-SendGridContinue -Cmdlet $PSCmdlet -Query $Domain -Caption 'Setting this domain as the default domain will remove the current default domain. Do you want to continue?')) {
+            if ($Default.IsPresent -and ($Force -or (Confirm-SendGridContinue -Cmdlet $PSCmdlet -Query $Domain -Caption 'Setting this domain as the default domain will remove the current default domain. Do you want to continue?'))) {
                 $ContentBody.Add('default', $true)
             }
             try {

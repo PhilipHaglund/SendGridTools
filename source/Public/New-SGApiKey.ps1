@@ -19,6 +19,9 @@
     .PARAMETER OnBehalfOf
         Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
 
+    .PARAMETER Force
+        Specifies that the question before a key with full access is created is not asked, so a script without a console can create one. -Force does not change -WhatIf or -Confirm, and has no effect without -FullAccessKey.
+
     .EXAMPLE
         PS C:\> New-SGApiKey -Name 'MyAPIKey' -Scope @('mail.send', 'alerts.create', 'alerts.read')
 
@@ -27,14 +30,17 @@
     .EXAMPLE
         PS C:\> New-SGApiKey -Name 'MyFullAccessKey' -FullAccessKey
 
-        Creates a new full access API key with the name 'MyFullAccessKey'. This will prompt for confirmation.
+        Creates a new full access API key with the name 'MyFullAccessKey'. This asks before the key is created; -WhatIf shows the key without asking or creating it.
+
+    .EXAMPLE
+        PS C:\> New-SGApiKey -Name 'MyFullAccessKey' -FullAccessKey -Force
+
+        Creates a full access API key named 'MyFullAccessKey' without asking first. Use -WhatIf to see the key that would be created, without creating it.
 
     .NOTES
         To use this function, you must be connected to a SendGrid instance. Use the Connect-SendGrid function to establish a connection.
         There is a limit of 100 API Keys on your account. Omitting the Scopes field from your request will create a key with "Full Access" permissions by default.
     #>
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidShouldContinueWithoutForce', '', Justification = 'The ShouldContinue prompt only guards a deliberate request (Full Access key or -Default) and is not a -Force bypass; a boolean -Force parameter would add to the public surface and change behaviour, so the repair is deferred.')]
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '', Justification = 'CommandName, ParameterName, CommandAst and FakeBoundParameters are the fixed positional parameters PowerShell passes to an ArgumentCompleter script block; the signature is dictated by the engine and cannot be trimmed.')]
     [CmdletBinding(
         SupportsShouldProcess,
         DefaultParameterSetName = 'Scopes')]
@@ -58,13 +64,9 @@
         )]
         #[ValidateSet([SendGridScopes])] Removed to make it PowerShell 5.1 compatible
         [ArgumentCompleter({
-                param(
-                    [string]$CommandName,
-                    [string]$ParameterName,
-                    [string]$WordToComplete,
-                    $CommandAst,
-                    $FakeBoundParameters
-                )
+                # The engine passes five positional arguments (command name, parameter name, word to complete, command AST and
+                # fake bound parameters); the completer reads only the word to complete, so it declares no parameter it does not use.
+                $WordToComplete = $args[2]
                 $ReturnedValue = [SendGridScopes]::ValidScopes()
 
                 if ($WordToComplete) {
@@ -84,7 +86,11 @@
 
         # Specifies a On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
         [Parameter()]
-        [string]$OnBehalfOf
+        [string]$OnBehalfOf,
+
+        # Specifies that the question before a key with full access is created is not asked. -WhatIf and -Confirm work as without it.
+        [Parameter()]
+        [switch]$Force
     )
     begin {
         [hashtable]$ContentBody = @{
@@ -106,12 +112,14 @@
         }
         $InvokeSplat.Add('ContentBody', $ContentBody)
         if ($PSCmdlet.ParameterSetName -eq 'FullAccess') {
-            if ($PSCmdlet.ShouldContinue("You are about to create an API key ($Name) with Full Access. Do you want to continue?", $MyInvocation.MyCommand.Name)) {
-                try {
-                    Invoke-SendGrid @InvokeSplat
-                }
-                catch {
-                    Write-Error ('Failed to create a FullAccess SendGrid API key. {0}' -f $_.Exception.Message) -ErrorAction Stop
+            if ($PSCmdlet.ShouldProcess($Name)) {
+                if ($Force -or (Confirm-SendGridContinue -Cmdlet $PSCmdlet -Query "You are about to create an API key ($Name) with Full Access. Do you want to continue?" -Caption $MyInvocation.MyCommand.Name)) {
+                    try {
+                        Invoke-SendGrid @InvokeSplat
+                    }
+                    catch {
+                        Write-Error ('Failed to create a FullAccess SendGrid API key. {0}' -f $_.Exception.Message) -ErrorAction Stop
+                    }
                 }
             }
         }

@@ -208,6 +208,123 @@ Describe 'New-SGBrandedDomainLink verbose messages' {
         }
     }
 }
+
+Describe 'New-SGBrandedDomainLink -Force' {
+    BeforeAll {
+        . (Join-Path -Path $PSScriptRoot -ChildPath '../Support/PromptCountingHost.ps1')
+    }
+
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Skips the question and sends default with -Default -Force' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+            Mock Confirm-SendGridContinue -ModuleName SendGridTools -MockWith { throw 'Confirm-SendGridContinue must not be called' }
+
+            $null = New-SGBrandedDomainLink -Domain 'example.com' -Default -Force -Confirm:$false
+
+            Should -Invoke Confirm-SendGridContinue -ModuleName SendGridTools -Times 0 -Exactly
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            ($Calls[0].Body | ConvertFrom-Json).default | Should -BeTrue
+        }
+    }
+
+    It 'Has an example in its help that uses -Force' {
+        $Text = [System.IO.File]::ReadAllText((Join-Path -Path $PSScriptRoot -ChildPath '../../../source/Public/New-SGBrandedDomainLink.ps1'))
+        $Help = [regex]::Match($Text, '<#[\s\S]*?#>').Value
+        $Help | Should -Match '\.EXAMPLE\s+PS C:\\> [^\r\n]*-Force'
+    }
+
+    It 'Sends the same body with -Force as with the answer yes' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+            Mock Confirm-SendGridContinue -ModuleName SendGridTools -MockWith { $true }
+
+            $null = New-SGBrandedDomainLink -Domain 'example.com' -Default -Confirm:$false
+            $null = New-SGBrandedDomainLink -Domain 'example.com' -Default -Force -Confirm:$false
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 2
+            $Calls[1].Body | Should -Be $Calls[0].Body
+        }
+    }
+
+    It 'Makes no call and asks nothing under -Default -Force -WhatIf' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+            Mock Confirm-SendGridContinue -ModuleName SendGridTools -MockWith { $true }
+
+            $null = New-SGBrandedDomainLink -Domain 'example.com' -Default -Force -WhatIf
+
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 0
+            Should -Invoke Confirm-SendGridContinue -ModuleName SendGridTools -Times 0 -Exactly
+        }
+    }
+
+    It 'Asks once as before when -Force is given as false' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+            Mock Confirm-SendGridContinue -ModuleName SendGridTools -MockWith { $true }
+
+            $null = New-SGBrandedDomainLink -Domain 'example.com' -Default -Force:$false -Confirm:$false
+
+            Should -Invoke Confirm-SendGridContinue -ModuleName SendGridTools -Times 1 -Exactly
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            ($Calls[0].Body | ConvertFrom-Json).default | Should -BeTrue
+        }
+    }
+
+    It 'Asks nothing and sends no default with -Force alone' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+            Mock Confirm-SendGridContinue -ModuleName SendGridTools -MockWith { throw 'Confirm-SendGridContinue must not be called' }
+
+            $null = New-SGBrandedDomainLink -Domain 'example.com' -Force -Confirm:$false
+
+            Should -Invoke Confirm-SendGridContinue -ModuleName SendGridTools -Times 0 -Exactly
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            ($Calls[0].Body | ConvertFrom-Json).PSObject.Properties.Name | Should -Not -Contain 'default'
+        }
+    }
+
+    It 'Declares Force as a switch without a position' {
+        $Parameter = (Get-Command -Name New-SGBrandedDomainLink).Parameters['Force']
+
+        $Parameter.ParameterType | Should -Be ([switch])
+        $ParameterAttributes = @($Parameter.Attributes | Where-Object { $_ -is [System.Management.Automation.ParameterAttribute] })
+        $ParameterAttributes.Count | Should -BeGreaterThan 0
+        foreach ($Attribute in $ParameterAttributes) {
+            $Attribute.Position | Should -Be ([int]::MinValue)
+        }
+    }
+
+    It 'Counts the questions in a console host: <Switches> asks <Prompts>' -ForEach @(
+        @{ Switches = '-Default -Force -Confirm'; Prompts = 1; Requests = 1 }
+        @{ Switches = '-Default -Force'; Prompts = 0; Requests = 1 }
+        @{ Switches = '-Default -Confirm'; Prompts = 2; Requests = 1 }
+    ) {
+        $Run = Invoke-SgtInCountingHost -Script "`$null = New-SGBrandedDomainLink -Domain 'example.com' $Switches" -AnswerJson '{"id":1001}'
+
+        $Run.PromptCount | Should -Be $Prompts
+        $Run.NetworkCallCount | Should -Be $Requests
+        $Run.UnmockedCall | Should -BeNullOrEmpty
+    }
+}
+
 Describe 'Network tripwire' {
     It 'Made no unmocked network call' {
         Assert-SgtNetworkTripwireActive
