@@ -133,7 +133,7 @@ Describe 'Command errors keep the exception, the HTTP status and the SendGrid er
                 $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
             }
             Mock -CommandName Remove-Variable -ModuleName SendGridTools -ParameterFilter { $Name -eq 'Session' } -MockWith { throw 'made-up removal failure' }
-            $Stream = @(Disconnect-SendGrid -Confirm:$false 2>&1)
+            $Stream = @(Disconnect-SendGrid -Confirm:$false -ErrorAction Continue 2>&1)
             $Record = @($Stream | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] })
             $Record.Count | Should -Be 1
             $Record[0].Exception.Message | Should -BeExactly 'Unable to disconnect from SendGrid. made-up removal failure'
