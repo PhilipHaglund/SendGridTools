@@ -291,8 +291,55 @@ Describe 'Get-SGEmailActivity binds -Value for a key, group or teammate property
         Should -Invoke -CommandName $Lookup -ModuleName SendGridTools -Times 1 -Exactly
     }
 
+    It 'Sends nothing for <Property> with <Case> under -ErrorAction SilentlyContinue' -ForEach @(
+        @{ Property = 'TemplateName'; Case = 'the refused template name'; Values = @('sgt-template-name'); Expected = 'SendGrid cannot filter email activity by template name; use -Property TemplateId.' }
+        @{ Property = 'ApiKeyName'; Case = 'an unknown name'; Values = @('sgt-key-name-missing'); Expected = "No API key named 'sgt-key-name-missing'." }
+        @{ Property = 'ApiKeyName'; Case = 'one known and one unknown name'; Values = @('sgt-key-name-1', 'sgt-key-name-missing'); Expected = "No API key named 'sgt-key-name-missing'." }
+        @{ Property = 'AsmGroupName'; Case = 'an unknown name'; Values = @('sgt-group-name-missing'); Expected = "No unsubscribe group named 'sgt-group-name-missing'." }
+        @{ Property = 'AsmGroupName'; Case = 'one known and one unknown name'; Values = @('sgt-group-name-1', 'sgt-group-name-missing'); Expected = "No unsubscribe group named 'sgt-group-name-missing'." }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ Property = $Property; Values = $Values; Expected = $Expected } {
+            $Collected = $null
+            $Thrown = $null
+            try {
+                $null = @(Get-SGEmailActivity -Property $Property -EQ -Value $Values -ErrorAction SilentlyContinue -ErrorVariable Collected)
+            }
+            catch {
+                $Thrown = $_.Exception.Message
+            }
+            (Get-SgtNetworkCall).Count | Should -Be 0
+            $Messages = @(@($Collected) | ForEach-Object { $_.Exception.Message }) + @($Thrown) | Where-Object { $_ }
+            $Messages | Should -Contain $Expected
+        }
+    }
+
+    It 'Sends nothing for the refused template name under -ErrorAction Ignore' {
+        InModuleScope SendGridTools {
+            try {
+                $null = @(Get-SGEmailActivity -Property TemplateName -EQ -Value 'sgt-template-name' -ErrorAction Ignore)
+            }
+            catch {
+                $null = $_
+            }
+            (Get-SgtNetworkCall).Count | Should -Be 0
+        }
+    }
+
+    It 'Sends <Property> with -NE and two names as <QueryTwo> with one lookup' -ForEach @(
+        @{ Property = 'ApiKeyName'; Values = @('sgt-key-name-1', 'sgt-key-name-2'); QueryTwo = '(api_key_id NOT%20IN (%22sgt-key-id-1%22,%22sgt-key-id-2%22))'; Lookup = 'Get-SGApiKey' }
+        @{ Property = 'AsmGroupName'; Values = @('sgt-group-name-1', 'sgt-group-name-2'); QueryTwo = '(asm_group_id NOT%20IN (%22101%22,%22102%22))'; Lookup = 'Get-SGSuppressionGroup' }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ Property = $Property; Values = $Values; QueryTwo = $QueryTwo } {
+            $null = @(Get-SGEmailActivity -Property $Property -NE -Value $Values)
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Calls[0].Uri.OriginalString | Should -BeExactly ('https://api.sendgrid.com/v3/messages?limit=10&query=' + $QueryTwo)
+        }
+        Should -Invoke -CommandName $Lookup -ModuleName SendGridTools -Times 1 -Exactly
+    }
+
     Context 'Completer' {
-        It 'Completes <Property> from <Lookup>: nothing before it runs, one call when it runs, all or the matching value' -ForEach @(
+        It 'Completes <Property> from <Lookup>: nothing before it runs, all or the matching value' -ForEach @(
             @{ Property = 'ApiKeyId'; Lookup = 'Get-SGApiKey'; All = @('sgt-key-id-1', 'sgt-key-id-2'); Prefix = 'sgt-key-id-2'; Matching = @('sgt-key-id-2') }
             @{ Property = 'ApiKeyName'; Lookup = 'Get-SGApiKey'; All = @('sgt-key-name-1', 'sgt-key-name-2'); Prefix = 'sgt-key-name-1'; Matching = @('sgt-key-name-1') }
             @{ Property = 'AsmGroupId'; Lookup = 'Get-SGSuppressionGroup'; All = @('101', '102'); Prefix = '102'; Matching = @('102') }
@@ -368,6 +415,60 @@ Describe 'Get-SGEmailActivity binds -Value for a key, group or teammate property
                 Where-Object { $_ -is [System.Management.Automation.ArgumentCompleterAttribute] }
 
             @(& $Completer.ScriptBlock 'Get-SGEmailActivity' 'Value' '' $null @{}) | Should -Be @("'sgt key name'", "'sgt''key'", 'sgt-plain-name')
+        }
+
+        It 'Quotes every value that would not bind as one bare word for <Property>' -ForEach @(
+            @{ Property = 'ApiKeyId'; Lookup = 'Get-SGApiKey' }
+            @{ Property = 'ApiKeyName'; Lookup = 'Get-SGApiKey' }
+            @{ Property = 'AsmGroupId'; Lookup = 'Get-SGSuppressionGroup' }
+            @{ Property = 'AsmGroupName'; Lookup = 'Get-SGSuppressionGroup' }
+            @{ Property = 'Teammate'; Lookup = 'Get-SGTeammate' }
+        ) {
+            $Typographic = 'sgt' + [char]0x2019 + 'key'
+            $Raw = @('-sgt-key-id', 'sgt,key', 'sgt;key', $Typographic, 'sgt-key-id-1', 'sgt key', "sgt'key")
+            $Script:Raw = $Raw
+            $Expected = @("'-sgt-key-id'", "'sgt,key'", "'sgt;key'", ("'sgt" + [char]0x2019 + [char]0x2019 + "key'"), 'sgt-key-id-1', "'sgt key'", "'sgt''key'")
+            $Block = {
+                foreach ($Value in $Script:Raw) {
+                    [pscustomobject]@{ ApiKeyId = $Value; Name = $Value; Id = $Value; Username = $Value }
+                }
+            }
+            Mock -CommandName $Lookup -ModuleName SendGridTools -MockWith $Block
+            Mock -CommandName $Lookup -MockWith $Block
+            $Completer = (Get-Command -Name Get-SGEmailActivity -ArgumentList $Property).Parameters['Value'].Attributes |
+                Where-Object { $_ -is [System.Management.Automation.ArgumentCompleterAttribute] }
+
+            @(& $Completer.ScriptBlock 'Get-SGEmailActivity' 'Value' '' $null @{}) | Should -Be $Expected
+        }
+
+        It 'Completes <Property> through TabExpansion2 with exactly one lookup and no network call' -ForEach @(
+            @{ Property = 'ApiKeyName'; Lookup = 'Get-SGApiKey'; Expected = @('sgt-key-name-1', 'sgt-key-name-2') }
+            @{ Property = 'AsmGroupName'; Lookup = 'Get-SGSuppressionGroup'; Expected = @('sgt-group-name-1', 'sgt-group-name-2') }
+            @{ Property = 'Teammate'; Lookup = 'Get-SGTeammate'; Expected = @('sgt-teammate-1', 'sgt-teammate-2') }
+        ) {
+            $global:SgtLookupCount = 0
+            $global:SgtLookupNames = $Expected
+            try {
+                # The same block is mocked in the module scope and in the test scope; both count into one global.
+                $Block = {
+                    $global:SgtLookupCount++
+                    foreach ($Name in $global:SgtLookupNames) {
+                        [pscustomobject]@{ ApiKeyId = 'sgt-key-id'; Id = 101; Name = $Name; Username = $Name }
+                    }
+                }
+                Mock -CommandName $Lookup -ModuleName SendGridTools -MockWith $Block
+                Mock -CommandName $Lookup -MockWith $Block
+                $Line = "Get-SGEmailActivity -Property $Property -EQ -Value "
+                $Result = TabExpansion2 -inputScript $Line -cursorColumn $Line.Length
+                @($Result.CompletionMatches.CompletionText) | Should -Be $Expected
+                $global:SgtLookupCount | Should -Be 1
+                InModuleScope SendGridTools {
+                    (Get-SgtNetworkCall).Count | Should -Be 0
+                }
+            }
+            finally {
+                Remove-Variable -Name SgtLookupCount, SgtLookupNames -Scope Global -ErrorAction SilentlyContinue
+            }
         }
     }
 }
