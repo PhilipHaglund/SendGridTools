@@ -8,7 +8,7 @@
         within the current SendGrid instance. Due to limitations in the SendGrid API, when retrieving all users it won't display disabled users.
 
     .PARAMETER Username
-        Specifies the username of a specific Subuser to retrieve. If this parameter is not provided, all Subusers are retrieved.
+        Specifies the username of a specific Subuser to retrieve. If this parameter is not provided, all Subusers are retrieved. Only a Subuser whose username equals the value is returned.
 
     .PARAMETER Limit
         The number of results you would like to get in each request.
@@ -58,7 +58,7 @@
     )]
     param (
 
-        # Specifies the username of a specific Subuser to retrieve. If this parameter is not provided, all Subusers are retrieved.
+        # Specifies the username of a specific Subuser to retrieve. If this parameter is not provided, all Subusers are retrieved. Only a Subuser whose username equals the value is returned.
         [Parameter(
             ValueFromPipeline,
             ValueFromPipelineByPropertyName,
@@ -130,7 +130,13 @@
 
         if ($PSCmdlet.ShouldProcess(('{0}' -f 'Subusers'))) {
             try {
-                Invoke-SendGrid @InvokeSplat
+                if ($PSBoundParameters.Username) {
+                    # SendGrid's username filter also returns names that start with the value (D96).
+                    Invoke-SendGrid @InvokeSplat | Where-Object { "$($_.Username)" -eq $Username }
+                }
+                else {
+                    Invoke-SendGrid @InvokeSplat
+                }
             }
             catch {
                 Write-Error ('Failed to retrieve SendGrid Subuser. {0}' -f $_.Exception.Message) -ErrorAction Stop
