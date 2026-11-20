@@ -101,7 +101,7 @@
         [System.Collections.Generic.List[string]]$QueryParameters = [System.Collections.Generic.List[string]]::new()
 
         if ($PSBoundParameters.Username) {
-            $InvokeSplat['Namespace'] += "/$username"
+            $QueryParameters.Add(('username={0}' -f [uri]::EscapeDataString($Username)))
         }
         if ($PSBoundParameters.Limit) {
             $QueryParameters.Add("limit=$limit")

@@ -131,7 +131,7 @@ Describe 'Get-SGSubuser region' {
 
             $null = Get-SGSubuser -Username sgt-test-subuser-1 -Confirm:$false -WarningVariable Warned -WarningAction SilentlyContinue
 
-            "$((@(Get-SgtNetworkCall)[0])[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/subusers/sgt-test-subuser-1'
+            "$((@(Get-SgtNetworkCall)[0])[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/subusers?username=sgt-test-subuser-1'
             @($Warned).Count | Should -Be 0
         }
     }
@@ -159,7 +159,7 @@ Describe 'Get-SGSubuser region' {
 
             $Calls = @(Get-SgtNetworkCall)[0]
             $Calls.Count | Should -Be 1
-            "$($Calls[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/subusers/sgt-test-subuser-1'
+            "$($Calls[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/subusers?username=sgt-test-subuser-1'
             @($Warned).Count | Should -Be 1
             "$($Warned[0])" | Should -Match 'single subuser'
             "$($Warned[0])" | Should -Not -Match 'sgt-test-subuser'
@@ -188,7 +188,7 @@ Describe 'Get-SGSubuser region' {
 
             $Calls = @(Get-SgtNetworkCall)[0]
             $Calls.Count | Should -Be 2
-            foreach ($Call in $Calls) { "$($Call.Uri)" | Should -Not -Match '\?' }
+            foreach ($Call in $Calls) { "$($Call.Uri)" | Should -Not -Match 'region' }
             @($Warned).Count | Should -Be 1
         }
     }
@@ -202,8 +202,8 @@ Describe 'Get-SGSubuser region' {
 
             $Calls = @(Get-SgtNetworkCall)[0]
             $Calls.Count | Should -Be 1
-            "$($Calls[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/subusers/sgt-test-subuser-1'
-            "$($Calls[0].Uri)" | Should -Not -Match '\?'
+            "$($Calls[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/subusers?username=sgt-test-subuser-1'
+            "$($Calls[0].Uri)" | Should -Not -Match 'region'
         }
     }
 
@@ -221,6 +221,132 @@ Describe 'Get-SGSubuser region' {
             $Calls.Count | Should -Be 1
             ([uri]"$($Calls[0].Uri)").Host | Should -Be 'api.eu.sendgrid.com'
             "$($Calls[0].Uri)" | Should -Be 'https://api.eu.sendgrid.com/v3/subusers?include_region=true&region=eu'
+        }
+    }
+}
+
+Describe 'Get-SGSubuser -Username lookup' {
+    BeforeEach {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Plain = $script:PlainFixture } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response (Get-Content -LiteralPath $Plain -Raw | ConvertFrom-Json)
+        }
+    }
+
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Sends the username as the documented filter' {
+        InModuleScope SendGridTools {
+            $null = Get-SGSubuser -Username sgt-test-subuser-1 -Confirm:$false
+
+            $Calls = @(Get-SgtNetworkCall)[0]
+            $Calls.Count | Should -Be 1
+            $Calls[0].Method | Should -Be 'Get'
+            ([uri]$Calls[0].Uri).AbsoluteUri | Should -Be 'https://api.sendgrid.com/v3/subusers?username=sgt-test-subuser-1'
+        }
+    }
+
+    It 'Keeps the filter first with -Limit and -Offset' {
+        InModuleScope SendGridTools {
+            $null = Get-SGSubuser -Username sgt-test-subuser-1 -Limit 2 -Offset 1 -Confirm:$false
+            $Calls = @(Get-SgtNetworkCall)[0]
+            $Calls.Count | Should -Be 1
+            ([uri]$Calls[0].Uri).AbsoluteUri | Should -Be 'https://api.sendgrid.com/v3/subusers?username=sgt-test-subuser-1&limit=2&offset=1'
+
+            Reset-SgtNetworkStub
+            Set-SgtNetworkStub -Response @()
+            $null = Get-SGSubuser -Username sgt-test-subuser-1 -Limit 2 -Confirm:$false
+            $Calls = @(Get-SgtNetworkCall)[0]
+            $Calls.Count | Should -Be 1
+            ([uri]$Calls[0].Uri).AbsoluteUri | Should -Be 'https://api.sendgrid.com/v3/subusers?username=sgt-test-subuser-1&limit=2'
+
+            Reset-SgtNetworkStub
+            Set-SgtNetworkStub -Response @()
+            $null = Get-SGSubuser -Username sgt-test-subuser-1 -Offset 1 -Confirm:$false
+            $Calls = @(Get-SgtNetworkCall)[0]
+            $Calls.Count | Should -Be 1
+            ([uri]$Calls[0].Uri).AbsoluteUri | Should -Be 'https://api.sendgrid.com/v3/subusers?username=sgt-test-subuser-1&offset=1'
+        }
+    }
+
+    It 'Encodes <Name> in the username' -TestCases @(
+        @{ Name = '+'; Char = '+'; Encoded = '%2B' }
+        @{ Name = '/'; Char = '/'; Encoded = '%2F' }
+        @{ Name = '#'; Char = '#'; Encoded = '%23' }
+        @{ Name = '?'; Char = '?'; Encoded = '%3F' }
+        @{ Name = '&'; Char = '&'; Encoded = '%26' }
+        @{ Name = 'a space'; Char = ' '; Encoded = '%20' }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ Char = $Char; Encoded = $Encoded } {
+            $null = Get-SGSubuser -Username "a${Char}b" -Confirm:$false
+
+            $Calls = @(Get-SgtNetworkCall)[0]
+            $Calls.Count | Should -Be 1
+            $Sent = [uri]$Calls[0].Uri
+            $Sent.AbsolutePath | Should -Be '/v3/subusers'
+            $Sent.Query | Should -Be "?username=a${Encoded}b"
+            $Sent.Fragment | Should -BeNullOrEmpty
+        }
+    }
+
+    It 'Encodes every character in one name and keeps limit and offset' {
+        InModuleScope SendGridTools {
+            $null = Get-SGSubuser -Username 'a b+c/d#e' -Limit 2 -Offset 1 -Confirm:$false
+
+            $Calls = @(Get-SgtNetworkCall)[0]
+            $Calls.Count | Should -Be 1
+            $Sent = [uri]$Calls[0].Uri
+            $Sent.AbsolutePath | Should -Be '/v3/subusers'
+            $Sent.Query | Should -Be '?username=a%20b%2Bc%2Fd%23e&limit=2&offset=1'
+            $Sent.Fragment | Should -BeNullOrEmpty
+        }
+    }
+
+    It 'Sends one request per piped name <Case>' -TestCases @(
+        @{ Case = 'as strings'; ByProperty = $false }
+        @{ Case = 'by property'; ByProperty = $true }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ ByProperty = $ByProperty } {
+            $Names = @('a b+c/d#e', 'f?g&h')
+            if ($ByProperty) {
+                $Names | ForEach-Object { [pscustomobject]@{ Username = $_ } } | Get-SGSubuser -Confirm:$false | Out-Null
+            }
+            else {
+                $Names | Get-SGSubuser -Confirm:$false | Out-Null
+            }
+
+            $Calls = @(Get-SgtNetworkCall)[0]
+            $Calls.Count | Should -Be 2
+            ([uri]$Calls[0].Uri).AbsolutePath | Should -Be '/v3/subusers'
+            ([uri]$Calls[1].Uri).AbsolutePath | Should -Be '/v3/subusers'
+            ([uri]$Calls[0].Uri).Query | Should -Be '?username=a%20b%2Bc%2Fd%23e'
+            ([uri]$Calls[1].Uri).Query | Should -Be '?username=f%3Fg%26h'
+        }
+    }
+
+    It 'Returns nothing and no error for an empty list' {
+        InModuleScope SendGridTools {
+            Reset-SgtNetworkStub
+            Set-SgtNetworkStub -Response @()
+
+            $script:Out = @('unset')
+            { $script:Out = @(Get-SGSubuser -Username sgt-s55-missing -ErrorAction Stop -Confirm:$false) } | Should -Not -Throw
+
+            @($script:Out).Count | Should -Be 0
+            @(Get-SgtNetworkCall)[0].Count | Should -Be 1
+        }
+    }
+
+    It 'Passes on what SendGrid returns without filtering' {
+        InModuleScope SendGridTools {
+            $Out = @(Get-SGSubuser -Username sgt-test-subuser-1 -Confirm:$false)
+
+            $Out.Count | Should -Be 2
         }
     }
 }
