@@ -11,13 +11,16 @@
         Sets the number of messages to be returned. This parameter must be greater than 0 and less than or equal to 1000. If omitted, the default is 10.
 
     .PARAMETER Property
-        Specifies the email activity property to filter on, for example Status or FromEmail. Depending on the property, extra switches such as EQ and NE become available to choose how the property is compared.
+        Specifies the email activity property to filter on, for example Status or FromEmail. Depending on the property, extra switches such as EQ and NE become available to choose how the property is compared. Tab completes -Value for ApiKeyId, ApiKeyName, AsmGroupId, AsmGroupName and Teammate with the values of the account; binding the parameter makes no call to SendGrid. For ApiKeyName and AsmGroupName each name in -Value is looked up when the command runs and turned into an id, and a name that does not exist stops the command. TemplateName is refused because SendGrid cannot filter email activity by template name; use TemplateId.
 
     .PARAMETER Filter
         Specifies the query to filter email activity. Use native PowerShell operators; the query is URL encoded automatically.
     .EXAMPLE
         PS C:\> Get-SGEmailActivity -SendGridFilter "to_email%3D%22example%40example.com%22" -Limit 50
         This command retrieves the email activity for the email address 'example@example.com' with a limit of 50 messages.
+    .EXAMPLE
+        PS C:\> Get-SGEmailActivity -Property ApiKeyName -EQ -Value 'sgt-key-name-1', 'sgt-key-name-2'
+        This command looks up the two API key names when it runs and retrieves the email activity sent with either key.
     #>
     [CmdletBinding(
         DefaultParameterSetName = 'PropertySet'
