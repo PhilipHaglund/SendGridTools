@@ -32,26 +32,27 @@ BeforeAll {
         'errors {0}; {1}' -f $Caught.Count, ($Parts -join ' | ')
     }
 
-    # Runs Get-SGSubuser in module scope with the recorded page as answer. A terminating error is caught,
-    # non-terminating errors are collected, and warnings are kept.
+    # Runs Get-SGSubuser in module scope with the recorded page as answer. A terminating error is caught, and
+    # the error stream is read with 2>&1: an error from binding piped input reaches only that stream, not
+    # -ErrorVariable. Warnings are kept.
     function script:Invoke-SgtM7Case {
         param([hashtable]$Splat, [object[]]$PipeInput, [switch]$Pipe)
         InModuleScope SendGridTools -Parameters @{ Fixture = $script:PlainFixture; Splat = $Splat; PipeInput = $PipeInput; Pipe = [bool]$Pipe } {
             Set-SgtNetworkStub -Response (Get-Content -LiteralPath $Fixture -Raw | ConvertFrom-Json)
             $Caught = [System.Collections.Generic.List[object]]::new()
-            $Errs = $null
             $Warned = $null
-            $Out = @()
+            $Stream = @()
             try {
                 if ($Pipe) {
-                    $Out = @($PipeInput | Get-SGSubuser @Splat -Confirm:$false -ErrorVariable Errs -ErrorAction SilentlyContinue -WarningVariable Warned -WarningAction SilentlyContinue)
+                    $Stream = @($PipeInput | Get-SGSubuser @Splat -Confirm:$false -ErrorAction Continue -WarningVariable Warned -WarningAction SilentlyContinue 2>&1)
                 }
                 else {
-                    $Out = @(Get-SGSubuser @Splat -Confirm:$false -ErrorVariable Errs -ErrorAction SilentlyContinue -WarningVariable Warned -WarningAction SilentlyContinue)
+                    $Stream = @(Get-SGSubuser @Splat -Confirm:$false -ErrorAction Continue -WarningVariable Warned -WarningAction SilentlyContinue 2>&1)
                 }
             }
             catch { $Caught.Add($_) }
-            foreach ($E in @($Errs)) { if ($null -ne $E -and -not $Caught.Contains($E)) { $Caught.Add($E) } }
+            foreach ($E in @($Stream | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] })) { $Caught.Add($E) }
+            $Out = @($Stream | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] })
             @{ Calls = @(Get-SgtNetworkCall)[0]; Caught = $Caught.ToArray(); Warned = @($Warned); OutCount = $Out.Count }
         }
     }
