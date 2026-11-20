@@ -236,6 +236,21 @@ Describe 'ConvertTo-SendGridException' {
                 ($All -join ' ') | Should -Not -Match 'Authorization'
             }
         }
+
+        It 'removes the Authorization header from the kept response so a serialized error cannot hold the key' -Skip:($PSVersionTable.PSEdition -ne 'Core') {
+            InModuleScope SendGridTools {
+                $Record = New-SgtHttpRecord -Code 400 -Details '{"errors":[{"field":"name","message":"name is required"}]}'
+                $Response = $Record.Exception.Response
+                $Response.RequestMessage = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::Get, 'https://api.example.com/v3/x')
+                $null = $Response.RequestMessage.Headers.TryAddWithoutValidation('Authorization', 'Bearer test-key-not-real')
+                $Response.RequestMessage.Headers.Contains('Authorization') | Should -BeTrue
+                $Result = ConvertTo-SendGridException -ErrorRecord $Record -Context Query
+                $Response.RequestMessage.Headers.Contains('Authorization') | Should -BeFalse
+                $Json = try { ConvertTo-Json -InputObject $Result -Depth 8 -WarningAction SilentlyContinue } catch { '' }
+                $Json | Should -Not -Match 'test-key-not-real'
+                $Json | Should -Not -Match 'Bearer'
+            }
+        }
     }
 }
 
