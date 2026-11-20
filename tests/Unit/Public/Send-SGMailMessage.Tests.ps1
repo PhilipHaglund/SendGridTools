@@ -435,9 +435,10 @@ Describe 'Send-SGMailMessage -Categories (D103)' {
 Describe 'Send-SGMailMessage help for -Unsubscribe (D104)' {
     BeforeAll {
         $script:Squash = { param([string]$Text) ($Text -replace '\s+', ' ').Trim() }
-        $script:ParamHelp = & $script:Squash ((Get-Help -Name Send-SGMailMessage -Parameter Unsubscribe | Out-String))
+        # -Width keeps Get-Help from wrapping the text at the host width (Windows PowerShell 5.1 splits words).
+        $script:ParamHelp = & $script:Squash ((Get-Help -Name Send-SGMailMessage -Parameter Unsubscribe | Out-String -Width 4096))
         $script:Definition = & $script:Squash ((Get-Command -Name Send-SGMailMessage).Definition)
-        $script:FullHelp = & $script:Squash ((Get-Help -Name Send-SGMailMessage -Full | Out-String))
+        $script:FullHelp = & $script:Squash ((Get-Help -Name Send-SGMailMessage -Full | Out-String -Width 4096))
     }
 
     It 'says in the parameter help that GroupId must be greater than 0' {
@@ -455,11 +456,9 @@ Describe 'Send-SGMailMessage help for -Unsubscribe (D104)' {
     }
 
     It 'says in the parameter help and the comment block that PowerShell converts the hashtable and that [SGASM] does not exist after only Import-Module' {
-        # Windows PowerShell 5.1 wraps Get-Help output at the console width and can split a word, so compare without any whitespace.
-        $NoSpace = { param([string]$Text) $Text -replace '\s+', '' }
         foreach ($Source in @(@{ Name = 'parameter help'; Text = $script:ParamHelp }, @{ Name = 'definition'; Text = $script:Definition })) {
-            (& $NoSpace $Source.Text).Contains((& $NoSpace 'PowerShell converts the hashtable to SGASM')) | Should -BeTrue -Because "the $($Source.Name) says PowerShell converts the hashtable"
-            (& $NoSpace $Source.Text).Contains((& $NoSpace 'The type [SGASM] does not exist in a session that has only run Import-Module')) | Should -BeTrue -Because "the $($Source.Name) says the type does not exist"
+            $Source.Text.Contains('PowerShell converts the hashtable to SGASM') | Should -BeTrue -Because "the $($Source.Name) says PowerShell converts the hashtable"
+            $Source.Text.Contains('The type [SGASM] does not exist in a session that has only run Import-Module') | Should -BeTrue -Because "the $($Source.Name) says the type does not exist"
         }
     }
 
@@ -581,7 +580,7 @@ Describe 'Send-SGMailMessage -Unsubscribe as a hashtable from the caller (M1-M3)
         }
 
         It 'D122: the example in the -Unsubscribe parameter help runs as written' {
-            $Text = & $script:Squash2 (Get-Help -Name Send-SGMailMessage -Parameter Unsubscribe | Out-String)
+            $Text = & $script:Squash2 (Get-Help -Name Send-SGMailMessage -Parameter Unsubscribe | Out-String -Width 4096)
             $Found = @([regex]::Matches($Text, $script:CallPattern))
             $Found.Count | Should -Be 1
             & $script:AssertDocumentedRun $Found[0].Value
