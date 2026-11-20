@@ -70,7 +70,7 @@
                     $AddressList.Add(([MailAddress]::new("$Candidate")).Address)
                 }
                 catch {
-                    Write-Error ('Failed to convert InputObject to an email address.') -ErrorAction Stop
+                    Write-Error -Exception (ConvertTo-SendGridCommandException -Message ('Failed to convert InputObject to an email address.') -ErrorRecord $_) -ErrorAction Stop
                 }
             }
         }
@@ -92,7 +92,7 @@
                     Invoke-SendGrid @InvokeSplat
                 }
                 catch {
-                    Write-Error ('Failed to remove email address "{0}" from global suppressions list. {1}' -f $Id, $_.Exception.Message) -ErrorAction Stop
+                    Write-Error -Exception (ConvertTo-SendGridCommandException -Message ('Failed to remove email address "{0}" from global suppressions list. {1}' -f $Id, $_.Exception.Message) -ErrorRecord $_) -ErrorAction Stop
                 }
             }
         }

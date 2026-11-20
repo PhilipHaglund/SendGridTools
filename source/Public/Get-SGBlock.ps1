@@ -111,7 +111,7 @@
                     Invoke-SendGrid @EmailInvokeSplat
                 }
                 catch {
-                    Write-Error ('Failed to retrieve SendGrid block. {0}' -f $_.Exception.Message) -ErrorAction Stop
+                    Write-Error -Exception (ConvertTo-SendGridCommandException -Message ('Failed to retrieve SendGrid block. {0}' -f $_.Exception.Message) -ErrorRecord $_) -ErrorAction Stop
                 }
             }
         }
@@ -123,7 +123,7 @@
                 Invoke-SendGrid @InvokeSplat
             }
             catch {
-                Write-Error ('Failed to retrieve all SendGrid blocks. {0}' -f $_.Exception.Message) -ErrorAction Stop
+                Write-Error -Exception (ConvertTo-SendGridCommandException -Message ('Failed to retrieve all SendGrid blocks. {0}' -f $_.Exception.Message) -ErrorRecord $_) -ErrorAction Stop
             }
         }
     }

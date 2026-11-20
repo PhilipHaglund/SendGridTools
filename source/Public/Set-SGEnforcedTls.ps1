@@ -90,7 +90,7 @@ function Set-SGEnforcedTls {
                 Invoke-SendGrid @InvokeSplat
             }
             catch {
-                Write-Error ('Failed to update SendGrid Enforced TLS settings. {0}' -f $_.Exception.Message) -ErrorAction Stop
+                Write-Error -Exception (ConvertTo-SendGridCommandException -Message ('Failed to update SendGrid Enforced TLS settings. {0}' -f $_.Exception.Message) -ErrorRecord $_) -ErrorAction Stop
             }
         }
     }

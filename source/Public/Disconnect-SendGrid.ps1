@@ -29,7 +29,7 @@
                     Remove-Variable -Name Session -Scope Script
                 }
                 catch {
-                    Write-Error -Message ('Unable to disconnect from SendGrid. {0}' -f { $_.Exception.Message })
+                    Write-Error -Exception (ConvertTo-SendGridCommandException -Message ('Unable to disconnect from SendGrid. {0}' -f $_.Exception.Message) -ErrorRecord $_)
                 }
             }
         }

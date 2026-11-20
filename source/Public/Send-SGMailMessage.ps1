@@ -391,7 +391,7 @@
                 Invoke-SendGrid @InvokeSplat
             }
             catch {
-                Write-Error ('Failed to send email via SendGrid API. {0}' -f $_.Exception.Message) -ErrorAction Stop
+                Write-Error -Exception (ConvertTo-SendGridCommandException -Message ('Failed to send email via SendGrid API. {0}' -f $_.Exception.Message) -ErrorRecord $_) -ErrorAction Stop
             }
         }
     }

@@ -150,7 +150,7 @@
                     Invoke-SendGrid @EmailInvokeSplat
                 }
                 catch {
-                    Write-Error ('Failed to retrieve SendGrid bounce. {0}' -f $_.Exception.Message) -ErrorAction Stop
+                    Write-Error -Exception (ConvertTo-SendGridCommandException -Message ('Failed to retrieve SendGrid bounce. {0}' -f $_.Exception.Message) -ErrorRecord $_) -ErrorAction Stop
                 }
             }
         }
@@ -162,7 +162,7 @@
                 Invoke-SendGrid @InvokeSplat
             }
             catch {
-                Write-Error ('Failed to retrieve all SendGrid bounces. {0}' -f $_.Exception.Message) -ErrorAction Stop
+                Write-Error -Exception (ConvertTo-SendGridCommandException -Message ('Failed to retrieve all SendGrid bounces. {0}' -f $_.Exception.Message) -ErrorRecord $_) -ErrorAction Stop
             }
         }
     }
