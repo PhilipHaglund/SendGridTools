@@ -22,7 +22,7 @@ BeforeDiscovery {
         @{ Line = 12; Command = 'Get-SGAlert'; Mode = 'T'; Params = @{}; Prefix = 'Failed to retrieve SendGrid alert(s). ' }
         @{ Line = 13; Command = 'Get-SGApiKey'; Mode = 'T'; Params = @{ ApiKeyId = 'key-id-1' }; Prefix = 'Failed to retrieve SendGrid API Key. ' }
         @{ Line = 14; Command = 'Get-SGApiKey'; Mode = 'T'; Params = @{}; Prefix = 'Failed to retrieve SendGrid API Key. ' }
-        @{ Line = 15; Command = 'Get-SGAuthenticatedDomain'; Mode = 'T'; Params = @{}; Prefix = 'Failed to make SendGrid API call. ' }
+        @{ Line = 15; Command = 'Get-SGAuthenticatedDomain'; Mode = 'T'; Params = @{}; Prefix = 'Failed to make SendGrid API call. '; Wrapped = $true }
         @{ Line = 16; Command = 'Get-SGAuthenticatedDomain'; Mode = 'T'; Params = @{ Id = '1001' }; Prefix = 'Failed to retrieve SendGrid Authenticated Domain. ' }
         @{ Line = 17; Command = 'Get-SGAuthenticatedDomain'; Mode = 'D'; Params = @{}; Prefix = 'Failed to retrieve all SendGrid Authenticated Domain. ' }
         @{ Line = 18; Command = 'Get-SGBlock'; Mode = 'T'; Params = @{ EmailAddress = 'one@example.com' }; Prefix = 'Failed to retrieve SendGrid block. ' }
@@ -189,7 +189,9 @@ Describe 'The error path of every command' {
             elseif ($Value -is [string] -and $Value -eq '<secure>') { $Value = $script:Secure }
             $Splat[$Name] = $Value
         }
-        if ((Get-Command -Name $Command).Parameters.ContainsKey('Confirm')) { $Splat['Confirm'] = $false }
+        # Read from the attribute, not from .Parameters: that would run a dynamic parameter block, which calls SendGrid.
+        $Binding = @((Get-Command -Name $Command).ScriptBlock.Attributes | Where-Object { $_ -is [System.Management.Automation.CmdletBindingAttribute] })
+        if ($Binding.Count -eq 1 -and $Binding[0].SupportsShouldProcess) { $Splat['Confirm'] = $false }
         $Caught = $null
         if ($Command -eq 'Disconnect-SendGrid') {
             # The error of this command is non-terminating, so it is read from the error stream.
@@ -203,6 +205,16 @@ Describe 'The error path of every command' {
             try { $null = & $Command @Splat } catch { $Caught = $_ }
         }
         $Caught | Should -Not -BeNullOrEmpty
+        if ($Wrapped) {
+            # PowerShell wraps an error raised in a dynamic parameter block; the command's own error is the first
+            # WriteErrorException in the chain of inner exceptions.
+            $Caught.Exception.Message | Should -BeLike 'Cannot retrieve the dynamic parameters for the cmdlet.*'
+            $Caught.Exception.Message | Should -BeLike ('*' + $Prefix + 'SendGrid Error (HTTP 404): "name: resource not found"*')
+            $Inner = $Caught.Exception
+            while ($null -ne $Inner -and $Inner -isnot [Microsoft.PowerShell.Commands.WriteErrorException]) { $Inner = $Inner.InnerException }
+            $Inner | Should -Not -BeNullOrEmpty
+            $Caught = [pscustomobject]@{ Exception = $Inner; FullyQualifiedErrorId = "Microsoft.PowerShell.Commands.WriteErrorException,$Command" }
+        }
         if ($Exact) {
             $Caught.Exception.Message | Should -BeExactly $Exact
         }
@@ -229,9 +241,9 @@ Describe 'The table of error paths' {
         $script:Fixture = @(Get-Content -LiteralPath $script:FixturePath)
     }
 
-    It 'Has one entry or one listed skip for every line of the fixture' {
+    It 'Has one entry or one listed skip for every line of the fixture' -ForEach @(@{ EntryLine = @($script:Entries | ForEach-Object { $_.Line }) }) {
         $script:Fixture.Count | Should -BeGreaterThan 0
-        $Lines = @($script:Entries | ForEach-Object { $_.Line } | Sort-Object)
+        $Lines = @($EntryLine | Sort-Object)
         ($Lines -join ',') | Should -BeExactly ((1..$script:Fixture.Count) -join ',')
     }
 
