@@ -8,7 +8,7 @@
         The Subuser is created with the provided username and email address to contact this subuser.
 
     .PARAMETER Username
-        Specifies the ID of a specific Subuser to retrieve. If this parameter is not provided, all Subusers are retrieved.
+        Specifies the username for the Subuser to create.
 
     .PARAMETER Email
         Specifies the email address to contact this subuser.

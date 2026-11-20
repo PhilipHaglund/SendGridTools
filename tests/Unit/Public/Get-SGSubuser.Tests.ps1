@@ -131,7 +131,7 @@ Describe 'Get-SGSubuser region' {
 
             $null = Get-SGSubuser -Username sgt-test-subuser-1 -Confirm:$false -WarningVariable Warned -WarningAction SilentlyContinue
 
-            "$((@(Get-SgtNetworkCall)[0])[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/subusers/sgt-test-subuser-1'
+            "$((@(Get-SgtNetworkCall)[0])[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/subusers?username=sgt-test-subuser-1'
             @($Warned).Count | Should -Be 0
         }
     }
@@ -159,7 +159,7 @@ Describe 'Get-SGSubuser region' {
 
             $Calls = @(Get-SgtNetworkCall)[0]
             $Calls.Count | Should -Be 1
-            "$($Calls[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/subusers/sgt-test-subuser-1'
+            "$($Calls[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/subusers?username=sgt-test-subuser-1'
             @($Warned).Count | Should -Be 1
             "$($Warned[0])" | Should -Match 'single subuser'
             "$($Warned[0])" | Should -Not -Match 'sgt-test-subuser'
@@ -188,7 +188,7 @@ Describe 'Get-SGSubuser region' {
 
             $Calls = @(Get-SgtNetworkCall)[0]
             $Calls.Count | Should -Be 2
-            foreach ($Call in $Calls) { "$($Call.Uri)" | Should -Not -Match '\?' }
+            foreach ($Call in $Calls) { "$($Call.Uri)" | Should -Not -Match 'region' }
             @($Warned).Count | Should -Be 1
         }
     }
@@ -202,8 +202,8 @@ Describe 'Get-SGSubuser region' {
 
             $Calls = @(Get-SgtNetworkCall)[0]
             $Calls.Count | Should -Be 1
-            "$($Calls[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/subusers/sgt-test-subuser-1'
-            "$($Calls[0].Uri)" | Should -Not -Match '\?'
+            "$($Calls[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/subusers?username=sgt-test-subuser-1'
+            "$($Calls[0].Uri)" | Should -Not -Match 'region'
         }
     }
 
@@ -222,6 +222,267 @@ Describe 'Get-SGSubuser region' {
             ([uri]"$($Calls[0].Uri)").Host | Should -Be 'api.eu.sendgrid.com'
             "$($Calls[0].Uri)" | Should -Be 'https://api.eu.sendgrid.com/v3/subusers?include_region=true&region=eu'
         }
+    }
+}
+
+Describe 'Get-SGSubuser -Username lookup' {
+    BeforeEach {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Plain = $script:PlainFixture } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response (Get-Content -LiteralPath $Plain -Raw | ConvertFrom-Json)
+        }
+    }
+
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Sends the username as the documented filter' {
+        InModuleScope SendGridTools {
+            $null = Get-SGSubuser -Username sgt-test-subuser-1 -Confirm:$false
+
+            $Calls = @(Get-SgtNetworkCall)[0]
+            $Calls.Count | Should -Be 1
+            $Calls[0].Method | Should -Be 'Get'
+            ([uri]$Calls[0].Uri).AbsoluteUri | Should -Be 'https://api.sendgrid.com/v3/subusers?username=sgt-test-subuser-1'
+        }
+    }
+
+    It 'Keeps the filter first with -Limit and -Offset' {
+        InModuleScope SendGridTools {
+            $null = Get-SGSubuser -Username sgt-test-subuser-1 -Limit 2 -Offset 1 -Confirm:$false
+            $Calls = @(Get-SgtNetworkCall)[0]
+            $Calls.Count | Should -Be 1
+            ([uri]$Calls[0].Uri).AbsoluteUri | Should -Be 'https://api.sendgrid.com/v3/subusers?username=sgt-test-subuser-1&limit=2&offset=1'
+
+            Reset-SgtNetworkStub
+            Set-SgtNetworkStub -Response @()
+            $null = Get-SGSubuser -Username sgt-test-subuser-1 -Limit 2 -Confirm:$false
+            $Calls = @(Get-SgtNetworkCall)[0]
+            $Calls.Count | Should -Be 1
+            ([uri]$Calls[0].Uri).AbsoluteUri | Should -Be 'https://api.sendgrid.com/v3/subusers?username=sgt-test-subuser-1&limit=2'
+
+            Reset-SgtNetworkStub
+            Set-SgtNetworkStub -Response @()
+            $null = Get-SGSubuser -Username sgt-test-subuser-1 -Offset 1 -Confirm:$false
+            $Calls = @(Get-SgtNetworkCall)[0]
+            $Calls.Count | Should -Be 1
+            ([uri]$Calls[0].Uri).AbsoluteUri | Should -Be 'https://api.sendgrid.com/v3/subusers?username=sgt-test-subuser-1&offset=1'
+        }
+    }
+
+    It 'Encodes <Name> in the username' -TestCases @(
+        @{ Name = '+'; Char = '+'; Encoded = '%2B' }
+        @{ Name = '/'; Char = '/'; Encoded = '%2F' }
+        @{ Name = '#'; Char = '#'; Encoded = '%23' }
+        @{ Name = '?'; Char = '?'; Encoded = '%3F' }
+        @{ Name = '&'; Char = '&'; Encoded = '%26' }
+        @{ Name = 'a space'; Char = ' '; Encoded = '%20' }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ Char = $Char; Encoded = $Encoded } {
+            $null = Get-SGSubuser -Username "a${Char}b" -Confirm:$false
+
+            $Calls = @(Get-SgtNetworkCall)[0]
+            $Calls.Count | Should -Be 1
+            $Sent = [uri]$Calls[0].Uri
+            $Sent.AbsolutePath | Should -Be '/v3/subusers'
+            $Sent.Query | Should -Be "?username=a${Encoded}b"
+            $Sent.Fragment | Should -BeNullOrEmpty
+        }
+    }
+
+    It 'Encodes every character in one name and keeps limit and offset' {
+        InModuleScope SendGridTools {
+            $null = Get-SGSubuser -Username 'a b+c/d#e' -Limit 2 -Offset 1 -Confirm:$false
+
+            $Calls = @(Get-SgtNetworkCall)[0]
+            $Calls.Count | Should -Be 1
+            $Sent = [uri]$Calls[0].Uri
+            $Sent.AbsolutePath | Should -Be '/v3/subusers'
+            $Sent.Query | Should -Be '?username=a%20b%2Bc%2Fd%23e&limit=2&offset=1'
+            $Sent.Fragment | Should -BeNullOrEmpty
+        }
+    }
+
+    It 'Sends one request per piped name <Case>' -TestCases @(
+        @{ Case = 'as strings'; ByProperty = $false }
+        @{ Case = 'by property'; ByProperty = $true }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ ByProperty = $ByProperty } {
+            $Names = @('a b+c/d#e', 'f?g&h')
+            if ($ByProperty) {
+                $Names | ForEach-Object { [pscustomobject]@{ Username = $_ } } | Get-SGSubuser -Confirm:$false | Out-Null
+            }
+            else {
+                $Names | Get-SGSubuser -Confirm:$false | Out-Null
+            }
+
+            $Calls = @(Get-SgtNetworkCall)[0]
+            $Calls.Count | Should -Be 2
+            ([uri]$Calls[0].Uri).AbsolutePath | Should -Be '/v3/subusers'
+            ([uri]$Calls[1].Uri).AbsolutePath | Should -Be '/v3/subusers'
+            ([uri]$Calls[0].Uri).Query | Should -Be '?username=a%20b%2Bc%2Fd%23e'
+            ([uri]$Calls[1].Uri).Query | Should -Be '?username=f%3Fg%26h'
+        }
+    }
+
+    It 'Returns nothing and no error for an empty list' {
+        InModuleScope SendGridTools {
+            Reset-SgtNetworkStub
+            Set-SgtNetworkStub -Response @()
+
+            $script:Out = @('unset')
+            { $script:Out = @(Get-SGSubuser -Username sgt-s55-missing -ErrorAction Stop -Confirm:$false) } | Should -Not -Throw
+
+            @($script:Out).Count | Should -Be 0
+            @(Get-SgtNetworkCall)[0].Count | Should -Be 1
+        }
+    }
+
+    It 'Returns only the matching Subuser from the recorded page' {
+        InModuleScope SendGridTools {
+            $Out = @(Get-SGSubuser -Username sgt-test-subuser-1 -Confirm:$false)
+
+            $Out.Count | Should -Be 1
+            $Out[0].Username | Should -Be 'sgt-test-subuser-1'
+        }
+    }
+
+    It 'Returns only the Subuser whose username equals the value, not one that starts with it' {
+        InModuleScope SendGridTools {
+            Reset-SgtNetworkStub
+            Set-SgtNetworkStub -Response @(
+                [pscustomobject]@{ username = 'sgt-test-abc'; id = 2001; email = '<address>'; disabled = $false }
+                [pscustomobject]@{ username = 'sgt-test-abcd'; id = 2002; email = '<address>'; disabled = $false }
+            )
+
+            $Out = @(Get-SGSubuser -Username 'sgt-test-abc' -Confirm:$false)
+
+            $Out.Count | Should -Be 1
+            $Out[0].Username | Should -Be 'sgt-test-abc'
+            $Calls = @(Get-SgtNetworkCall)[0]
+            $Calls.Count | Should -Be 1
+            "$($Calls[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/subusers?username=sgt-test-abc'
+        }
+    }
+
+    It 'Compares the username without regard to case' {
+        InModuleScope SendGridTools {
+            Reset-SgtNetworkStub
+            Set-SgtNetworkStub -Response @(
+                [pscustomobject]@{ username = 'SGT-Test-ABC'; id = 2001; email = '<address>'; disabled = $false }
+                [pscustomobject]@{ username = 'sgt-test-abcd'; id = 2002; email = '<address>'; disabled = $false }
+            )
+
+            $Out = @(Get-SGSubuser -Username 'sgt-test-abc' -Confirm:$false)
+
+            $Out.Count | Should -Be 1
+            $Out[0].Username | Should -Be 'SGT-Test-ABC'
+        }
+    }
+
+    It 'Compares the username as text, not as a wildcard pattern' {
+        InModuleScope SendGridTools {
+            Reset-SgtNetworkStub
+            Set-SgtNetworkStub -Response @(
+                [pscustomobject]@{ username = 'sgt-test-abc'; id = 2001; email = '<address>'; disabled = $false }
+                [pscustomobject]@{ username = 'sgt-test-*'; id = 2002; email = '<address>'; disabled = $false }
+            )
+
+            $Out = @(Get-SGSubuser -Username 'sgt-test-*' -Confirm:$false)
+
+            $Out.Count | Should -Be 1
+            $Out[0].Username | Should -Be 'sgt-test-*'
+        }
+    }
+
+    It 'Returns nothing and no error when SendGrid returns only other usernames' {
+        InModuleScope SendGridTools {
+            Reset-SgtNetworkStub
+            Set-SgtNetworkStub -Response @(
+                [pscustomobject]@{ username = 'sgt-test-abcd'; id = 2002; email = '<address>'; disabled = $false }
+            )
+
+            # With -ErrorAction Stop an error would end the test here.
+            $Out = @(Get-SGSubuser -Username 'sgt-test-abc' -ErrorAction Stop -Confirm:$false)
+
+            $Out.Count | Should -Be 0
+        }
+    }
+
+    It 'Returns each piped name only its own Subuser' {
+        InModuleScope SendGridTools {
+            Reset-SgtNetworkStub
+            Set-SgtNetworkStub -Response @(
+                [pscustomobject]@{ username = 'sgt-test-abc'; id = 2001; email = '<address>'; disabled = $false }
+                [pscustomobject]@{ username = 'sgt-test-abcd'; id = 2002; email = '<address>'; disabled = $false }
+            )
+
+            $Out = @('sgt-test-abc', 'sgt-test-abcd' | Get-SGSubuser -Confirm:$false)
+
+            $Out.Count | Should -Be 2
+            $Out[0].Username | Should -Be 'sgt-test-abc'
+            $Out[1].Username | Should -Be 'sgt-test-abcd'
+            @(Get-SgtNetworkCall)[0].Count | Should -Be 2
+        }
+    }
+
+    It 'Returns every object unchanged without -Username' {
+        InModuleScope SendGridTools {
+            Reset-SgtNetworkStub
+            Set-SgtNetworkStub -Response @(
+                [pscustomobject]@{ username = 'sgt-test-abc'; id = 2001; email = '<address>'; disabled = $false }
+                [pscustomobject]@{ username = 'sgt-test-abcd'; id = 2002; email = '<address>'; disabled = $false }
+            )
+
+            $Out = @(Get-SGSubuser -Confirm:$false)
+
+            $Out.Count | Should -Be 2
+            $Out[0].Username | Should -Be 'sgt-test-abc'
+            $Out[1].Username | Should -Be 'sgt-test-abcd'
+            "$((@(Get-SgtNetworkCall)[0])[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/subusers'
+
+            Reset-SgtNetworkStub
+            Set-SgtNetworkStub -Response @(
+                [pscustomobject]@{ username = 'sgt-test-abc'; id = 2001; email = '<address>'; disabled = $false }
+                [pscustomobject]@{ username = 'sgt-test-abcd'; id = 2002; email = '<address>'; disabled = $false }
+            )
+            $Limited = @(Get-SGSubuser -Limit 2 -Confirm:$false)
+            $Limited.Count | Should -Be 2
+        }
+    }
+}
+
+Describe 'Get-SGSubuser help' {
+    It 'Describes -Username as a username' {
+        $Text = ((Get-Help Get-SGSubuser -Parameter Username).description.Text -join ' ') -replace '\s+', ' '
+        $Text.Trim() | Should -Be 'Specifies the username of a specific Subuser to retrieve. If this parameter is not provided, all Subusers are retrieved. Only a Subuser whose username equals the value is returned.'
+    }
+
+    It 'Says that only an equal username is returned' {
+        $Text = ((Get-Help Get-SGSubuser -Parameter Username).description.Text -join ' ') -replace '\s+', ' '
+        $Text | Should -BeLike '*Only a Subuser whose username equals the value is returned.*'
+        (Get-Command Get-SGSubuser).Definition | Should -BeLike '*# Specifies the username of a specific Subuser to retrieve. If this parameter is not provided, all Subusers are retrieved. Only a Subuser whose username equals the value is returned.*'
+    }
+
+    It 'Uses the same words in the comment above the parameter' {
+        $Definition = (Get-Command Get-SGSubuser).Definition
+        $Definition | Should -BeLike '*# Specifies the username of a specific Subuser to retrieve. If this parameter is not provided, all Subusers are retrieved.*'
+        $Definition | Should -Not -Match 'the ID of a specific Subuser'
+    }
+
+    It 'Spells the description right' {
+        $Text = ((Get-Help Get-SGSubuser).description.Text -join ' ') -replace '\s+', ' '
+        $Text | Should -BeLike "*when retrieving all users it won't display disabled users*"
+        $Text | Should -Not -Match 'retrieve ing'
+        $Text | Should -Not -Match '\bwont\b'
+    }
+
+    It 'Keeps the alias Id on -Username' {
+        (Get-Command Get-SGSubuser).Parameters['Username'].Aliases | Should -Contain 'Id'
     }
 }
 
