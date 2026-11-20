@@ -55,6 +55,53 @@ Describe 'Network tripwire helper' {
         $global:SgtNetworkCall[0].Uri.AbsoluteUri | Should -Be 'http://127.0.0.1:9/v3/scopes'
     }
 
+    It 'Lets a web request stub answer Invoke-WebRequest, logs it and records nothing as unmocked' {
+        $global:SgtWebRequestStub = { [pscustomobject]@{ StatusCode = 204 } }
+        $Result = Invoke-WebRequest -Method Get -Uri 'http://127.0.0.1:9/x' -Headers @{ a = 'b' } -UseBasicParsing -MaximumRedirection 0
+        $Result.StatusCode | Should -Be 204
+        Get-SgtUnmockedNetworkCall | Should -BeNullOrEmpty
+        @($global:SgtNetworkCall).Count | Should -Be 1
+        $Entry = $global:SgtNetworkCall[0]
+        $Entry.Command | Should -Be 'Invoke-WebRequest'
+        $Entry.Method | Should -Be 'Get'
+        $Entry.UseBasicParsing | Should -BeTrue
+        $Entry.MaximumRedirectionPassed | Should -BeTrue
+        $Entry.MaximumRedirection | Should -Be 0
+        $Entry.BodyPassed | Should -BeFalse
+    }
+
+    It 'Wraps an Invoke-RestMethod stub as a JSON response for Invoke-WebRequest: <Name>' -ForEach @(
+        @{ Name = 'one object'; Stub = { [pscustomobject]@{ id = 1001; name = 'sgt-test' } }; Json = '{"id":1001,"name":"sgt-test"}' }
+        @{ Name = 'two objects'; Stub = { [pscustomobject]@{ id = 1 }; [pscustomobject]@{ id = 2 } }; Json = '[{"id":1},{"id":2}]' }
+        @{ Name = 'nothing'; Stub = { }; Json = $null }
+        @{ Name = 'a single null'; Stub = { $null }; Json = $null }
+    ) {
+        $global:SgtNetworkStub = $Stub
+        $Result = Invoke-WebRequest -Method Get -Uri 'http://127.0.0.1:9/x' -UseBasicParsing
+        if ($null -eq $Json) {
+            $Result | Should -BeNullOrEmpty
+        } else {
+            $Result.StatusCode | Should -Be 200
+            $Result.StatusDescription | Should -Be 'OK'
+            $Result.Headers['Content-Type'] | Should -Be 'application/json; charset=utf-8'
+            $Result.BaseResponse | Should -BeNullOrEmpty
+            [System.Text.Encoding]::UTF8.GetString($Result.RawContentStream.ToArray()) | Should -Be $Json
+        }
+        Get-SgtUnmockedNetworkCall | Should -BeNullOrEmpty
+        @($global:SgtNetworkCall).Count | Should -Be 1
+        $global:SgtNetworkCall[0].Command | Should -Be 'Invoke-WebRequest'
+    }
+
+    It 'Logs Command for a class call' -Skip:($PSVersionTable.PSEdition -eq 'Desktop') {
+        $global:SgtNetworkStub = { 'stubbed' }
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $Session = [SendGridSession]::new()
+            $Session._BaseURL = [uri]'http://127.0.0.1:9/v3'
+            { $Session.Connect($Cred) } | Should -Not -Throw
+        }
+        $global:SgtNetworkCall[0].Command | Should -Be 'Invoke-RestMethod'
+    }
+
     It 'Reports the tripwire as active while enabled' {
         { Assert-SgtNetworkTripwireActive } | Should -Not -Throw
     }
@@ -76,6 +123,7 @@ Describe 'Network tripwire helper' {
         Test-Path -Path 'Function:\Invoke-RestMethod' | Should -BeFalse
         Test-Path -Path 'Function:\Invoke-WebRequest' | Should -BeFalse
         Test-Path -Path 'Variable:\global:SgtUnmockedNetworkCall' | Should -BeFalse
+        Test-Path -Path 'Variable:\global:SgtWebRequestStub' | Should -BeFalse
     }
 }
 
