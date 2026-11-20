@@ -1,7 +1,6 @@
 Add-SGEmailAddressToSuppressionGroup
 Disconnect-SendGrid
 Get-SGAddressWhitelistSetting
-Get-SGAlert
 Get-SGBounceByClassification
 Get-SGBouncePurgeSetting
 Get-SGBrandedDomainLink

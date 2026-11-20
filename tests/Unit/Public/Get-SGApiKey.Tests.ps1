@@ -216,6 +216,99 @@ Describe 'Get-SGApiKey list paging' {
     }
 }
 
+Describe 'Get-SGApiKey refuses an empty -ApiKeyId (D116)' {
+    BeforeEach {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ result = @([pscustomobject]@{ api_key_id = 'key-id-1'; name = 'sgt-test-key-1' }) })
+        }
+    }
+
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Refuses <Case> at binding and makes no call' -TestCases @(
+        @{ Case = '$null'; Splat = @{ ApiKeyId = $null } }
+        @{ Case = '@()'; Splat = @{ ApiKeyId = @() } }
+        @{ Case = "''"; Splat = @{ ApiKeyId = '' } }
+        @{ Case = "@('')"; Splat = @{ ApiKeyId = @('') } }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ Splat = $Splat } {
+            { Get-SGApiKey @Splat -Confirm:$false } | Should -Throw -ErrorId 'ParameterArgumentValidationError*'
+            @(Get-SgtNetworkCall)[0].Count | Should -Be 0
+        }
+    }
+
+    It 'Refuses an empty value from the pipeline <Case> and makes no call' -TestCases @(
+        @{ Case = 'as a string'; ByProperty = $false }
+        @{ Case = 'by property ApiKeyId'; ByProperty = $true }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ ByProperty = $ByProperty } {
+            # A pipeline binding error follows the caller's preference, not -ErrorAction; CI's pwsh shell sets Stop.
+            $ErrorActionPreference = 'Continue'
+            if ($ByProperty) {
+                $Streams = @([pscustomobject]@{ ApiKeyId = '' } | Get-SGApiKey -Confirm:$false 2>&1)
+            }
+            else {
+                $Streams = @('' | Get-SGApiKey -Confirm:$false 2>&1)
+            }
+            $Errs = @($Streams | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] })
+
+            @($Errs).Count | Should -Be 1
+            "$($Errs[0].FullyQualifiedErrorId)" | Should -BeLike 'ParameterArgument*'
+            @(Get-SgtNetworkCall)[0].Count | Should -Be 0
+        }
+    }
+
+    # PowerShell may bind the object by value when its ApiKeyId is $null; only the absence of a list request is pinned.
+    It 'Sends no list request for an object whose ApiKeyId is $null' {
+        InModuleScope SendGridTools {
+            $ErrorActionPreference = 'Continue'
+            $null = @([pscustomobject]@{ ApiKeyId = $null } | Get-SGApiKey -Confirm:$false 2>&1)
+
+            $Calls = @(@(Get-SgtNetworkCall)[0])
+            @($Calls | Where-Object { ([uri]$_.Uri).AbsolutePath -eq '/v3/api_keys' }).Count | Should -Be 0
+        }
+    }
+
+    It 'Sends only the valid value when an empty value comes first in the pipeline' {
+        InModuleScope SendGridTools {
+            $ErrorActionPreference = 'Continue'
+            $Streams = @([pscustomobject]@{ ApiKeyId = '' }, [pscustomobject]@{ ApiKeyId = 'key-id-1' } | Get-SGApiKey -Confirm:$false 2>&1)
+            $Errs = @($Streams | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] })
+
+            @($Errs).Count | Should -Be 1
+            $Calls = @(Get-SgtNetworkCall)[0]
+            $Calls.Count | Should -Be 1
+            "$($Calls[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/api_keys/key-id-1'
+        }
+    }
+
+    It 'Sends the same request as before for a valid value' {
+        InModuleScope SendGridTools {
+            $null = Get-SGApiKey -ApiKeyId 'key-id-1' -Confirm:$false
+
+            $Calls = @(Get-SgtNetworkCall)[0]
+            $Calls.Count | Should -Be 1
+            "$($Calls[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/api_keys/key-id-1'
+        }
+    }
+
+    It 'Sends the same request as before without parameters' {
+        InModuleScope SendGridTools {
+            $null = Get-SGApiKey -Confirm:$false
+
+            $Calls = @(Get-SgtNetworkCall)[0]
+            $Calls.Count | Should -Be 1
+            "$($Calls[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/api_keys?limit=50&offset=0'
+        }
+    }
+}
+
 Describe 'Network tripwire' {
     It 'Made no unmocked network call' {
         Assert-SgtNetworkTripwireActive
