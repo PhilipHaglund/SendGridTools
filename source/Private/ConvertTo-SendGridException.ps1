@@ -109,6 +109,16 @@ function ConvertTo-SendGridException {
             $Text = $Text.Replace($RequestUri.Query, '')
         }
 
+        # The original exception is reachable as InnerException. In PowerShell 7 its response still holds the request, with the Authorization header.
+        try {
+            if ($Exception.PSObject.Properties['Response'] -and $Exception.Response -is [System.Net.Http.HttpResponseMessage] -and $null -ne $Exception.Response.RequestMessage) {
+                $null = $Exception.Response.RequestMessage.Headers.Remove('Authorization')
+            }
+        }
+        catch {
+            Write-Verbose -Message 'The Authorization header could not be removed from the kept response.'
+        }
+
         $Result = [System.Management.Automation.RuntimeException]::new($Text, $Exception)
         if ($null -ne $Status) { $Result.Data['StatusCode'] = $Status }
         if ($Errors.Count -gt 0) { $Result.Data['SendGridErrors'] = [object[]]$Errors }
