@@ -468,8 +468,14 @@ Describe 'Send-SGMailMessage help for -Unsubscribe (D104)' {
         $script:Definition.Contains('It must be greater than 0 when the message is sent.') | Should -BeTrue
     }
 
-    It 'says the second constructor argument is not kept' {
-        $script:Definition.Contains('The second argument is not kept today; set GroupsToDisplay as a property.') | Should -BeTrue
+    It 'says the two-argument constructor keeps GroupsToDisplay and that $null gives an empty array (D147)' {
+        $script:Definition.Contains('- SGASM([int]$GroupId, [int[]]$GroupsToDisplay): Creates an instance with the specified GroupId and GroupsToDisplay. $null gives an empty GroupsToDisplay.') | Should -BeTrue
+        $script:Definition.Contains('The second argument is not kept today') | Should -BeFalse
+    }
+
+    It 'says where the SGASM constructors can be reached, after using module (D147, measured in D146)' {
+        $script:Definition.Contains('After using module SendGridTools at the top of a script, you can create an instance of [SGASM] with the following constructors:') | Should -BeTrue
+        $script:Definition.Contains('You can create an instance of [SGASM] using the following constructors:') | Should -BeFalse
     }
 
     It 'names no backlog id in the help or the definition' {
