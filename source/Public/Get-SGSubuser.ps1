@@ -139,7 +139,8 @@
             $InvokeSplat['Namespace'] += '?' + ($QueryParameters -join '&')
         }
 
-        if ($PSCmdlet.ShouldProcess(('{0}' -f 'Subusers'))) {
+        $Target = if ($PSBoundParameters.ContainsKey('Username')) { "Subuser '{0}'" -f $Username } else { 'Subusers' }
+        if ($PSCmdlet.ShouldProcess($Target)) {
             try {
                 if ($PSBoundParameters.ContainsKey('Username')) {
                     # SendGrid's username filter also returns names that start with the value, so only an equal username is passed on.

@@ -1,6 +1,7 @@
 BeforeAll {
     . (Join-Path -Path $PSScriptRoot -ChildPath '../Support/NetworkTripwire.ps1')
     . (Join-Path -Path $PSScriptRoot -ChildPath '../Support/SessionHelpers.ps1')
+    . (Join-Path -Path $PSScriptRoot -ChildPath '../Support/PromptCountingHost.ps1')
     # Import once per run: in Windows PowerShell 5.1 a class stays bound to the first loaded module instance.
     if (-not (Get-Module -Name SendGridTools)) {
         Get-Module -Name SendGridTools -ListAvailable | Select-Object -First 1 | Import-Module -ErrorAction Stop
@@ -602,6 +603,42 @@ Describe 'Get-SGSubuser refuses an empty -Username and limits -Limit and -Offset
             $Calls.Count | Should -Be 1
             ([uri]$Calls[0].Uri).AbsoluteUri | Should -Be 'https://api.sendgrid.com/v3/subusers'
         }
+    }
+}
+
+Describe 'Get-SGSubuser names the username in -WhatIf (D111)' {
+    It 'Shows the username as the target under -WhatIf' {
+        $Run = Invoke-SgtInCountingHost -Script 'Get-SGSubuser -Username ''a b+c'' -WhatIf'
+
+        $WhatIf = @($Run.HostLine | Where-Object { $_ -like 'What if:*' })
+        $WhatIf.Count | Should -Be 1
+        $WhatIf[0] | Should -BeLike '*on target "Subuser ''a b+c''"*'
+        $Run.PromptCount | Should -Be 0
+        $Run.NetworkCallCount | Should -Be 0
+        $Run.UnmockedCall | Should -BeNullOrEmpty
+    }
+
+    It 'Keeps Subusers as the target without -Username' {
+        $Run = Invoke-SgtInCountingHost -Script 'Get-SGSubuser -WhatIf'
+
+        $WhatIf = @($Run.HostLine | Where-Object { $_ -like 'What if:*' })
+        $WhatIf.Count | Should -Be 1
+        $WhatIf[0] | Should -BeLike '*on target "Subusers"*'
+        $Run.PromptCount | Should -Be 0
+        $Run.NetworkCallCount | Should -Be 0
+        $Run.UnmockedCall | Should -BeNullOrEmpty
+    }
+
+    It 'Names each piped username in its own -WhatIf line' {
+        $Run = Invoke-SgtInCountingHost -Script '''sgt-test-abc'', ''sgt-test-abcd'' | Get-SGSubuser -WhatIf'
+
+        $WhatIf = @($Run.HostLine | Where-Object { $_ -like 'What if:*' })
+        $WhatIf.Count | Should -Be 2
+        $WhatIf[0] | Should -BeLike '*on target "Subuser ''sgt-test-abc''"*'
+        $WhatIf[1] | Should -BeLike '*on target "Subuser ''sgt-test-abcd''"*'
+        $Run.PromptCount | Should -Be 0
+        $Run.NetworkCallCount | Should -Be 0
+        $Run.UnmockedCall | Should -BeNullOrEmpty
     }
 }
 
