@@ -5,6 +5,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- After a session has expired, every command that needs the session says `The SendGrid session has expired. Run Connect-SendGrid -Force to reconnect.`, until a successful `Connect-SendGrid` or `Disconnect-SendGrid`. Before, only the first command said so; the following commands said `You must call the Connect-SendGrid cmdlet before calling any other cmdlets.`, as if `Connect-SendGrid` had never been run.
+
+### Fixed
+
+- `Set-SGSuppressionGroup`, `Set-SGAuthenticatedDomain`, `Set-SGBrandedDomainLink` and `Set-SGAlert` refuse an update without fields: `Nothing to update for <what> <id>. Specify <parameters>.` and send no request. The first three refuse it also with `-WhatIf`. Before, each sent a PATCH request with an empty body `{}` for every id.
+
 ## [0.7.0] - 2026-11-21
 
 ### Added
