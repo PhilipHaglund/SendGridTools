@@ -71,9 +71,9 @@ Describe 'Send-SGMailMessage -SandboxMode (D78)' {
         BeforeDiscovery {
             $script:Shapes = @(
                 @{ Shape = 'Default minimal'; Keys = 'content, from, personalizations'; Personalizations = 1 }
-                @{ Shape = 'Default full'; Keys = 'attachments, categories, content, from, personalizations, priority, reply_to, send_at, template_id'; Personalizations = 1 }
+                @{ Shape = 'Default full'; Keys = 'attachments, categories, content, from, headers, personalizations, reply_to, send_at, template_id'; Personalizations = 1 }
                 @{ Shape = 'SeparateTo minimal'; Keys = 'content, from, personalizations'; Personalizations = 2 }
-                @{ Shape = 'SeparateTo full'; Keys = 'attachments, categories, content, from, personalizations, priority, reply_to, send_at, template_id'; Personalizations = 2 }
+                @{ Shape = 'SeparateTo full'; Keys = 'attachments, categories, content, from, headers, personalizations, reply_to, send_at, template_id'; Personalizations = 2 }
             )
         }
 
@@ -229,9 +229,9 @@ Describe 'Send-SGMailMessage -BatchId and -Unsubscribe (D102)' {
     BeforeDiscovery {
         $script:Shapes = @(
             @{ Shape = 'Default minimal'; Keys = 'content, from, personalizations' }
-            @{ Shape = 'Default full'; Keys = 'attachments, categories, content, from, personalizations, priority, reply_to, send_at, template_id' }
+            @{ Shape = 'Default full'; Keys = 'attachments, categories, content, from, headers, personalizations, reply_to, send_at, template_id' }
             @{ Shape = 'SeparateTo minimal'; Keys = 'content, from, personalizations' }
-            @{ Shape = 'SeparateTo full'; Keys = 'attachments, categories, content, from, personalizations, priority, reply_to, send_at, template_id' }
+            @{ Shape = 'SeparateTo full'; Keys = 'attachments, categories, content, from, headers, personalizations, reply_to, send_at, template_id' }
         )
     }
 
@@ -642,6 +642,85 @@ Describe 'Send-SGMailMessage help for -BatchId (D123)' {
         $Comment = $script:Definition.Substring($Start, $End - $Start)
         $Comment | Should -Not -BeNullOrEmpty
         $Comment.Contains($script:Refusal) | Should -BeTrue
+    }
+}
+
+Describe 'Send-SGMailMessage -Priority as headers (D191)' {
+    BeforeAll {
+        # Runs one send in module scope and returns the parsed body.
+        $script:SendPriority = {
+            param($Cred, $Priority, $Separate)
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Reset-SgtNetworkStub
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ placeholder = 'accepted' })
+            $Params = @{
+                From    = 'sender@example.com'
+                To      = 'one@example.com'
+                Subject = 'placeholder subject'
+                Body    = 'placeholder body'
+            }
+            if ($Separate) {
+                $Params['To'] = @('one@example.com', 'two@example.com')
+                $Params['SeparateTo'] = [switch]::new($true)
+            }
+            if ($Priority) { $Params['Priority'] = $Priority }
+            $null = Send-SGMailMessage @Params -Confirm:$false
+            $Calls = @(Get-SgtNetworkCall | ForEach-Object { $_ })
+            [pscustomobject]@{
+                Count = $Calls.Count
+                Sent  = if ($Calls.Count) { $Calls[0].Body | ConvertFrom-Json } else { $null }
+            }
+        }.ToString()
+    }
+
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+        }
+    }
+
+    It 'Sends -Priority <Priority> as headers X-Priority <X>, Importance <I>, Priority <P>' -ForEach @(
+        @{ Priority = 'High'; X = '1'; I = 'high'; P = 'urgent' }
+        @{ Priority = 'Normal'; X = '3'; I = 'normal'; P = 'normal' }
+        @{ Priority = 'Low'; X = '5'; I = 'low'; P = 'non-urgent' }
+    ) {
+        $Run = InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Priority = $Priority; Send = $script:SendPriority } {
+            & ([scriptblock]::Create($Send)) $Cred $Priority $false
+        }
+        $Run.Count | Should -Be 1
+        $Run.Sent.headers.'X-Priority' | Should -BeExactly $X
+        $Run.Sent.headers.'Importance' | Should -BeExactly $I
+        $Run.Sent.headers.'Priority' | Should -BeExactly $P
+        $Run.Sent.PSObject.Properties.Name | Should -Not -Contain 'priority'
+    }
+
+    It 'Sends no headers without -Priority' {
+        $Run = InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Send = $script:SendPriority } {
+            & ([scriptblock]::Create($Send)) $Cred $null $false
+        }
+        $Run.Count | Should -Be 1
+        $Run.Sent.PSObject.Properties.Name | Should -Not -Contain 'headers'
+        $Run.Sent.PSObject.Properties.Name | Should -Not -Contain 'priority'
+    }
+
+    It 'Sends the headers once at message level with -SeparateTo' {
+        $Run = InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Send = $script:SendPriority } {
+            & ([scriptblock]::Create($Send)) $Cred 'High' $true
+        }
+        $Run.Count | Should -Be 1
+        $Run.Sent.personalizations.Count | Should -Be 2
+        $Run.Sent.headers.'X-Priority' | Should -BeExactly '1'
+        foreach ($Personalization in $Run.Sent.personalizations) {
+            $Personalization.PSObject.Properties.Name | Should -Not -Contain 'headers'
+        }
+    }
+
+    It 'Says in the help of -Priority which headers are sent' {
+        $Text = (Get-Help -Name Send-SGMailMessage -Parameter Priority).Description.Text -join ' '
+        $Text | Should -Match 'X-Priority'
+        $Text | Should -Match 'Importance'
+        $Text | Should -Match 'Importance and Priority'
     }
 }
 
