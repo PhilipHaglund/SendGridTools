@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - `Set-SGSuppressionGroup`, `Set-SGAuthenticatedDomain`, `Set-SGBrandedDomainLink` and `Set-SGAlert` refuse an update without fields: `Nothing to update for <what> <id>. Specify <parameters>.` and send no request. The first three refuse it also with `-WhatIf`. The refusal ends the pipeline at the first such object, so with `Set-SGAlert` the alerts after it are not updated. Before, each sent a PATCH request with an empty body `{}` for every id.
+- In Windows PowerShell 5.1 an answer with a JSON content type and no character set is decoded as UTF-8, so `å`, `ä`, `ö`, `€` and emoji come back right. Before, such an answer was decoded as ISO-8859-1, and `å` came back as `Ã¥`. A named character set is followed as before, other types without one, such as `text/plain`, are still decoded as ISO-8859-1, and PowerShell 7 is unchanged.
+- Every request with a body is sent as UTF-8 with `Content-Type: application/json; charset=utf-8`, in both shells, so `€` and emoji reach SendGrid, for example in the subject, text and names of `Send-SGMailMessage`. Before, Windows PowerShell 5.1 sent the body as ISO-8859-1, so `€` and emoji arrived as `?`, and both shells sent `Content-Type: application/json` without a character set. Requests without a body are unchanged.
+- `Remove-SGBlock`, `Remove-SGBounce`, `Remove-SGInvalidEmail` and `Remove-SGSpamReport` take a `[MailAddress]` from the pipeline and send only its address, as `Remove-SGGlobalSuppression` does. Before, they refused it with `Failed to convert InputObject to an email address.`
 
 ## [0.7.0] - 2026-11-21
 
