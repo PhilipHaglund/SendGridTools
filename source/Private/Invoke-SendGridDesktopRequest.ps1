@@ -8,7 +8,9 @@ answer as an empty or ordinary result, and it cannot report the status of a succ
 request with Invoke-WebRequest -UseBasicParsing -MaximumRedirection 0 -ErrorAction Stop instead, with the same method, address,
 headers and body. A 3xx answer is thrown as a WebException that carries the response, which Get-SendGridRedirectRefusal turns into
 the refusal. Every other answer is turned into the result Invoke-RestMethod gives in Windows PowerShell 5.1: an RSS or Atom feed gives
-its items, JSON gives the parsed objects (a list as one array), XML gives an XmlDocument, and anything else the text. An HTTP error
+its items, JSON gives the parsed objects (a list as one array), XML gives an XmlDocument, and anything else the text. The body is decoded
+with the character set that Content-Type names; a JSON type that names none is decoded as UTF-8 without BOM (RFC 8259 section 8.1), and
+any other type that names none as ISO-8859-1, as Invoke-RestMethod does in Windows PowerShell 5.1. An HTTP error
 (4xx, 5xx) and a 301 or 302 are the errors Invoke-WebRequest raises, passed on unchanged.
 
 .PARAMETER Method
@@ -130,9 +132,15 @@ function Invoke-SendGridDesktopRequest {
         return
     }
 
-    # 2. The text, decoded with the character set of Content-Type, or ISO-8859-1 when it names none
-    #    (the rule of HttpWebResponse.CharacterSet that Invoke-RestMethod reads).
+    # 2. The text, decoded with the character set of Content-Type. When it names none, JSON is decoded as UTF-8 without BOM
+    #    (RFC 8259 section 8.1) and every other type as ISO-8859-1 (the rule of HttpWebResponse.CharacterSet that Invoke-RestMethod reads).
+    $Signature = ($ContentType -split ';', 2)[0]
+    $IsJson = $false
+    if (-not [string]::IsNullOrEmpty($Signature)) {
+        $IsJson = @('application/json', 'text/json', 'application/x-javascript', 'text/x-javascript', 'application/javascript', 'text/javascript') -contains $Signature.ToLowerInvariant()
+    }
     $CharacterSet = $null
+    $CharsetNamed = $false
     if (-not [string]::IsNullOrEmpty($ContentType)) {
         $CharacterSet = ''
         $Search = $ContentType.ToLowerInvariant()
@@ -149,27 +157,28 @@ function Invoke-SendGridDesktopRequest {
                         $Index++
                         $End = $Search.IndexOf(';', $Index)
                         $CharacterSet = if ($End -gt $Index) { $ContentType.Substring($Index, $End - $Index).Trim() } else { $ContentType.Substring($Index).Trim() }
+                        $CharsetNamed = -not [string]::IsNullOrEmpty($CharacterSet)
                         break
                     }
                 }
             }
         }
     }
-    $CodePage = if ([string]::IsNullOrEmpty($CharacterSet)) { 'ISO-8859-1' } else { $CharacterSet }
-    try {
-        $Encoding = [System.Text.Encoding]::GetEncoding($CodePage)
+    if ($IsJson -and -not $CharsetNamed) {
+        $Encoding = [System.Text.UTF8Encoding]::new($false)
     }
-    catch {
-        $Encoding = [System.Text.Encoding]::GetEncoding(0)
+    else {
+        $CodePage = if ([string]::IsNullOrEmpty($CharacterSet)) { 'ISO-8859-1' } else { $CharacterSet }
+        try {
+            $Encoding = [System.Text.Encoding]::GetEncoding($CodePage)
+        }
+        catch {
+            $Encoding = [System.Text.Encoding]::GetEncoding(0)
+        }
     }
     $Text = $Encoding.GetString($Bytes)
 
     # 3. JSON first when Content-Type names JSON, XML first otherwise; the text when neither parses.
-    $Signature = ($ContentType -split ';', 2)[0]
-    $IsJson = $false
-    if (-not [string]::IsNullOrEmpty($Signature)) {
-        $IsJson = @('application/json', 'text/json', 'application/x-javascript', 'text/x-javascript', 'application/javascript', 'text/javascript') -contains $Signature.ToLowerInvariant()
-    }
     $Order = if ($IsJson) { 'Json', 'Xml' } else { 'Xml', 'Json' }
     foreach ($Kind in $Order) {
         $Parsed = $null

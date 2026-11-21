@@ -284,6 +284,27 @@ Describe 'Sprint 7 step 2 measurements' {
     }
 }
 
+Describe 'Sprint 7 step 2 locks' {
+    It 'D178: a 200 application/json answer without a character set is decoded as UTF-8' {
+        $Server = Start-SgtLoopbackListener -Status 200 -ContentType 'application/json' -Body $script:Utf8.GetBytes('{"name":"' + $script:Sample + '"}')
+        $Record = $null
+        try {
+            $Query = InModuleScope SendGridTools -Parameters @{ Port = $Server.Port; Cred = $script:Cred } { Invoke-SgtLoopbackQuery -Port $Port -Method Get -Endpoint 'sgt/lock' -Credential $Cred }
+        }
+        finally {
+            $Record = Stop-SgtLoopbackListener -Server $Server
+        }
+        Assert-SgtNetworkTripwireActive
+        $Record | Should -Not -BeNullOrEmpty
+        $Record.Method | Should -Be 'GET'
+        $Record.Authorization | Should -BeTrue
+        $Query.Error | Should -BeNullOrEmpty
+        $Item = @($Query.Result)[0]
+        $Item.name | Should -BeExactly $script:Sample
+        Get-SgtUnmockedNetworkCall | Should -BeNullOrEmpty
+    }
+}
+
 Describe 'Network tripwire' {
     It 'Made no unmocked network call' {
         Assert-SgtNetworkTripwireActive
