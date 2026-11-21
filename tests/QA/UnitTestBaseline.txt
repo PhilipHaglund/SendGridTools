@@ -1,3 +1,0 @@
-Add-SGEmailAddressToSuppressionGroup
-Disconnect-SendGrid
-New-SGSuppressionGroup
