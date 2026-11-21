@@ -13,7 +13,7 @@
         Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
 
     .PARAMETER InputObject
-        Specifies one or more objects to remove, typically received from the pipeline. Each object can be an email address given as a string, or an object with an Email property, such as the output of Get-SGInvalidEmail. Use EmailAddress to specify the addresses directly.
+        Specifies one or more objects to remove, typically received from the pipeline. Each object can be an email address given as a string or a MailAddress, or an object with an Email property, such as the output of Get-SGInvalidEmail. Use EmailAddress to specify the addresses directly.
 
     .PARAMETER DeleteAll
         Specifies that all entries on the invalid email address list are deleted instead of single email addresses. This parameter cannot be combined with EmailAddress.
@@ -77,6 +77,7 @@
                         $EmailAddress += $EmailProperty.Value
                         break
                     }
+                    { $_ -is [MailAddress] } { $EmailAddress += $_.Address; break }
                     default { Write-Error ('Failed to convert InputObject to an email address.') -ErrorAction Stop }
                 }
             }

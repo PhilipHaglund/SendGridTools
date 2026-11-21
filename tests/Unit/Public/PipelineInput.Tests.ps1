@@ -89,9 +89,9 @@ Describe 'A [MailAddress] from the pipeline' {
         }
     }
 
-    # Finding: the InputObject switch of these four commands matches only [string] and [PSCustomObject], so a
-    # [MailAddress] falls into the default branch and is refused (Remove-SGBlock.ps1:84 and the same line in the others).
-    It 'Refuses a piped [MailAddress] today (finding) for <Command>' -ForEach @(
+    # The InputObject switch of these four commands takes a [MailAddress] and uses its Address, as
+    # Remove-SGGlobalSuppression does, so the call equals the call for the same address as a string.
+    It 'Sends one call with only the address for a piped [MailAddress] to <Command>' -ForEach @(
         @{ Command = 'Remove-SGBlock' }
         @{ Command = 'Remove-SGBounce' }
         @{ Command = 'Remove-SGInvalidEmail' }
@@ -101,10 +101,67 @@ Describe 'A [MailAddress] from the pipeline' {
             $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
             Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
 
-            { $null = [MailAddress]'one@example.com' | & $Command -Confirm:$false } |
-                Should -Throw -ExpectedMessage '*Failed to convert InputObject to an email address.*'
+            $null = 'one@example.com' | & $Command -Confirm:$false
+            $StringCalls = @(Get-SgtNetworkCall | ForEach-Object { $_ })
+            $StringCalls.Count | Should -Be 1
 
-            Get-SgtNetworkCall | Should -BeNullOrEmpty
+            Reset-SgtNetworkStub
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $null = [MailAddress]'one@example.com' | & $Command -Confirm:$false
+            $Calls = @(Get-SgtNetworkCall | ForEach-Object { $_ })
+            $Calls.Count | Should -Be 1
+            $Calls[0].Method | Should -Be $StringCalls[0].Method
+            $Calls[0].Uri.AbsoluteUri | Should -Be $StringCalls[0].Uri.AbsoluteUri
+            "$($Calls[0].Body)" | Should -Be "$($StringCalls[0].Body)"
+        }
+    }
+
+    It 'Sends no display name for a piped [MailAddress] with one to <Command>' -ForEach @(
+        @{ Command = 'Remove-SGBlock' }
+        @{ Command = 'Remove-SGBounce' }
+        @{ Command = 'Remove-SGInvalidEmail' }
+        @{ Command = 'Remove-SGSpamReport' }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Command = $Command } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $null = [MailAddress]::new('one@example.com', 'Sgt Name') | & $Command -Confirm:$false
+
+            $Calls = @(Get-SgtNetworkCall | ForEach-Object { $_ })
+            $Calls.Count | Should -Be 1
+            $Calls[0].Uri.AbsoluteUri | Should -Not -BeLike '*Sgt*'
+            "$($Calls[0].Body)" | Should -Not -BeLike '*Sgt*'
+            "$($Calls[0].Uri.AbsoluteUri) $($Calls[0].Body)" | Should -BeLike '*one*example.com*'
+        }
+    }
+
+    It 'Sends what two strings send for a string and a [MailAddress] piped together to <Command>' -ForEach @(
+        @{ Command = 'Remove-SGBlock' }
+        @{ Command = 'Remove-SGBounce' }
+        @{ Command = 'Remove-SGInvalidEmail' }
+        @{ Command = 'Remove-SGSpamReport' }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Command = $Command } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $null = 'one@example.com', 'two@example.com' | & $Command -Confirm:$false
+            $StringCalls = @(Get-SgtNetworkCall | ForEach-Object { $_ })
+
+            Reset-SgtNetworkStub
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $null = 'one@example.com', [MailAddress]'two@example.com' | & $Command -Confirm:$false
+            $Calls = @(Get-SgtNetworkCall | ForEach-Object { $_ })
+
+            $Calls.Count | Should -Be $StringCalls.Count
+            for ($Index = 0; $Index -lt $Calls.Count; $Index++) {
+                $Calls[$Index].Method | Should -Be $StringCalls[$Index].Method
+                $Calls[$Index].Uri.AbsoluteUri | Should -Be $StringCalls[$Index].Uri.AbsoluteUri
+                "$($Calls[$Index].Body)" | Should -Be "$($StringCalls[$Index].Body)"
+            }
         }
     }
 
