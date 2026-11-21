@@ -82,10 +82,10 @@ BeforeDiscovery {
         @{ Line = 72; Command = 'Set-SGAlert'; Mode = 'T'; Params = @{ AlertId = 1001; Frequency = 'Weekly' }; Prefix = 'Failed to retrieve SendGrid alert. Failed to retrieve SendGrid alert. ' }
         @{ Line = 73; Command = 'Set-SGAlert'; Mode = 'G'; Params = @{ AlertId = 1001; Frequency = 'Weekly' }; Prefix = 'Failed to update SendGrid alert. ' }
         @{ Line = 74; Command = 'Set-SGApiKey'; Mode = 'G'; Params = @{ UniqueId = 'key-id-1'; NewName = 'sgt-test-key' }; Prefix = 'Failed to update SendGrid API Key. ' }
-        @{ Line = 75; Command = 'Set-SGAuthenticatedDomain'; Mode = 'T'; Params = @{ UniqueId = '1001' }; Prefix = 'Failed to set properties for SendGrid Authenticated Domain. ' }
+        @{ Line = 75; Command = 'Set-SGAuthenticatedDomain'; Mode = 'T'; Params = @{ UniqueId = '1001'; SetDefault = $true }; Prefix = 'Failed to set properties for SendGrid Authenticated Domain. ' }
         @{ Line = 76; Command = 'Set-SGAuthenticatedDomainToSubUser'; Mode = 'G'; Params = @{ UniqueId = '1001'; UserName = 'sgt-test-item' }; Prefix = 'Failed to assign authenticated domain. ' }
         @{ Line = 77; Command = 'Set-SGBouncePurgeSetting'; Mode = 'T'; Params = @{ Enabled = $true }; Prefix = 'Failed to update SendGrid bounce purge settings. ' }
-        @{ Line = 78; Command = 'Set-SGBrandedDomainLink'; Mode = 'T'; Params = @{ UniqueId = '1001' }; Prefix = 'Failed to set properties for SendGrid Branded Domain Link. ' }
+        @{ Line = 78; Command = 'Set-SGBrandedDomainLink'; Mode = 'T'; Params = @{ UniqueId = '1001'; SetDefault = $true }; Prefix = 'Failed to set properties for SendGrid Branded Domain Link. ' }
         @{ Line = 79; Command = 'Set-SGEnforcedTls'; Mode = 'T'; Params = @{ RequireTls = $true }; Prefix = 'Failed to update SendGrid Enforced TLS settings. ' }
         @{ Line = 80; Command = 'Set-SGForwardBounceSetting'; Mode = 'T'; Params = @{ Enabled = $true }; Prefix = 'Failed to update SendGrid forward bounce settings. ' }
         @{ Line = 81; Command = 'Set-SGForwardSpamSetting'; Mode = 'T'; Params = @{ Enabled = $true }; Prefix = 'Failed to update SendGrid forward spam settings. ' }

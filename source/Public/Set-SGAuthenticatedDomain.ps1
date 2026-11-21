@@ -86,6 +86,9 @@
             if ($SetCustomSPF) {
                 $ContentBody.Add('custom_spf', $true)
             }
+            if ($ContentBody.Count -eq 0) {
+                Write-Error -Message ('Nothing to update for authenticated domain {0}. Specify -SetDefault or -SetCustomSPF.' -f $DomainId) -ErrorAction Stop
+            }
             if ($PSBoundParameters.OnBehalfOf) {
                 $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
             }
