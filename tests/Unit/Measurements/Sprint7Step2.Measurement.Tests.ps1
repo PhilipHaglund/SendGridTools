@@ -282,6 +282,37 @@ Describe 'Sprint 7 step 2 measurements' {
         Write-Host ('MEASURE M3 [{0}] {1}: {2}; ok={3}' -f $script:Shell, $CaseName, $Seen, $Ok)
         Get-SgtUnmockedNetworkCall | Should -BeNullOrEmpty
     }
+
+    # M4 (for the live run in D182): whether the verbose stream of a GET through InvokeQuery reaches the caller and names the
+    # content type, with the global VerbosePreference set to Continue (a class method does not see the caller's -Verbose).
+    It 'M4: verbose records of a 200 application/json answer' {
+        $Server = Start-SgtLoopbackListener -Status 200 -ContentType 'application/json; charset=utf-8' -Body $script:Utf8.GetBytes('{"name":"sgt"}')
+        $Record = $null
+        $SavedVerbose = $global:VerbosePreference
+        try {
+            $global:VerbosePreference = 'Continue'
+            $Streams = @(InModuleScope SendGridTools -Parameters @{ Port = $Server.Port; Cred = $script:Cred } { Invoke-SgtLoopbackQuery -Port $Port -Method Get -Endpoint 'sgt/measure' -Credential $Cred } 4>&1)
+        }
+        finally {
+            $global:VerbosePreference = $SavedVerbose
+            $Record = Stop-SgtLoopbackListener -Server $Server
+        }
+        Assert-SgtNetworkTripwireActive
+        $Record | Should -Not -BeNullOrEmpty
+        $Record.Authorization | Should -BeTrue
+        $Verbose = @($Streams | Where-Object { $_ -is [System.Management.Automation.VerboseRecord] })
+        # Windows PowerShell 5.1 writes "... response of content type <value>"; PowerShell 7.6 writes "WebResponse: ... with <media type> payload ...".
+        $Named = @(foreach ($Line in $Verbose) {
+                if ($Line.Message -match '(?i)content type (.+?)(?: of |$)') { $Matches[1].Trim() }
+                elseif ($Line.Message -match '(?i)^WebResponse: .* with (\S+) payload') { '{0} (media type only)' -f $Matches[1] }
+            })
+        Write-Host ('MEASURE M4 [{0}] verbose records {1}; content type {2}' -f $script:Shell, $Verbose.Count, $(if ($Named.Count -gt 0) { $Named -join ' | ' } else { '(none)' }))
+        # The loopback text of each record (only 127.0.0.1 and the made-up path), with the port masked.
+        foreach ($Line in $Verbose) {
+            Write-Host ('MEASURE M4 [{0}] verbose: {1}' -f $script:Shell, ($Line.Message -replace '127\.0\.0\.1:\d+', '127.0.0.1:<port>'))
+        }
+        Get-SgtUnmockedNetworkCall | Should -BeNullOrEmpty
+    }
 }
 
 Describe 'Sprint 7 step 2 locks' {
