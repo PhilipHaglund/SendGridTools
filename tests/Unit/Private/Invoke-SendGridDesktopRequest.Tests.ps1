@@ -200,14 +200,47 @@ Describe 'Invoke-SendGridDesktopRequest' {
             }
         }
 
-        It 'Decodes the body as ISO-8859-1 when Content-Type names no character set' {
-            InModuleScope SendGridTools {
-                $Text = ([string][char]0xE5) + [char]0xE4 + [char]0xF6 + ' ' + [char]::ConvertFromUtf32(0x1F600)
+        It 'Decodes JSON as UTF-8 when Content-Type names no character set: <ContentType>' -ForEach @(
+            @{ ContentType = 'application/json' }
+            @{ ContentType = 'text/json' }
+            @{ ContentType = 'application/javascript' }
+            @{ ContentType = 'text/javascript' }
+            @{ ContentType = 'application/x-javascript' }
+            @{ ContentType = 'text/x-javascript' }
+            @{ ContentType = 'Application/JSON' }
+            @{ ContentType = 'application/json; charset=' }
+        ) {
+            InModuleScope SendGridTools -Parameters @{ ContentType = $ContentType } {
+                $Text = ([string][char]0xE5) + [char]0xE4 + [char]0xF6 + [char]0xE9 + [char]0x20AC + [char]::ConvertFromUtf32(0x1F600)
                 $Bytes = [System.Text.UTF8Encoding]::new($false).GetBytes('{"t":"' + $Text + '"}')
-                Set-SgtWebResponse -Response (New-SgtWebResponseObject -ContentType 'application/json' -Bytes $Bytes)
+                Set-SgtWebResponse -Response (New-SgtWebResponseObject -ContentType $ContentType -Bytes $Bytes)
+                $Raw = (Invoke-SendGridDesktopRequest -Method Get -Uri 'https://api.sendgrid.com/v3/scopes' -Headers @{ Authorization = 'Bearer test-key-not-real' })
+                $Raw.t | Should -BeExactly $Text
+            }
+        }
+
+        It 'Follows a named ISO-8859-1 on JSON' {
+            InModuleScope SendGridTools {
+                $Text = ([string][char]0xE5) + [char]0xE4 + [char]0xF6 + [char]0xE9
+                $Bytes = [System.Text.Encoding]::GetEncoding('ISO-8859-1').GetBytes('{"t":"' + $Text + '"}')
+                Set-SgtWebResponse -Response (New-SgtWebResponseObject -ContentType 'application/json; charset=iso-8859-1' -Bytes $Bytes)
+                $Raw = (Invoke-SendGridDesktopRequest -Method Get -Uri 'https://api.sendgrid.com/v3/scopes' -Headers @{ Authorization = 'Bearer test-key-not-real' })
+                $Raw.t | Should -BeExactly $Text
+            }
+        }
+
+        It 'Decodes <ContentType> without a character set as ISO-8859-1' -ForEach @(
+            @{ ContentType = 'text/plain' }
+            @{ ContentType = 'text/html' }
+        ) {
+            InModuleScope SendGridTools -Parameters @{ ContentType = $ContentType } {
+                $Text = ([string][char]0xE5) + [char]0xE4 + [char]0xF6 + [char]0xE9 + [char]0x20AC
+                $Bytes = [System.Text.UTF8Encoding]::new($false).GetBytes('{"t":"' + $Text + '"}')
+                Set-SgtWebResponse -Response (New-SgtWebResponseObject -ContentType $ContentType -Bytes $Bytes)
                 $Raw = (Invoke-SendGridDesktopRequest -Method Get -Uri 'https://api.sendgrid.com/v3/scopes' -Headers @{ Authorization = 'Bearer test-key-not-real' })
                 $Expected = [System.Text.Encoding]::GetEncoding('ISO-8859-1').GetString($Bytes) | ConvertFrom-Json
                 $Raw.t | Should -BeExactly $Expected.t
+                $Raw.t | Should -Not -BeExactly $Text
             }
         }
 

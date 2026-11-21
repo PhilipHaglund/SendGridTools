@@ -14,6 +14,10 @@
 # response. When only $global:SgtNetworkStub is set, Invoke-WebRequest runs that stub and wraps its output
 # as a JSON response (status 200, a Content-Type header, RawContentStream with the UTF-8 JSON), so a stub
 # written for Invoke-RestMethod also answers Invoke-WebRequest. No output, or one $null, returns nothing.
+#
+# Body logging: a call entry has Body (as given, except that a [byte[]] body is logged as its UTF-8 decoding
+# without a byte order mark, so tests can read the JSON text), BodyBytes (the raw [byte[]] when the body was
+# bytes, otherwise $null) and BodyPassed (true when any body was passed).
 
 function Enable-SgtNetworkTripwire {
     $global:SgtUnmockedNetworkCall = [System.Collections.Generic.List[string]]::new()
@@ -24,7 +28,10 @@ function Enable-SgtNetworkTripwire {
         [CmdletBinding()]
         param($Method, $Uri, $Headers, $Body, $MaximumRedirection, [Parameter(ValueFromRemainingArguments)]$Remaining)
         if ($null -ne $global:SgtNetworkStub) {
-            $null = $global:SgtNetworkCall.Add(@{ Command = 'Invoke-RestMethod'; Method = "$Method"; Uri = $Uri; Headers = $Headers; Body = $Body; BodyPassed = ($null -ne $Body); MaximumRedirection = $MaximumRedirection; MaximumRedirectionPassed = $PSBoundParameters.ContainsKey('MaximumRedirection') })
+            $LoggedBody = $Body
+            $LoggedBytes = $null
+            if ($Body -is [byte[]]) { $LoggedBytes = $Body; $LoggedBody = [System.Text.UTF8Encoding]::new($false).GetString($Body) }
+            $null = $global:SgtNetworkCall.Add(@{ Command = 'Invoke-RestMethod'; Method = "$Method"; Uri = $Uri; Headers = $Headers; Body = $LoggedBody; BodyBytes = $LoggedBytes; BodyPassed = ($null -ne $Body); MaximumRedirection = $MaximumRedirection; MaximumRedirectionPassed = $PSBoundParameters.ContainsKey('MaximumRedirection') })
             & $global:SgtNetworkStub
             return
         }
@@ -35,7 +42,10 @@ function Enable-SgtNetworkTripwire {
         [CmdletBinding()]
         param($Method, $Uri, $Headers, $Body, $MaximumRedirection, [switch]$UseBasicParsing, [Parameter(ValueFromRemainingArguments)]$Remaining)
         if ($null -ne $global:SgtWebRequestStub -or $null -ne $global:SgtNetworkStub) {
-            $null = $global:SgtNetworkCall.Add(@{ Command = 'Invoke-WebRequest'; Method = "$Method"; Uri = $Uri; Headers = $Headers; Body = $Body; BodyPassed = ($null -ne $Body); MaximumRedirection = $MaximumRedirection; MaximumRedirectionPassed = $PSBoundParameters.ContainsKey('MaximumRedirection'); UseBasicParsing = [bool]$UseBasicParsing })
+            $LoggedBody = $Body
+            $LoggedBytes = $null
+            if ($Body -is [byte[]]) { $LoggedBytes = $Body; $LoggedBody = [System.Text.UTF8Encoding]::new($false).GetString($Body) }
+            $null = $global:SgtNetworkCall.Add(@{ Command = 'Invoke-WebRequest'; Method = "$Method"; Uri = $Uri; Headers = $Headers; Body = $LoggedBody; BodyBytes = $LoggedBytes; BodyPassed = ($null -ne $Body); MaximumRedirection = $MaximumRedirection; MaximumRedirectionPassed = $PSBoundParameters.ContainsKey('MaximumRedirection'); UseBasicParsing = [bool]$UseBasicParsing })
             if ($null -ne $global:SgtWebRequestStub) {
                 & $global:SgtWebRequestStub
                 return

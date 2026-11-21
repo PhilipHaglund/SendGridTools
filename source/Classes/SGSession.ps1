@@ -250,13 +250,14 @@ class SendGridSession {
             try {
                 $Headers = @{
                     'Authorization' = "Bearer $($this._Credential.GetNetworkCredential().Password)"
-                    'Content-Type'  = 'application/json'
+                    'Content-Type'  = 'application/json; charset=utf-8'
                 }
+                $BodyBytes = [System.Text.UTF8Encoding]::new($false).GetBytes($Body)
                 if ($global:PSVersionTable.PSEdition -eq 'Desktop') {
-                    $Query = (Invoke-SendGridDesktopRequest -Method $WebRequestMethod -Uri $this.EndpointURL -Headers $Headers -Body $Body)
+                    $Query = (Invoke-SendGridDesktopRequest -Method $WebRequestMethod -Uri $this.EndpointURL -Headers $Headers -Body $BodyBytes)
                 }
                 else {
-                    $Query = (Invoke-RestMethod -Method $WebRequestMethod -Uri $this.EndpointURL -Headers $Headers -Body $Body -MaximumRedirection 0 -ErrorAction Stop)
+                    $Query = (Invoke-RestMethod -Method $WebRequestMethod -Uri $this.EndpointURL -Headers $Headers -Body $BodyBytes -MaximumRedirection 0 -ErrorAction Stop)
                 }
                 $this.BuildEndpointURL($null)
                 $this._CreateDateTime = Get-Date
@@ -380,13 +381,14 @@ class SendGridSession {
                 $Headers = @{
                     'Authorization' = "Bearer $($this._Credential.GetNetworkCredential().Password)"
                     'on-behalf-of'  = $OnBehalfOf
-                    'Content-Type'  = 'application/json'
+                    'Content-Type'  = 'application/json; charset=utf-8'
                 }
+                $BodyBytes = [System.Text.UTF8Encoding]::new($false).GetBytes($Body)
                 if ($global:PSVersionTable.PSEdition -eq 'Desktop') {
-                    $Query = (Invoke-SendGridDesktopRequest -Method $WebRequestMethod -Uri $this.EndpointURL -Headers $Headers -Body $Body)
+                    $Query = (Invoke-SendGridDesktopRequest -Method $WebRequestMethod -Uri $this.EndpointURL -Headers $Headers -Body $BodyBytes)
                 }
                 else {
-                    $Query = (Invoke-RestMethod -Method $WebRequestMethod -Uri $this.EndpointURL -Headers $Headers -Body $Body -MaximumRedirection 0 -ErrorAction Stop)
+                    $Query = (Invoke-RestMethod -Method $WebRequestMethod -Uri $this.EndpointURL -Headers $Headers -Body $BodyBytes -MaximumRedirection 0 -ErrorAction Stop)
                 }
                 $this.BuildEndpointURL($null)
                 $this._CreateDateTime = Get-Date

@@ -214,7 +214,7 @@ Describe 'SendGridSession InvokeQuery <Name>' -ForEach $script:Cases {
             $Call.Method | Should -Be $Case.Method
             $Call.Uri.AbsoluteUri | Should -Be ('https://api.sendgrid.com/v3/{0}' -f $Case.Endpoint)
             $Call.Headers['Authorization'] | Should -Be 'Bearer test-key-not-real'
-            $Call.Headers['Content-Type'] | Should -Be 'application/json'
+            $Call.Headers['Content-Type'] | Should -Be $(if ($Case.HasBody) { 'application/json; charset=utf-8' } else { 'application/json' })
             if ($Case.HasObo) {
                 $Call.Headers.ContainsKey('on-behalf-of') | Should -BeTrue
                 $Call.Headers['on-behalf-of'] | Should -Be $Case.Obo
@@ -231,6 +231,32 @@ Describe 'SendGridSession InvokeQuery <Name>' -ForEach $script:Cases {
             }
             @($Result)[0].ok | Should -Be 'mock-response'
             $Session.EndpointURL | Should -BeNullOrEmpty
+        }
+    }
+
+    It 'Sends a body as UTF-8 bytes without a byte order mark, and a call without a body keeps its content type' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Case = $script:Case } {
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ ok = 'mock-response' })
+            $Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            # a-ring, e-acute, euro sign and a grinning face (a surrogate pair), built from code points to keep the file ASCII.
+            $Sample = [string][char]0xE5 + [char]0xE9 + [char]0x20AC + [char]::ConvertFromUtf32(0x1F600)
+            $Used = if ($Case.HasBody) { @{ name = $Sample } } else { $null }
+            $Used2 = @{ Name = $Case.Name; Method = $Case.Method; Endpoint = $Case.Endpoint; HasBody = $Case.HasBody; HasObo = $Case.HasObo; Body = $Used; Obo = $Case.Obo }
+            $null = Invoke-SgtOverload -Session $Session -Case $Used2
+            $Call = (Get-SgtNetworkCall)[0]
+            if ($Case.HasBody) {
+                $Json = $Used | ConvertTo-Json -Depth 5
+                $Expected = [System.Text.UTF8Encoding]::new($false).GetBytes($Json)
+                ($Call.BodyBytes -is [byte[]]) | Should -BeTrue
+                ($Call.BodyBytes -join ',') | Should -BeExactly ($Expected -join ',')
+                $Call.Body | Should -BeExactly $Json
+                $Call.Headers['Content-Type'] | Should -BeExactly 'application/json; charset=utf-8'
+            }
+            else {
+                $Call.BodyPassed | Should -BeFalse
+                $Call.BodyBytes | Should -BeNullOrEmpty
+                $Call.Headers['Content-Type'] | Should -BeExactly 'application/json'
+            }
         }
     }
 
