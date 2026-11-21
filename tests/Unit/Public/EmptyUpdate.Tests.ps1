@@ -81,6 +81,62 @@ Describe 'Set commands refuse an update without fields (D167)' {
         }
     }
 
+    It 'Refuses <Name> at the first id and logs no call' -ForEach @(
+        @{
+            Name = 'Set-SGAuthenticatedDomain with ids from the pipeline'
+            Script = { 1001, 1002 | Set-SGAuthenticatedDomain -Confirm:$false }
+            Message = 'Nothing to update for authenticated domain 1001. Specify -SetDefault or -SetCustomSPF.'
+        }
+        @{
+            Name = 'Set-SGAuthenticatedDomain with two ids in -UniqueId'
+            Script = { Set-SGAuthenticatedDomain -UniqueId '1001', '1002' -Confirm:$false }
+            Message = 'Nothing to update for authenticated domain 1001. Specify -SetDefault or -SetCustomSPF.'
+        }
+        @{
+            Name = 'Set-SGBrandedDomainLink with ids from the pipeline'
+            Script = { 1001, 1002 | Set-SGBrandedDomainLink -Confirm:$false }
+            Message = 'Nothing to update for branded domain link 1001. Specify -SetDefault.'
+        }
+        @{
+            Name = 'Set-SGBrandedDomainLink with two ids in -UniqueId'
+            Script = { Set-SGBrandedDomainLink -UniqueId '1001', '1002' -Confirm:$false }
+            Message = 'Nothing to update for branded domain link 1001. Specify -SetDefault.'
+        }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Script = $Script; Message = $Message } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
+
+            $Script | Should -Throw -ExpectedMessage $Message
+
+            (Get-SgtNetworkCall).Count | Should -Be 0
+        }
+    }
+
+    It 'Stops a Set-SGAlert pipeline at the first alert with nothing to update' {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            Set-SgtNetworkStub -Response $null
+            # The Get of alerts/1001 answers a stats_notification, the Get of alerts/1002 a usage_alert; the Patch answers either.
+            $global:SgtNetworkStub = {
+                $Uri = "$($global:SgtNetworkCall[-1].Uri)"
+                if ($Uri -match 'alerts/1002') {
+                    [pscustomobject]@{ id = 1002; type = 'usage_alert'; email_to = 'one@example.com' }
+                }
+                else {
+                    [pscustomobject]@{ id = 1001; type = 'stats_notification'; email_to = 'one@example.com' }
+                }
+            }
+
+            { 1001, 1002 | Set-SGAlert -Frequency Weekly -Confirm:$false } | Should -Throw -ExpectedMessage 'Nothing to update for alert 1002. Specify -Percentage or -EmailTo.'
+
+            $Patch = @(Get-SgtNetworkCall | ForEach-Object { $_ } | Where-Object { $_.Method -eq 'Patch' })
+            $Patch.Count | Should -Be 1
+            "$($Patch[0].Uri)" | Should -BeLike '*/alerts/1001'
+            @(($Patch[0].Body | ConvertFrom-Json).PSObject.Properties.Name) | Should -Be @('frequency')
+        }
+    }
+
     It 'Refuses Set-SGAlert on a <Type> without a field it uses, after one Get only' -ForEach @(
         @{
             Type = 'usage_alert'

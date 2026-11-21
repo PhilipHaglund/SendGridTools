@@ -10,11 +10,11 @@ BeforeAll {
     $script:TestsRoot = (Resolve-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath '../..')).Path
 
     function script:Find-SgtDebugParameter {
-        # The CommandParameterAst nodes named Debug (any case) in the given syntax tree.
+        # The CommandParameterAst nodes that bind to Debug (any case): -Debug, its alias -db and the prefixes -deb and -debu.
         param($Ast)
         $Ast.FindAll({
                 param($Node)
-                $Node -is [System.Management.Automation.Language.CommandParameterAst] -and $Node.ParameterName -ieq 'Debug'
+                $Node -is [System.Management.Automation.Language.CommandParameterAst] -and $Node.ParameterName -match '^(db|deb|debu|debug)$'
             }, $true)
     }
 }
@@ -30,8 +30,20 @@ Describe 'No test passes the Debug switch' {
         @(Find-SgtDebugParameter -Ast $Parsed).Count | Should -Be 1
     }
 
-    It 'Does not find the switch in a script that only names a debug channel (self-check)' {
-        $Parsed = [System.Management.Automation.Language.Parser]::ParseInput('Write-Debug -Message x', [ref]$null, [ref]$null)
+    It 'Finds the alias and the prefixes that bind to Debug (self-check)' -ForEach @(
+        @{ Script = 'Get-Item -Path x -db' }
+        @{ Script = 'Get-Item -Path x -Deb' }
+        @{ Script = 'Get-Item -Path x -debu' }
+    ) {
+        $Parsed = [System.Management.Automation.Language.Parser]::ParseInput($Script, [ref]$null, [ref]$null)
+        @(Find-SgtDebugParameter -Ast $Parsed).Count | Should -Be 1
+    }
+
+    It 'Does not find the switch in a script that only names a debug channel (self-check)' -ForEach @(
+        @{ Script = 'Write-Debug -Message x' }
+        @{ Script = 'New-Thing -Description x' }
+    ) {
+        $Parsed = [System.Management.Automation.Language.Parser]::ParseInput($Script, [ref]$null, [ref]$null)
         @(Find-SgtDebugParameter -Ast $Parsed).Count | Should -Be 0
     }
 

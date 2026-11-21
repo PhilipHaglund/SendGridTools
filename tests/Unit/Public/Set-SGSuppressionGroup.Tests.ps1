@@ -66,7 +66,7 @@ Describe 'Set-SGSuppressionGroup request' {
             $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
             Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
 
-            { $Item | Set-SGSuppressionGroup -Confirm:$false } | Should -Throw
+            { $Item | Set-SGSuppressionGroup -Confirm:$false } | Should -Throw -ExpectedMessage '*Failed to convert InputObject to Id.*'
 
             Get-SgtNetworkCall | Should -BeNullOrEmpty
         }

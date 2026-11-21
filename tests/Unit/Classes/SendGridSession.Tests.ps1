@@ -290,10 +290,10 @@ Describe 'SendGridSession InvokeQuery after Disconnect <Name>' -ForEach $script:
             $Session = [SendGridSession]::new()
             $Session.Connect($Cred)
             $Session._Connected | Should -BeTrue
-            @(Get-SgtNetworkCall).Count | Should -Be 1
+            (Get-SgtNetworkCall).Count | Should -Be 1
             $Session.Disconnect()
             { Invoke-SgtOverload -Session $Session -Case $Case } | Should -Throw -ExpectedMessage 'You must call the Connect-SendGrid cmdlet before calling any other cmdlets.'
-            @(Get-SgtNetworkCall).Count | Should -Be 1
+            (Get-SgtNetworkCall).Count | Should -Be 1
         }
     }
 }
