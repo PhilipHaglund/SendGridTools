@@ -5,6 +5,7 @@
 
     .DESCRIPTION
         Get-SGTeammate retrieves all or a specific Teammate from SendGrid. You can specify the specific username to retrieve.
+        Without -Username every page is read, so all teammates are returned.
 
     .PARAMETER Username
         Specifies the specific username to retrieve. An empty value is refused.
@@ -62,7 +63,7 @@
         }
         else {
             try {
-                Invoke-SendGrid @InvokeSplat
+                Invoke-SendGridPagedList -InvokeSplat $InvokeSplat -IdProperty 'Username'
             }
             catch {
                 Write-Error -Exception (ConvertTo-SendGridCommandException -Message ('Failed to retrieve all SendGrid teammates. {0}' -f $_.Exception.Message) -ErrorRecord $_) -ErrorAction Stop
