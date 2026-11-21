@@ -91,12 +91,21 @@ BeforeAll {
                 Body          = $Memory.ToArray()
             }
             $Response = $Context.Response
-            $Response.StatusCode = $Status
-            if ($ContentType) { $Response.ContentType = $ContentType }
-            $Response.ContentLength64 = $Body.Length
-            if ($Body.Length -gt 0) { $Response.OutputStream.Write($Body, 0, $Body.Length) }
-            $Response.OutputStream.Close()
-            $Response.Close()
+            $Closed = $false
+            try {
+                $Response.StatusCode = $Status
+                if ($ContentType) { $Response.ContentType = $ContentType }
+                $Response.ContentLength64 = $Body.Length
+                if ($Body.Length -gt 0) { $Response.OutputStream.Write($Body, 0, $Body.Length) }
+                $Response.OutputStream.Close()
+                $Response.Close()
+                $Closed = $true
+            }
+            finally {
+                if (-not $Closed) {
+                    try { $Response.Abort() } catch { $null = $_ }
+                }
+            }
             $Record
         }
         $Runspace = [powershell]::Create()
@@ -357,6 +366,28 @@ Describe 'Sprint 7 step 2 locks' {
         $Part = [byte[]]@($Bytes[($Quote[2] + 1)..($Quote[3] - 1)])
         ($Part | ForEach-Object { '{0:X2}' -f $_ }) -join ' ' | Should -BeExactly (($script:Utf8.GetBytes($script:Sample) | ForEach-Object { '{0:X2}' -f $_ }) -join ' ')
         $Record.ContentType | Should -BeExactly 'application/json; charset=utf-8'
+        Get-SgtUnmockedNetworkCall | Should -BeNullOrEmpty
+    }
+
+    It 'Error body: <CaseName> keeps the text in the exception and in SendGridErrors (D180 not needed)' -ForEach $script:M3Case {
+        $Text = '{"errors":[{"field":"name","message":"' + $script:Sample + '"}]}'
+        $Server = Start-SgtLoopbackListener -Status 400 -ContentType $ContentType -Body $script:Utf8.GetBytes($Text)
+        $Record = $null
+        try {
+            $Query = InModuleScope SendGridTools -Parameters @{ Port = $Server.Port; Cred = $script:Cred } { Invoke-SgtLoopbackQuery -Port $Port -Method Get -Endpoint 'sgt/lock' -Credential $Cred }
+        }
+        finally {
+            $Record = Stop-SgtLoopbackListener -Server $Server
+        }
+        Assert-SgtNetworkTripwireActive
+        $Record | Should -Not -BeNullOrEmpty
+        $Record.Method | Should -Be 'GET'
+        $Record.Authorization | Should -BeTrue
+        $Query.Error | Should -Not -BeNullOrEmpty
+        $Query.Error.Exception.Message.Contains($script:Sample) | Should -BeTrue
+        $Errors = @($Query.Error.Exception.Data['SendGridErrors'])
+        $Errors.Count | Should -BeGreaterOrEqual 1
+        ([string]$Errors[0].Message -ceq $script:Sample) | Should -BeTrue
         Get-SgtUnmockedNetworkCall | Should -BeNullOrEmpty
     }
 }
