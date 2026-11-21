@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-21
+
 ### Added
 
 - Every changed command error, `Disconnect-SendGrid` included, keeps the caught exception in `$_.Exception.InnerException`, also when SendGrid did not answer (for example a name lookup). When SendGrid answered, the HTTP status is an integer in `$_.Exception.Data['StatusCode']` and SendGrid's errors are in `$_.Exception.Data['SendGridErrors']`, a list of objects with `Field` and `Message`. Before, the error held only the text: no inner exception and no `Data`. The text before `SendGrid Error`, the error id and the type are unchanged. Callers may notice that `$_.Exception.GetBaseException()` now returns the original exception from the web request instead of the command's error, and that `$_.Exception.ToString()` includes the inner exceptions.
@@ -212,7 +214,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - First release: connect to SendGrid, manage API keys, authenticated domains and branded links, and send mail with `Send-SGMailMessage`.
 
-[Unreleased]: https://github.com/PhilipHaglund/SendGridTools/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/PhilipHaglund/SendGridTools/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/PhilipHaglund/SendGridTools/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/PhilipHaglund/SendGridTools/compare/v0.5.2...v0.6.0
 [0.5.2]: https://github.com/PhilipHaglund/SendGridTools/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/PhilipHaglund/SendGridTools/compare/v0.5.0...v0.5.1
