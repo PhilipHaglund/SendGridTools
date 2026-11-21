@@ -22,7 +22,8 @@ Describe 'Get-SGTeammate sends the username in the path (D63)' {
     It 'Sends one request to <Expected> for <Name>' -ForEach @(
         @{ Name = 'a b+c'; Expected = '/v3/teammates/a%20b%2Bc' }
         @{ Name = 'placeholder-name'; Expected = '/v3/teammates/placeholder-name' }
-    ) {        $Script = @"
+    ) {
+        $Script = @"
 try { `$null = Get-SGTeammate -Username '$Name' } catch { 'threw {0}' -f `$_.Exception.GetType().FullName }
 foreach (`$Call in `$global:SgtNetworkCall) { 'path {0}' -f ([uri]`$Call.Uri).AbsolutePath }
 "@
