@@ -18,8 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Send-SGMailMessage -Priority` is sent as the headers `X-Priority`, `Importance` and `Priority` (High `1`/`high`/`urgent`, Normal `3`/`normal`/`normal`, Low `5`/`low`/`non-urgent`). Before, it was sent as a top-level `priority` field, which SendGrid's Mail Send API does not have, so it had no effect.
 - `Get-SGTeammate` without `-Username` reads every page (50 at a time). Before, it read one page, which SendGrid limits to 500 teammates.
 - `Add-SGEmailAddressToSuppressionGroup` with one address sends it as a list. Before, SendGrid refused one address with `invalid json` (HTTP 400).
-- `Get-SGEmailActivity` sends a whole number for `-Property AsmGroupId`, `AsmGroupName` and `Clicks` without quotes. Before, SendGrid refused these filters with `operator = is incompatible with NUMBER, STRING` (HTTP 400).
-- `Set-SGAlert` updates an alert of type `usage_limit`. Before, it said `The alert with ID <id> is an unknown type.` and sent nothing.
+- `Get-SGEmailActivity` sends a whole number for `-Property AsmGroupId` and `Clicks` without quotes, and for `-Property AsmGroupName` it sends the group id found for the name without quotes. Before, SendGrid refused these filters with `operator = is incompatible with NUMBER, STRING` for one value and `operator IN is incompatible with NUMBER, STRING, STRING` for two (HTTP 400).
+- `Set-SGAlert` updates an alert of type `usage_limit`. Before, it said `The alert with ID <id> is an unknown type. Create an issue on GitHub.` and sent nothing.
 
 ## [0.7.0] - 2026-11-21
 
