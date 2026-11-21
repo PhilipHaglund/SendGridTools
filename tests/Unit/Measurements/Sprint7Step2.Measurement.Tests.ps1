@@ -303,6 +303,31 @@ Describe 'Sprint 7 step 2 locks' {
         $Item.name | Should -BeExactly $script:Sample
         Get-SgtUnmockedNetworkCall | Should -BeNullOrEmpty
     }
+
+    It 'D179: <CaseName> sends exactly the UTF-8 bytes of the text, with a UTF-8 content type' -ForEach $script:M1Case {
+        $Server = Start-SgtLoopbackListener -Status 200 -ContentType 'application/json' -Body $script:Utf8.GetBytes('{}')
+        $Record = $null
+        try {
+            $Params = @{ Port = $Server.Port; Method = $Method; Endpoint = 'sgt/lock'; Body = @{ name = $script:Sample }; Credential = $script:Cred }
+            if ($HasObo) { $Params['OnBehalfOf'] = 'sgt-subuser' }
+            $Query = InModuleScope SendGridTools -Parameters @{ Params = $Params } { Invoke-SgtLoopbackQuery @Params }
+        }
+        finally {
+            $Record = Stop-SgtLoopbackListener -Server $Server
+        }
+        Assert-SgtNetworkTripwireActive
+        $Record | Should -Not -BeNullOrEmpty
+        $Record.Method | Should -Be $Method.ToUpperInvariant()
+        $Record.Authorization | Should -BeTrue
+        $Query.Error | Should -BeNullOrEmpty
+        $Bytes = [byte[]]$Record.Body
+        $Quote = @(for ($i = 0; $i -lt $Bytes.Length; $i++) { if ($Bytes[$i] -eq 0x22) { $i } })
+        $Quote.Count | Should -BeGreaterOrEqual 4
+        $Part = [byte[]]@($Bytes[($Quote[2] + 1)..($Quote[3] - 1)])
+        ($Part | ForEach-Object { '{0:X2}' -f $_ }) -join ' ' | Should -BeExactly (($script:Utf8.GetBytes($script:Sample) | ForEach-Object { '{0:X2}' -f $_ }) -join ' ')
+        $Record.ContentType | Should -BeExactly 'application/json; charset=utf-8'
+        Get-SgtUnmockedNetworkCall | Should -BeNullOrEmpty
+    }
 }
 
 Describe 'Network tripwire' {
