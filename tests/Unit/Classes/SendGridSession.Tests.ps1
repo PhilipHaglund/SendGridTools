@@ -285,12 +285,15 @@ Describe 'SendGridSession InvokeQuery after Disconnect <Name>' -ForEach $script:
     }
 
     It 'Throws the connect-first error after Disconnect (<Name>)' {
-        InModuleScope SendGridTools -Parameters @{ Case = @{ Name = $Name; Method = $Method; Endpoint = $Endpoint; HasBody = $HasBody; HasObo = $HasObo; Body = $Body; Obo = $Obo } } {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred; Case = @{ Name = $Name; Method = $Method; Endpoint = $Endpoint; HasBody = $HasBody; HasObo = $HasObo; Body = $Body; Obo = $Obo } } {
             Set-SgtNetworkStub -Response $null
             $Session = [SendGridSession]::new()
+            $Session.Connect($Cred)
+            $Session._Connected | Should -BeTrue
+            @(Get-SgtNetworkCall).Count | Should -Be 1
             $Session.Disconnect()
             { Invoke-SgtOverload -Session $Session -Case $Case } | Should -Throw -ExpectedMessage 'You must call the Connect-SendGrid cmdlet before calling any other cmdlets.'
-            Get-SgtNetworkCall | Should -BeNullOrEmpty
+            @(Get-SgtNetworkCall).Count | Should -Be 1
         }
     }
 }

@@ -357,9 +357,9 @@ Describe 'Connect-SendGrid -ApiKey and a host that cannot prompt' {
     It 'Keeps -ApiKey out of verbose, debug and error output' {
         Mock -ModuleName SendGridTools Test-SendGridHostCanPrompt { $false }
         InModuleScope SendGridTools -Parameters @{ ApiKey = $script:ApiKey; Cred = $script:Cred } {
-            $Success = Get-SgtLeakText -Action { Connect-SendGrid -ApiKey $ApiKey -Verbose -Debug }
+            $Success = Get-SgtLeakText -Action { $DebugPreference = 'Continue'; Connect-SendGrid -ApiKey $ApiKey -Verbose }
             $Success.Text | Should -Not -BeLike '*test-apikey-not-real*'
-            $Refused = Get-SgtLeakText -Action { Connect-SendGrid -ApiKey $ApiKey -Credential $Cred -Verbose -Debug }
+            $Refused = Get-SgtLeakText -Action { $DebugPreference = 'Continue'; Connect-SendGrid -ApiKey $ApiKey -Credential $Cred -Verbose }
             $Refused.Threw | Should -BeTrue
             $Refused.Text | Should -Not -BeLike '*test-apikey-not-real*'
         }
@@ -502,7 +502,7 @@ Describe 'Connect-SendGrid refresh with a given key (D9)' {
     It 'Keeps the new key out of verbose, debug and error output' {
         InModuleScope SendGridTools -Parameters @{ Old = $script:OldCred; New = $script:NewCred } {
             $script:Session = New-SgtTestSession -Credential $Old -AgeHours 0.5
-            $Result = Get-SgtLeakText -Action { Connect-SendGrid -Credential $New -Verbose -Debug }
+            $Result = Get-SgtLeakText -Action { $DebugPreference = 'Continue'; Connect-SendGrid -Credential $New -Verbose }
             $Result.Text | Should -Not -BeLike '*test-key-new-not-real*'
             $Result.Text | Should -Not -BeLike '*test-key-old-not-real*'
         }
