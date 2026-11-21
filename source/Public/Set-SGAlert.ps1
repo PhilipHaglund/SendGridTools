@@ -79,7 +79,7 @@
             $ContentBody = @{}
 
             switch ($Verify.Type) {
-                'usage_alert' {
+                { $_ -in 'usage_limit', 'usage_alert' } {
                     if ($PSBoundParameters.Percentage) {
                         $ContentBody.Add('percentage', $Percentage)
                     }
@@ -120,7 +120,7 @@
             }
 
             if ($ContentBody.Count -eq 0) {
-                $Specify = if ($Verify.Type -eq 'usage_alert') { '-Percentage or -EmailTo' } else { '-Frequency or -EmailTo' }
+                $Specify = if ($Verify.Type -in 'usage_limit', 'usage_alert') { '-Percentage or -EmailTo' } else { '-Frequency or -EmailTo' }
                 Write-Error -Message ('Nothing to update for alert {0}. Specify {1}.' -f $AlertId, $Specify) -ErrorAction Stop
             }
 
