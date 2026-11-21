@@ -74,6 +74,9 @@
             if ($SetDefault) {
                 $ContentBody.Add('default', $true)
             }
+            if ($ContentBody.Count -eq 0) {
+                Write-Error -Message ('Nothing to update for branded domain link {0}. Specify -SetDefault.' -f $Id) -ErrorAction Stop
+            }
             if ($PSBoundParameters.OnBehalfOf) {
                 $InvokeSplat.Add('OnBehalfOf', $OnBehalfOf)
             }

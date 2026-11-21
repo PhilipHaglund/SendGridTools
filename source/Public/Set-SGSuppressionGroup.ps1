@@ -97,6 +97,9 @@
             $Body['is_default'] = $IsDefault.IsPresent
         }
         foreach ($Id in $IdList) {
+            if ($Body.Count -eq 0) {
+                Write-Error -Message ('Nothing to update for suppression group {0}. Specify -Name, -Description or -IsDefault.' -f $Id) -ErrorAction Stop
+            }
             $InvokeSplat = @{
                 Method        = 'Patch'
                 Namespace     = "asm/groups/$Id"

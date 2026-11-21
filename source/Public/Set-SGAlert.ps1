@@ -119,6 +119,11 @@
                 $ContentBody.Add('email_to', $EmailTo.Address)
             }
 
+            if ($ContentBody.Count -eq 0) {
+                $Specify = if ($Verify.Type -eq 'usage_alert') { '-Percentage or -EmailTo' } else { '-Frequency or -EmailTo' }
+                Write-Error -Message ('Nothing to update for alert {0}. Specify {1}.' -f $AlertId, $Specify) -ErrorAction Stop
+            }
+
             $InvokeSplat = @{
                 Method        = 'Patch'
                 Namespace     = "alerts/$AlertId"

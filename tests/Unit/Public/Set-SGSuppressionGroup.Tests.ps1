@@ -33,7 +33,7 @@ Describe 'Set-SGSuppressionGroup request' {
             $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
             Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
 
-            $null = $Items | Set-SGSuppressionGroup -Confirm:$false
+            $null = $Items | Set-SGSuppressionGroup -Name 'name-placeholder' -Confirm:$false
 
             $Calls = Get-SgtNetworkCall
             $Calls.Count | Should -Be $Expected.Count
@@ -49,7 +49,7 @@ Describe 'Set-SGSuppressionGroup request' {
             $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
             Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
 
-            $null = Set-SGSuppressionGroup -UniqueId 1001 -Confirm:$false
+            $null = Set-SGSuppressionGroup -UniqueId 1001 -Name 'name-placeholder' -Confirm:$false
 
             $Calls = Get-SgtNetworkCall
             $Calls.Count | Should -Be 1
@@ -77,7 +77,7 @@ Describe 'Set-SGSuppressionGroup request' {
             $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
             Set-SgtNetworkStub -Response ([pscustomobject]@{ id = 1001 })
 
-            $null = 1001, 1002 | Set-SGSuppressionGroup -WhatIf
+            $null = 1001, 1002 | Set-SGSuppressionGroup -Name 'name-placeholder' -WhatIf
 
             Get-SgtNetworkCall | Should -BeNullOrEmpty
         }
