@@ -16,7 +16,7 @@
         Specifies the new frequency at which the alert will be sent. Required for 'stats_notification'.
 
     .PARAMETER Percentage
-        Specifies the new usage threshold at which the alert will be sent. Required for 'usage_alert'.
+        Specifies the new usage threshold at which the alert will be sent. Required for 'usage_limit'.
 
     .PARAMETER OnBehalfOf
         Specifies an On Behalf Of header to allow you to make API calls from a parent account on behalf of the parent's Subusers or customer accounts.
@@ -58,7 +58,7 @@
         [ValidateSet('Daily', 'Weekly', 'Monthly')]
         [string]$Frequency,
 
-        # Specifies the new usage threshold at which the alert will be sent. Required for 'usage_alert'.
+        # Specifies the new usage threshold at which the alert will be sent. Required for 'usage_limit'.
         [Parameter()]
         [ValidateRange(1, 100)]
         [int]$Percentage,
