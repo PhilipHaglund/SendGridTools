@@ -597,6 +597,17 @@
 
             [System.Text.StringBuilder]$FilterQuery = [System.Text.StringBuilder]::new()
 
+            # SendGrid compares asm_group_id and clicks as numbers, so a whole number for those fields is sent bare; every other value stays quoted.
+            $ConvertToFilterValue = {
+                param([string]$Item)
+                $Number = [long]0
+                if ($Properties[$Property] -in 'asm_group_id', 'clicks' -and
+                    [long]::TryParse($Item, [System.Globalization.NumberStyles]::None, [cultureinfo]::InvariantCulture, [ref]$Number)) {
+                    return $Item
+                }
+                return (ConvertTo-SendGridUriComponent """$Item""")
+            }
+
             $null = $FilterQuery.Append('(')
             if ($PSBoundParameters.ContainsKey('EQ') -or $PSBoundParameters.ContainsKey('NE')) {
                 $null = $FilterQuery.Append($Properties[$Property])
@@ -606,14 +617,14 @@
                 if ($ValueIsArray) {
                     $null = $FilterQuery.Append('(')
                     foreach ($Var in ($PSBoundParameters['Value'])) {
-                        $null = $FilterQuery.Append((ConvertTo-SendGridUriComponent """$Var"""))
+                        $null = $FilterQuery.Append((& $ConvertToFilterValue ([string]$Var)))
                         $null = $FilterQuery.Append(',')
                     }
                     $null = $FilterQuery.Remove($FilterQuery.Length - 1, 1) # Remove the last comma using the length of the string and the number of characters to remove
                     $null = $FilterQuery.Append(')')
                 }
                 else {
-                    $null = $FilterQuery.Append((ConvertTo-SendGridUriComponent """$($PSBoundParameters['Value'])"""))
+                    $null = $FilterQuery.Append((& $ConvertToFilterValue ([string]$PSBoundParameters['Value'])))
                 }
             }
             elseif ($PSBoundParameters.ContainsKey('GT') -or $PSBoundParameters.ContainsKey('LT')) {

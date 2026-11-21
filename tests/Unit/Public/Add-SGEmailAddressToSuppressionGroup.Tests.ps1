@@ -45,6 +45,26 @@ Describe 'Add-SGEmailAddressToSuppressionGroup request' {
         }
     }
 
+    It 'Sends one address as a JSON array of one' {
+        InModuleScope SendGridTools {
+            $null = Add-SGEmailAddressToSuppressionGroup -UniqueId 1001 -EmailAddresses 'one@example.com' -Confirm:$false
+
+            $Body = (Get-SgtNetworkCall)[0].Body
+            $Body | Should -Match '"recipient_emails"\s*:\s*\['
+            @(($Body | ConvertFrom-Json).recipient_emails) | Should -Be @('one@example.com')
+        }
+    }
+
+    It 'Sends two addresses as a JSON array of two' {
+        InModuleScope SendGridTools {
+            $null = Add-SGEmailAddressToSuppressionGroup -UniqueId 1001 -EmailAddresses 'one@example.com', 'two@example.com' -Confirm:$false
+
+            $Body = (Get-SgtNetworkCall)[0].Body
+            $Body | Should -Match '"recipient_emails"\s*:\s*\['
+            @(($Body | ConvertFrom-Json).recipient_emails).Count | Should -Be 2
+        }
+    }
+
     It 'Makes one call per id piped in' {
         InModuleScope SendGridTools {
             $null = 1001, 1002 | Add-SGEmailAddressToSuppressionGroup -EmailAddresses 'one@example.com' -Confirm:$false

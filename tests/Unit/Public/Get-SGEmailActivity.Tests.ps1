@@ -236,8 +236,8 @@ Describe 'Get-SGEmailActivity binds -Value for a key, group or teammate property
     It 'Sends <Property> with one value as <QueryOne> and looks up <ExpectedLookups> time(s)' -ForEach @(
         @{ Property = 'ApiKeyId'; Values = @('sgt-key-id-1'); QueryOne = '(api_key_id %3D %22sgt-key-id-1%22)'; ExpectedLookups = 0; Lookup = 'Get-SGApiKey' }
         @{ Property = 'ApiKeyName'; Values = @('sgt-key-name-1'); QueryOne = '(api_key_id %3D %22sgt-key-id-1%22)'; ExpectedLookups = 1; Lookup = 'Get-SGApiKey' }
-        @{ Property = 'AsmGroupId'; Values = @('101'); QueryOne = '(asm_group_id %3D %22101%22)'; ExpectedLookups = 0; Lookup = 'Get-SGSuppressionGroup' }
-        @{ Property = 'AsmGroupName'; Values = @('sgt-group-name-1'); QueryOne = '(asm_group_id %3D %22101%22)'; ExpectedLookups = 1; Lookup = 'Get-SGSuppressionGroup' }
+        @{ Property = 'AsmGroupId'; Values = @('101'); QueryOne = '(asm_group_id %3D 101)'; ExpectedLookups = 0; Lookup = 'Get-SGSuppressionGroup' }
+        @{ Property = 'AsmGroupName'; Values = @('sgt-group-name-1'); QueryOne = '(asm_group_id %3D 101)'; ExpectedLookups = 1; Lookup = 'Get-SGSuppressionGroup' }
         @{ Property = 'Teammate'; Values = @('sgt-teammate-1'); QueryOne = '(teammate %3D %22sgt-teammate-1%22)'; ExpectedLookups = 0; Lookup = 'Get-SGTeammate' }
     ) {
         InModuleScope SendGridTools -Parameters @{ Property = $Property; Values = $Values; QueryOne = $QueryOne } {
@@ -255,8 +255,8 @@ Describe 'Get-SGEmailActivity binds -Value for a key, group or teammate property
     It 'Sends <Property> with two values as <QueryTwo> and looks up <ExpectedLookups> time(s)' -ForEach @(
         @{ Property = 'ApiKeyId'; Values = @('sgt-key-id-1', 'sgt-key-id-2'); QueryTwo = '(api_key_id IN (%22sgt-key-id-1%22,%22sgt-key-id-2%22))'; ExpectedLookups = 0; Lookup = 'Get-SGApiKey' }
         @{ Property = 'ApiKeyName'; Values = @('sgt-key-name-1', 'sgt-key-name-2'); QueryTwo = '(api_key_id IN (%22sgt-key-id-1%22,%22sgt-key-id-2%22))'; ExpectedLookups = 1; Lookup = 'Get-SGApiKey' }
-        @{ Property = 'AsmGroupId'; Values = @('101', '102'); QueryTwo = '(asm_group_id IN (%22101%22,%22102%22))'; ExpectedLookups = 0; Lookup = 'Get-SGSuppressionGroup' }
-        @{ Property = 'AsmGroupName'; Values = @('sgt-group-name-1', 'sgt-group-name-2'); QueryTwo = '(asm_group_id IN (%22101%22,%22102%22))'; ExpectedLookups = 1; Lookup = 'Get-SGSuppressionGroup' }
+        @{ Property = 'AsmGroupId'; Values = @('101', '102'); QueryTwo = '(asm_group_id IN (101,102))'; ExpectedLookups = 0; Lookup = 'Get-SGSuppressionGroup' }
+        @{ Property = 'AsmGroupName'; Values = @('sgt-group-name-1', 'sgt-group-name-2'); QueryTwo = '(asm_group_id IN (101,102))'; ExpectedLookups = 1; Lookup = 'Get-SGSuppressionGroup' }
         @{ Property = 'Teammate'; Values = @('sgt-teammate-1', 'sgt-teammate-2'); QueryTwo = '(teammate IN (%22sgt-teammate-1%22,%22sgt-teammate-2%22))'; ExpectedLookups = 0; Lookup = 'Get-SGTeammate' }
     ) {
         InModuleScope SendGridTools -Parameters @{ Property = $Property; Values = $Values; QueryTwo = $QueryTwo } {
@@ -268,6 +268,54 @@ Describe 'Get-SGEmailActivity binds -Value for a key, group or teammate property
         Should -Invoke -CommandName $Lookup -ModuleName SendGridTools -Times $ExpectedLookups -Exactly
         foreach ($Other in @('Get-SGApiKey', 'Get-SGSuppressionGroup', 'Get-SGTeammate') | Where-Object { $_ -ne $Lookup }) {
             Should -Invoke -CommandName $Other -ModuleName SendGridTools -Times 0 -Exactly
+        }
+    }
+
+    It 'Sends Clicks -EQ <Value> as a bare number' -ForEach @(
+        @{ Value = 3; Query = '(clicks %3D 3)' }
+        @{ Value = 0; Query = '(clicks %3D 0)' }
+    ) {
+        InModuleScope SendGridTools -Parameters @{ Value = $Value; Query = $Query } {
+            $null = @(Get-SGEmailActivity -Property Clicks -EQ -Value $Value)
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Calls[0].Uri.OriginalString | Should -BeExactly ('https://api.sendgrid.com/v3/messages?limit=10&query=' + $Query)
+        }
+    }
+
+    It 'Keeps a non-numeric AsmGroupId value quoted' {
+        InModuleScope SendGridTools {
+            $null = @(Get-SGEmailActivity -Property AsmGroupId -EQ -Value 'x1')
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Calls[0].Uri.OriginalString | Should -BeExactly 'https://api.sendgrid.com/v3/messages?limit=10&query=(asm_group_id %3D %22x1%22)'
+        }
+    }
+
+    It 'Keeps a signed AsmGroupId value quoted' {
+        InModuleScope SendGridTools {
+            $null = @(Get-SGEmailActivity -Property AsmGroupId -EQ -Value '-5')
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Calls[0].Uri.OriginalString | Should -BeExactly 'https://api.sendgrid.com/v3/messages?limit=10&query=(asm_group_id %3D %22-5%22)'
+        }
+    }
+
+    It 'Keeps a mixed AsmGroupId list quoted per value' {
+        InModuleScope SendGridTools {
+            $null = @(Get-SGEmailActivity -Property AsmGroupId -EQ -Value '17', 'x1')
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Calls[0].Uri.OriginalString | Should -BeExactly 'https://api.sendgrid.com/v3/messages?limit=10&query=(asm_group_id IN (17,%22x1%22))'
+        }
+    }
+
+    It 'Keeps Subject quoted even when the value is a number' {
+        InModuleScope SendGridTools {
+            $null = @(Get-SGEmailActivity -Property Subject -EQ -Value '17')
+            $Calls = Get-SgtNetworkCall
+            $Calls.Count | Should -Be 1
+            $Calls[0].Uri.OriginalString | Should -BeExactly 'https://api.sendgrid.com/v3/messages?limit=10&query=(subject %3D %2217%22)'
         }
     }
 
@@ -327,7 +375,7 @@ Describe 'Get-SGEmailActivity binds -Value for a key, group or teammate property
 
     It 'Sends <Property> with -NE and two names as <QueryTwo> with one lookup' -ForEach @(
         @{ Property = 'ApiKeyName'; Values = @('sgt-key-name-1', 'sgt-key-name-2'); QueryTwo = '(api_key_id NOT%20IN (%22sgt-key-id-1%22,%22sgt-key-id-2%22))'; Lookup = 'Get-SGApiKey' }
-        @{ Property = 'AsmGroupName'; Values = @('sgt-group-name-1', 'sgt-group-name-2'); QueryTwo = '(asm_group_id NOT%20IN (%22101%22,%22102%22))'; Lookup = 'Get-SGSuppressionGroup' }
+        @{ Property = 'AsmGroupName'; Values = @('sgt-group-name-1', 'sgt-group-name-2'); QueryTwo = '(asm_group_id NOT%20IN (101,102))'; Lookup = 'Get-SGSuppressionGroup' }
     ) {
         InModuleScope SendGridTools -Parameters @{ Property = $Property; Values = $Values; QueryTwo = $QueryTwo } {
             $null = @(Get-SGEmailActivity -Property $Property -NE -Value $Values)

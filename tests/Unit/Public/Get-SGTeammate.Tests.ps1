@@ -38,13 +38,14 @@ foreach (`$Call in `$global:SgtNetworkCall) { 'path {0}' -f ([uri]`$Call.Uri).Ab
     It 'Sends one request to /v3/teammates without -Username' {
         $Script = @'
 try { $null = Get-SGTeammate } catch { 'threw {0}' -f $_.Exception.GetType().FullName }
-foreach ($Call in $global:SgtNetworkCall) { 'path {0}' -f ([uri]$Call.Uri).AbsolutePath }
+foreach ($Call in $global:SgtNetworkCall) { 'path {0}' -f ([uri]$Call.Uri).AbsolutePath; 'query {0}' -f ([uri]$Call.Uri).Query }
 '@
         $Run = Invoke-SgtInCountingHost -Script $Script -AnswerJson '{"result":[]}'
 
         @($Run.Output | Where-Object { $_ -like 'threw *' }).Count | Should -Be 0
         $Run.NetworkCallCount | Should -Be 1
         @($Run.Output | Where-Object { $_ -like 'path *' }) | Should -Be @('path /v3/teammates')
+        @($Run.Output | Where-Object { $_ -like 'query *' }) | Should -Be @('query ?limit=50&offset=0')
         $Run.UnmockedCall | Should -BeNullOrEmpty
     }
 }
@@ -137,7 +138,73 @@ Describe 'Get-SGTeammate refuses an empty -Username (D116)' {
 
             $Calls = @(Get-SgtNetworkCall)[0]
             $Calls.Count | Should -Be 1
-            "$($Calls[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/teammates'
+            # D192: this test pinned the single-page request; the first page now carries limit and offset.
+            "$($Calls[0].Uri)" | Should -Be 'https://api.sendgrid.com/v3/teammates?limit=50&offset=0'
+        }
+    }
+}
+
+Describe 'Get-SGTeammate reads every page (D192)' {
+    BeforeEach {
+        InModuleScope SendGridTools -Parameters @{ Cred = $script:Cred } {
+            $script:Session = New-SgtTestSession -Credential $Cred -AgeHours 0
+            # Answers { result = [...] } pages of invented teammates user-1 .. user-N from limit and offset in the logged Uri.
+            $global:SgtTeammateTotal = 51
+            $global:SgtTeammateIgnoreOffset = $false
+            $global:SgtNetworkCall.Clear()
+            $global:SgtNetworkStub = {
+                $Uri = "$($global:SgtNetworkCall[-1].Uri)"
+                if ($global:SgtNetworkCall.Count -gt 20) { throw 'Teammate stub call cap reached: 20 calls' }
+                $Limit = [int][regex]::Match($Uri, '[?&]limit=(\d+)').Groups[1].Value
+                $Offset = 0
+                if (-not $global:SgtTeammateIgnoreOffset) { $Offset = [int][regex]::Match($Uri, '[?&]offset=(\d+)').Groups[1].Value }
+                $Page = @(for ($n = $Offset + 1; $n -le [math]::Min($Offset + $Limit, $global:SgtTeammateTotal); $n++) { [pscustomobject]@{ username = "user-$n" } })
+                [pscustomobject]@{ result = $Page }
+            }
+        }
+    }
+
+    AfterEach {
+        InModuleScope SendGridTools {
+            $script:Session = $null
+            Reset-SgtNetworkStub
+            $global:SgtTeammateTotal = $null
+            $global:SgtTeammateIgnoreOffset = $null
+        }
+    }
+
+    It 'Reads two pages and returns every teammate' {
+        InModuleScope SendGridTools {
+            $Out = @(Get-SGTeammate)
+
+            $Out.Count | Should -Be 51
+            @($Out.Username | Select-Object -Unique).Count | Should -Be 51
+            $Calls = @(Get-SgtNetworkCall)[0]
+            $Calls.Count | Should -Be 2
+            @($Calls | ForEach-Object { [int][regex]::Match("$($_.Uri)", 'offset=(\d+)').Groups[1].Value }) | Should -Be @(0, 50)
+            foreach ($Call in $Calls) { "$($Call.Uri)" | Should -BeLike 'https://api.sendgrid.com/v3/teammates?limit=50&offset=*' }
+        }
+    }
+
+    It 'Stops when the server ignores offset' {
+        InModuleScope SendGridTools {
+            $global:SgtTeammateTotal = 60
+            $global:SgtTeammateIgnoreOffset = $true
+
+            $Out = @(Get-SGTeammate)
+
+            $Out.Count | Should -Be 50
+            @(Get-SgtNetworkCall)[0].Count | Should -Be 2
+        }
+    }
+
+    It 'Sends -OnBehalfOf on every page' {
+        InModuleScope SendGridTools {
+            $null = Get-SGTeammate -OnBehalfOf 'user-placeholder'
+
+            $Calls = @(Get-SgtNetworkCall)[0]
+            $Calls.Count | Should -Be 2
+            foreach ($Call in $Calls) { $Call.Headers['on-behalf-of'] | Should -Be 'user-placeholder' }
         }
     }
 }

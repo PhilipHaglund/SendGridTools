@@ -59,7 +59,7 @@
         Specifies the attachment(s) to be included in the email.
 
     .PARAMETER Priority
-        Specifies the email priority. Valid values are 'Low', 'Normal', and 'High'.
+        Specifies the email priority. Valid values are 'Low', 'Normal', and 'High'. SendGrid has no priority field, so the value is sent as the message headers X-Priority, Importance and Priority: High sends 1, high and urgent, Normal sends 3, normal and normal, Low sends 5, low and non-urgent. The headers apply to every personalization, also with -SeparateTo.
 
     .PARAMETER SeparateTo
         Specifies if Separate To should be used.
@@ -201,7 +201,7 @@
         [Alias('Attachments')]
         [System.Net.Mail.Attachment[]]$Attachment,
 
-        # Specifies the email priority. Valid values are 'Low', 'Normal', and 'High'.
+        # Specifies the email priority. Valid values are 'Low', 'Normal', and 'High'. SendGrid has no priority field, so the value is sent as the message headers X-Priority, Importance and Priority: High sends 1, high and urgent, Normal sends 3, normal and normal, Low sends 5, low and non-urgent. The headers apply to every personalization, also with -SeparateTo.
         [Parameter(ParameterSetName = 'Default')]
         [Parameter(ParameterSetName = 'SeparateTo')]
         [Alias('Importance')]
@@ -361,7 +361,17 @@
                     ))
             }
             if ($PSBoundParameters.ContainsKey('Priority')) {
-                $ContentBody.Add('priority', $Priority)
+                # SendGrid has no priority field; message headers are the documented place.
+                $PriorityHeader = switch ($Priority) {
+                    'High' { @('1', 'high', 'urgent') }
+                    'Normal' { @('3', 'normal', 'normal') }
+                    'Low' { @('5', 'low', 'non-urgent') }
+                }
+                $ContentBody.Add('headers', [ordered]@{
+                        'X-Priority' = $PriorityHeader[0]
+                        'Importance' = $PriorityHeader[1]
+                        'Priority'   = $PriorityHeader[2]
+                    })
             }
             if ($PSBoundParameters.ContainsKey('SendAt')) {
                 $ContentBody.Add('send_at', $SendAt.ToUnixTime())

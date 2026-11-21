@@ -49,7 +49,7 @@
         $InvokeSplat = @{
             Method        = 'Post'
             Namespace     = "asm/groups/$UniqueId/suppressions"
-            ContentBody   = @{ recipient_emails = $EmailAddresses | ForEach-Object { $_.Address } }
+            ContentBody   = @{ recipient_emails = @($EmailAddresses | ForEach-Object { $_.Address }) }
             ErrorAction   = 'Stop'
             CallingCmdlet = $PSCmdlet.MyInvocation.MyCommand.Name
         }
