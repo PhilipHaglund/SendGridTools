@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-11-21
+
 ### Changed
 
 - After a session has expired, the following commands say `The SendGrid session has expired. Run Connect-SendGrid -Force to reconnect.`, until `Connect-SendGrid` or `Disconnect-SendGrid` is run. A failed `Connect-SendGrid` also removes the session. Before, only the first command said so; the following commands said `You must call the Connect-SendGrid cmdlet before calling any other cmdlets.`, as if `Connect-SendGrid` had never been run.
@@ -230,7 +232,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - First release: connect to SendGrid, manage API keys, authenticated domains and branded links, and send mail with `Send-SGMailMessage`.
 
-[Unreleased]: https://github.com/PhilipHaglund/SendGridTools/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/PhilipHaglund/SendGridTools/compare/v0.7.1...HEAD
+[0.7.1]: https://github.com/PhilipHaglund/SendGridTools/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/PhilipHaglund/SendGridTools/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/PhilipHaglund/SendGridTools/compare/v0.5.2...v0.6.0
 [0.5.2]: https://github.com/PhilipHaglund/SendGridTools/compare/v0.5.1...v0.5.2
